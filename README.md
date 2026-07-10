@@ -25,6 +25,19 @@ python3 -m http.server 4200 --directory ~/sunday-funday
 # then visit http://localhost:4200
 ```
 
+## Publishing to the league
+
+The site is hosted free on GitHub Pages at
+https://mheinlen31.github.io/sunday-funday/ — it serves whatever is on the
+`main` branch. To refresh ESPN values and push the update in one step:
+
+```bash
+scripts/publish.sh
+```
+
+(Or run the refresh script below, then commit & push `js/data.js` from
+GitHub Desktop like any other change.)
+
 ## Refreshing keeper values
 
 ESPN auction values drift all offseason. To pull the latest and recompute prices:
