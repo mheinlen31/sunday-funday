@@ -1,0 +1,9 @@
+# league source files stay local — the site only needs js/data.js
+*.xlsx
+*.doc
+data/
+
+.DS_Store
+firebase-debug.log
+node_modules/
+__pycache__/

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunday Funday — 2026 Keeper Values</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="kicker">Fantasy Football · Offseason</p>
+    <h1>Sunday Funday</h1>
+    <p class="deck"><span id="season"></span> Keeper Values</p>
+    <p class="updated">ESPN market values as of <span id="updated"></span></p>
+  </div>
+</header>
+
+<section class="strip" id="bargains-strip">
+  <div class="strip-bar">
+    <h2 class="strip-title">Best Keeper Bargains</h2>
+    <button id="math-toggle" class="math-toggle" type="button">Show the math</button>
+  </div>
+  <div class="strip-scroll" id="bargains"></div>
+</section>
+
+<main class="team-grid" id="teams"></main>
+
+<footer class="legend">
+  <h3>How to read this</h3>
+  <ul>
+    <li><strong>Click any player</strong> to add him to that team's keeper plan. Keeping is discretionary — nobody has to keep anyone. Plans save in your browser; "clear" resets a team.</li>
+    <li><strong>Cap math</strong> — keepers come out of a $100 budget. Going over costs a $2 luxury tax per $1 over, and everything is deducted from that team's auction purse (shown as "draft budget").</li>
+    <li><strong>The price</strong> is what it costs to keep the player, per the Manifesto: FA pickups at ESPN market value; drafted players at the average of last year's cost and market (or cost + $10 if market jumped more than $10). Previously-kept players re-sign 2-year deals at +$5 per year. Fractional results round down to whole dollars.</li>
+    <li><span class="badge badge-contract">Signed for '26</span> — already kept: the contract was signed last year, the price is locked, and it always counts against the cap. These players sit in their own group at the top and can't be toggled.</li>
+    <li><span class="badge badge-deal">Re-sign 2 yrs</span> — a former contract player who can be kept again at the fixed price shown (+$5 per year, new 2-year deal). Optional, like any keeper.</li>
+    <li><span class="delta pos">+$8</span> / <span class="delta neg">−$8</span> — value vs. market: green means keeping him costs less than he'd go for at auction.</li>
+    <li><strong>Show the math</strong> reveals the inputs: last year's draft cost, current market value, and next season's contract price.</li>
+  </ul>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
