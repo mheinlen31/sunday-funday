@@ -67,6 +67,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
+.updated .stale { color: var(--bad); font-weight: 700; }
 
 /* ---------- team quick-nav ---------- */
 .teamnav {
@@ -91,6 +92,7 @@ body {
 }
 .navchip:hover { border-color: var(--accent); color: var(--accent); }
 .navchip b { color: var(--gold); margin-left: 6px; font-weight: 800; }
+.navchip-all { border-style: dashed; color: var(--ink-faint); font-weight: 600; }
 .team-card { scroll-margin-top: 12px; }
 
 /* ---------- bargains strip ---------- */
@@ -144,7 +146,9 @@ body {
   border: 1px solid var(--rule);
   border-top: 3px solid var(--accent);
   padding: 8px 14px 8px 8px;
+  cursor: pointer;
 }
+.bargain-card:hover { border-color: var(--accent); }
 .bargain-card .mug {
   width: 52px; height: 38px;
   object-fit: contain;
@@ -176,7 +180,9 @@ body {
   border-radius: 3px;
   padding: 3px 9px;
   white-space: nowrap;
+  cursor: pointer;
 }
+.move:hover { border-color: var(--accent); }
 .move b { font-weight: 700; }
 .move.up b { color: var(--good); }
 .move.down b { color: var(--bad); }
@@ -398,6 +404,13 @@ body.show-math .pmath { display: block; }
 .delta.pos { color: var(--good); }
 .delta.neg { color: var(--bad); }
 .delta.zero { color: var(--ink-faint); font-weight: 500; }
+
+/* row flash after jumping from a strip chip */
+@keyframes flashrow {
+  0%, 40% { background: #fbedb7; }
+  100% { background: transparent; }
+}
+.prow.flash { animation: flashrow 1.8s ease-out; }
 
 /* keep tick */
 .tick {

@@ -13,6 +13,11 @@
     new Date(D.generated).toLocaleString(undefined, {
       month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
     });
+  // flag it if the daily refresh has silently stopped
+  if (Date.now() - new Date(D.generated).getTime() > 48 * 3600e3) {
+    document.querySelector('.updated').insertAdjacentHTML('beforeend',
+      ' <span class="stale">· refresh overdue — values may be out of date</span>');
+  }
 
   const money = (v) => (v == null ? '—' : '$' + v);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
@@ -179,17 +184,47 @@
   const teamsEl = document.getElementById('teams');
   teamsEl.innerHTML = D.teams.map(teamHtml).join('');
 
+  // jump to a team card (opening it), optionally flashing one player's row
+  function jumpTo(ti, playerName) {
+    setOpen(ti, true);
+    const card = document.getElementById('team-' + ti);
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!playerName) return;
+    const row = [...card.querySelectorAll('.prow')].find(
+      (r) => r.querySelector('.pname').textContent === playerName);
+    if (row) {
+      row.classList.remove('flash');
+      void row.offsetWidth; // restart the animation
+      row.classList.add('flash');
+    }
+  }
+
   // team quick-nav: name + committed contract dollars; jumping opens the card
   const navEl = document.getElementById('teamnav');
   navEl.innerHTML = D.teams.map((t, ti) => {
     const committed = t.players.reduce((s, p) => s + (isContract(p) ? p.price : 0), 0);
     return `<a class="navchip" href="#team-${ti}" data-ti="${ti}">${esc(t.name)}${
       committed ? `<b>$${committed}</b>` : ''}</a>`;
-  }).join('');
+  }).join('') + '<a class="navchip navchip-all" href="#" id="toggle-all"></a>';
+
+  const toggleAll = document.getElementById('toggle-all');
+  const anyCollapsed = () =>
+    document.querySelectorAll('.team-card.collapsed').length > 0;
+  const relabelAll = () => {
+    toggleAll.textContent = anyCollapsed() ? 'open all' : 'close all';
+  };
   navEl.addEventListener('click', (e) => {
+    if (e.target.closest('#toggle-all')) {
+      e.preventDefault();
+      const open = anyCollapsed();
+      D.teams.forEach((_, ti) => setOpen(ti, open));
+      relabelAll();
+      return;
+    }
     const chip = e.target.closest('.navchip');
-    if (chip) setOpen(+chip.dataset.ti, true);
+    if (chip) { setOpen(+chip.dataset.ti, true); relabelAll(); }
   });
+  relabelAll();
 
   teamsEl.addEventListener('click', (e) => {
     // header click (not the links) opens/closes the roster
@@ -197,6 +232,7 @@
     if (head && !e.target.closest('.copy, .reset')) {
       const ti = +head.closest('.team-card').dataset.ti;
       setOpen(ti, head.closest('.team-card').classList.contains('collapsed'));
+      relabelAll();
       return;
     }
     const copy = e.target.closest('.copy');
@@ -274,23 +310,31 @@
     .sort((a, b) => b.d.localeCompare(a.d) ||
       Math.abs(b.to - b.from) - Math.abs(a.to - a.from));
   if (moves.length) {
-    movesEl.innerHTML = moves.map((m) => `
-      <span class="move ${m.to > m.from ? 'up' : 'down'}" title="${esc(m.team)} · ${esc(m.d)}">
+    movesEl.innerHTML = moves.map((m) => {
+      const ti = D.teams.findIndex((t) => t.name === m.team);
+      return `<span class="move ${m.to > m.from ? 'up' : 'down'}" data-ti="${ti}"
+        data-player="${esc(m.name)}" title="${esc(m.team)} · ${esc(m.d)}">
         ${esc(m.name)} <b>${m.to > m.from ? '▲' : '▼'} $${m.from} → $${m.to}</b>
-      </span>`).join('');
+      </span>`;
+    }).join('');
+    movesEl.addEventListener('click', (e) => {
+      const chip = e.target.closest('.move');
+      if (chip && +chip.dataset.ti >= 0) jumpTo(+chip.dataset.ti, chip.dataset.player);
+    });
   } else {
     movesEl.innerHTML = '<span class="no-moves">No keeper-price changes in the last 7 days.</span>';
   }
 
   // ---- best bargains ----
-  const all = D.teams.flatMap((t) =>
-    t.players.map((p) => ({ ...p, team: t.name })));
+  const all = D.teams.flatMap((t, ti) =>
+    t.players.map((p) => ({ ...p, team: t.name, ti })));
   const bargains = all
     .filter((p) => p.surplus > 0)
     .sort((a, b) => b.surplus - a.surplus)
     .slice(0, 10);
-  document.getElementById('bargains').innerHTML = bargains.map((p) => `
-    <div class="bargain-card">
+  const bargainsEl = document.getElementById('bargains');
+  bargainsEl.innerHTML = bargains.map((p) => `
+    <div class="bargain-card" data-ti="${p.ti}" data-player="${esc(p.name)}">
       <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
            onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
       <div>
@@ -299,5 +343,9 @@
         <div class="b-line">keep ${money(p.price)} · worth ${money(p.market)} · <strong>+$${p.surplus}</strong></div>
       </div>
     </div>`).join('');
+  bargainsEl.addEventListener('click', (e) => {
+    const card = e.target.closest('.bargain-card');
+    if (card) jumpTo(+card.dataset.ti, card.dataset.player);
+  });
   if (!bargains.length) document.getElementById('bargains-strip').style.display = 'none';
 })();
