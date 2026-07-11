@@ -177,16 +177,39 @@
            onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">`).join('')}</div>`;
   }
 
+  // "my team": starred team pins first and auto-opens
+  const FAV_KEY = 'sf-fav-' + D.season;
+  let fav = localStorage.getItem(FAV_KEY);
+  fav = fav === null || isNaN(+fav) ? null : +fav;
+
   function teamHtml(t, ti) {
-    return `<article class="team-card${openTeams.has(ti) ? '' : ' collapsed'}"
+    const isFav = ti === fav;
+    return `<article class="team-card${openTeams.has(ti) ? '' : ' collapsed'}${isFav ? ' fav' : ''}"
         id="team-${ti}" data-ti="${ti}" style="--tc:${TEAM_COLORS[ti % 10]}">
       <div class="team-head">
-        <h2 class="team-name"><span class="caret"></span>${esc(t.name)}</h2>
+        <h2 class="team-name"><span class="caret"></span>${esc(t.name)}
+          <button class="favstar" type="button"
+            title="Pin as my team">${isFav ? '★' : '☆'}</button></h2>
         ${mugRowHtml(t)}
         <div class="team-meta" id="meta-${ti}">${summaryHtml(t)}</div>
       </div>
       <div class="roster" id="roster-${ti}">${rosterHtml(t, ti)}</div>
     </article>`;
+  }
+
+  function applyFav(ti) {
+    fav = ti;
+    if (ti === null) localStorage.removeItem(FAV_KEY);
+    else localStorage.setItem(FAV_KEY, String(ti));
+    document.querySelectorAll('.team-card').forEach((c) => {
+      const mine = +c.dataset.ti === ti;
+      c.classList.toggle('fav', mine);
+      c.querySelector('.favstar').textContent = mine ? '★' : '☆';
+    });
+    document.querySelectorAll('.navchip[data-ti]').forEach((ch) => {
+      ch.classList.toggle('fav', +ch.dataset.ti === ti);
+    });
+    if (ti !== null) setOpen(ti, true);
   }
 
   function refreshTeam(ti) {
@@ -248,8 +271,59 @@
     relabelAll();
   }
 
+  // my team auto-opens every visit
+  if (fav !== null && D.teams[fav]) {
+    applyFav(fav);
+    relabelAll();
+  }
+
+  // ---- player search ----
+  const searchIndex = D.teams.flatMap((t, ti) =>
+    t.players.map((p) => ({ name: p.name, pos: p.pos, price: p.price,
+      team: t.name, ti, owned: true })))
+    .concat((D.pool || []).map((p) => ({ name: p.name, pos: p.pos,
+      price: p.market, team: null, ti: null, owned: false })));
+  const searchEl = document.getElementById('psearch');
+  const resultsEl = document.getElementById('search-results');
+  function hideResults() { resultsEl.hidden = true; resultsEl.innerHTML = ''; }
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim().toLowerCase();
+    if (q.length < 2) return hideResults();
+    const hits = searchIndex
+      .filter((p) => p.name.toLowerCase().includes(q))
+      .slice(0, 8);
+    if (!hits.length) return hideResults();
+    resultsEl.innerHTML = hits.map((p, i) => `
+      <div class="search-hit" data-i="${searchIndex.indexOf(p)}">
+        <span class="hit-name">${esc(p.name)}</span>
+        <span class="hit-sub">${esc(p.pos)} · ${p.owned ? esc(p.team) : 'Available'} · $${p.price}</span>
+      </div>`).join('');
+    resultsEl.hidden = false;
+  });
+  resultsEl.addEventListener('click', (e) => {
+    const hit = e.target.closest('.search-hit');
+    if (!hit) return;
+    const p = searchIndex[+hit.dataset.i];
+    searchEl.value = '';
+    hideResults();
+    if (p.owned) jumpTo(p.ti, p.name);
+    else window.location.href = 'adp.html';
+  });
+  searchEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { searchEl.value = ''; hideResults(); }
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.searchwrap')) hideResults();
+  });
+
   teamsEl.addEventListener('click', (e) => {
     // header click (not the links) opens/closes the roster
+    const star = e.target.closest('.favstar');
+    if (star) {
+      const ti = +star.closest('.team-card').dataset.ti;
+      applyFav(fav === ti ? null : ti);
+      return;
+    }
     const head = e.target.closest('.team-head');
     if (head && !e.target.closest('.copy, .reset')) {
       const ti = +head.closest('.team-card').dataset.ti;

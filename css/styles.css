@@ -121,6 +121,40 @@ body {
 .navchip:hover { border-color: var(--accent); color: var(--accent); }
 .navchip b { color: var(--gold); margin-left: 6px; font-weight: 800; }
 .navchip-all { border-style: dashed; color: var(--ink-faint); font-weight: 600; }
+.navchip.fav::before { content: '★ '; color: var(--gold); }
+
+/* player search */
+.searchwrap { position: relative; }
+#psearch {
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+  width: 170px;
+}
+#psearch:focus { outline: none; border-color: var(--accent); }
+#search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 250px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+}
+.search-hit {
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--rule);
+}
+.search-hit:last-child { border-bottom: none; }
+.search-hit:hover { background: #f5f3ef; }
+.hit-name { font-weight: 700; font-size: 13px; display: block; }
+.hit-sub { font-size: 11px; color: var(--ink-faint); }
 .teamdot {
   display: inline-block;
   width: 8px; height: 8px;
@@ -129,6 +163,19 @@ body {
   vertical-align: 0.5px;
 }
 .team-card { scroll-margin-top: 12px; }
+.team-card.fav { order: -1; }
+.favstar {
+  background: none;
+  border: none;
+  font-size: 19px;
+  line-height: 1;
+  color: #c9c4bb;
+  cursor: pointer;
+  padding: 0 2px;
+  vertical-align: 1px;
+}
+.favstar:hover { color: var(--gold); }
+.team-card.fav .favstar { color: var(--gold); }
 
 /* ---------- bargains strip ---------- */
 .strip {
