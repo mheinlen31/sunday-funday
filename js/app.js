@@ -164,11 +164,25 @@
       ${options.join('') || '<div class="empty-note">Everyone\'s in the plan.</div>'}`;
   }
 
+  // one signature color per franchise — used on the card, its nav chip,
+  // and the collapsed header
+  const TEAM_COLORS = ['#0d5c3f', '#8a1f1b', '#1f5fa8', '#b08d2f', '#5b3a8c',
+    '#0f7b8a', '#c05a17', '#3d6d1f', '#7d2f52', '#444a56'];
+
+  function mugRowHtml(t) {
+    const stars = [...t.players].sort((a, b) => b.price - a.price).slice(0, 5);
+    return `<div class="mugrow">${stars.map((p) => `
+      <img class="minimug" src="${esc(p.img || FALLBACK_IMG)}" alt=""
+           title="${esc(p.name)} · $${p.price}" loading="lazy"
+           onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">`).join('')}</div>`;
+  }
+
   function teamHtml(t, ti) {
     return `<article class="team-card${openTeams.has(ti) ? '' : ' collapsed'}"
-        id="team-${ti}" data-ti="${ti}">
+        id="team-${ti}" data-ti="${ti}" style="--tc:${TEAM_COLORS[ti % 10]}">
       <div class="team-head">
         <h2 class="team-name"><span class="caret"></span>${esc(t.name)}</h2>
+        ${mugRowHtml(t)}
         <div class="team-meta" id="meta-${ti}">${summaryHtml(t)}</div>
       </div>
       <div class="roster" id="roster-${ti}">${rosterHtml(t, ti)}</div>
@@ -203,7 +217,8 @@
   const navEl = document.getElementById('teamnav');
   navEl.innerHTML = D.teams.map((t, ti) => {
     const committed = t.players.reduce((s, p) => s + (isContract(p) ? p.price : 0), 0);
-    return `<a class="navchip" href="#team-${ti}" data-ti="${ti}">${esc(t.name)}${
+    return `<a class="navchip" href="#team-${ti}" data-ti="${ti}">
+      <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(t.name)}${
       committed ? `<b>$${committed}</b>` : ''}</a>`;
   }).join('') + '<a class="navchip navchip-all" href="#" id="toggle-all"></a>';
 

@@ -69,14 +69,23 @@ body {
 }
 .updated .stale { color: var(--bad); font-weight: 700; }
 
-/* ---------- team quick-nav ---------- */
-.teamnav {
+/* ---------- team quick-nav + controls ---------- */
+.topbar {
   max-width: 1280px;
   margin: 0 auto;
   padding: 14px 24px 0;
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.teamnav {
+  display: flex;
   flex-wrap: wrap;
   gap: 7px;
+}
+@media (max-width: 640px) {
+  .topbar { flex-direction: column; padding: 12px 12px 0; }
 }
 .navchip {
   font-size: 11.5px;
@@ -93,6 +102,13 @@ body {
 .navchip:hover { border-color: var(--accent); color: var(--accent); }
 .navchip b { color: var(--gold); margin-left: 6px; font-weight: 800; }
 .navchip-all { border-style: dashed; color: var(--ink-faint); font-weight: 600; }
+.teamdot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: 0.5px;
+}
 .team-card { scroll-margin-top: 12px; }
 
 /* ---------- bargains strip ---------- */
@@ -117,6 +133,7 @@ body {
 }
 .strip-actions { display: flex; gap: 8px; }
 .math-toggle {
+  white-space: nowrap;
   font-family: var(--sans);
   font-size: 11px;
   font-weight: 700;
@@ -209,7 +226,7 @@ body {
 .team-card {
   background: var(--card);
   border: 1px solid var(--rule);
-  border-top: 4px solid var(--rule-dark);
+  border-top: 4px solid var(--tc, var(--rule-dark));
 }
 .team-head {
   display: flex;
@@ -237,6 +254,24 @@ body {
 .team-card.collapsed .team-head { border-bottom: none; }
 .team-card.collapsed .team-meta .copy,
 .team-card.collapsed .team-meta .reset { display: none; }
+
+/* top-five headshots shown while a team is collapsed */
+.mugrow { display: none; }
+.team-card.collapsed .mugrow {
+  display: flex;
+  align-items: center;
+  margin: 0 4px;
+}
+.minimug {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 20%;
+  background: radial-gradient(ellipse at 50% 30%, #f0f1f3, #dde0e4);
+  border: 2px solid var(--card);
+  margin-left: -9px;
+}
+.minimug:first-child { margin-left: 0; }
 .team-name {
   font-family: var(--serif);
   font-size: 24px;

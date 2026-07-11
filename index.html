@@ -27,7 +27,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sunday Funday">
-<link rel="stylesheet" href="css/styles.css?v=202607102214">
+<link rel="stylesheet" href="css/styles.css?v=202607102220">
 </head>
 <body>
 <header class="masthead">
@@ -39,16 +39,18 @@
   </div>
 </header>
 
-<nav class="teamnav" id="teamnav"></nav>
+<div class="topbar">
+  <nav class="teamnav" id="teamnav"></nav>
+  <div class="strip-actions">
+    <button id="sort-toggle" class="math-toggle" type="button">Sort: position</button>
+    <button id="math-toggle" class="math-toggle" type="button">Show the math</button>
+  </div>
+</div>
+
+<main class="team-grid" id="teams"></main>
 
 <section class="strip" id="bargains-strip">
-  <div class="strip-bar">
-    <h2 class="strip-title">Best Keeper Bargains</h2>
-    <div class="strip-actions">
-      <button id="sort-toggle" class="math-toggle" type="button">Sort: position</button>
-      <button id="math-toggle" class="math-toggle" type="button">Show the math</button>
-    </div>
-  </div>
+  <h2 class="strip-title">Best Keeper Bargains</h2>
   <div class="strip-scroll" id="bargains"></div>
 </section>
 
@@ -56,8 +58,6 @@
   <h2 class="strip-title">Price Moves — Last 7 Days</h2>
   <div class="moves" id="moves"></div>
 </section>
-
-<main class="team-grid" id="teams"></main>
 
 <footer class="legend">
   <h3>How to read this</h3>
@@ -74,7 +74,7 @@
   </ul>
 </footer>
 
-<script src="js/data.js?v=202607102214"></script>
-<script src="js/app.js?v=202607102214"></script>
+<script src="js/data.js?v=202607102220"></script>
+<script src="js/app.js?v=202607102220"></script>
 </body>
 </html>
