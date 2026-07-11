@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0d5c3f">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="css/styles.css?v=202607110857">
+<link rel="stylesheet" href="css/styles.css?v=202607111402">
 </head>
 <body data-page="adp">
 <header class="masthead">
@@ -24,15 +24,22 @@
   </div>
 </header>
 
+<div class="board-toolbar">
+  <button id="group-toggle" class="math-toggle" type="button">Group: overall</button>
+  <button id="show-toggle" class="math-toggle" type="button">Show: everyone</button>
+</div>
+
 <main class="team-grid board" id="board"></main>
 
 <footer class="legend">
-  <p class="boardnote">Every owned player ordered by ESPN ADP — the average
-  auction value from ESPN Live Draft Results, refreshed daily. The green/red
-  number is value vs. his keeper price; "keep for" shows what he'd cost.</p>
+  <p class="boardnote">Everyone ordered by ESPN ADP — the average auction value
+  from ESPN Live Draft Results, refreshed daily. Owned players show their team,
+  what they'd cost to keep, and value vs. that price; players tagged
+  <span class="badge avail">Available</span> are unowned and headed to the
+  draft pool. Use the buttons to group by position or filter owned/available.</p>
 </footer>
 
-<script src="js/data.js?v=202607110857"></script>
-<script src="js/players.js?v=202607110857"></script>
+<script src="js/data.js?v=202607111402"></script>
+<script src="js/players.js?v=202607111402"></script>
 </body>
 </html>

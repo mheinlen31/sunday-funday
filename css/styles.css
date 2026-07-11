@@ -497,6 +497,16 @@ body.show-math .pmath { display: block; }
 .teamtag:hover { color: var(--accent); text-decoration: underline; }
 .teamtag .teamdot { margin-right: 5px; }
 .boardnote { font-size: 13px; padding-top: 12px; border-top: 3px solid var(--rule-dark); }
+.board-toolbar {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 14px 24px 0;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.badge.avail { border-style: dashed; color: var(--ink-faint); background: none; }
+.prow.unowned .pname { color: var(--ink-soft); }
 
 /* row flash after jumping from a strip chip */
 @keyframes flashrow {

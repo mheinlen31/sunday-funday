@@ -45,7 +45,13 @@
 
   function rowHtml(p, rank, amount, subline) {
     const posClass = 'pos-' + p.pos.replace('/', '');
-    return `<div class="prow static">
+    const whose = p.team
+      ? `<a class="teamtag" href="./#team-${p.ti}">
+           <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(p.team)}</a>
+         <span class="badge acq">${esc(p.acquired)}</span>`
+      : '<span class="badge avail">Available</span>';
+    const side = page === 'adp' ? (p.team ? deltaHtml(p) : '') : contractHtml(p);
+    return `<div class="prow static${p.team ? '' : ' unowned'}">
       <span class="rank">${rank}</span>
       <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
            onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
@@ -53,12 +59,10 @@
         <div class="pname">${esc(p.name)}</div>
         <div class="psub">
           <span class="pos ${posClass}">${esc(p.pos)}</span>
-          <a class="teamtag" href="./#team-${p.ti}">
-            <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(p.team)}</a>
-          <span class="badge acq">${esc(p.acquired)}</span>
+          ${whose}
         </div>
       </div>
-      <div class="pcontract">${page === 'adp' ? deltaHtml(p) : contractHtml(p)}</div>
+      <div class="pcontract">${side}</div>
       <div class="pkeep">
         <div class="pprice"><span class="amount">${money(amount)}</span></div>
         ${subline ? `<div class="pnext">${subline}</div>` : ''}
@@ -87,14 +91,51 @@
   }
 
   if (page === 'adp') {
-    const list = [...players].sort((a, b) => (b.market - a.market) ||
-      (b.price - a.price) || a.name.localeCompare(b.name));
-    const rows = list.map((p, i) => rowHtml(
-      p, i + 1, p.market, `keep for ${money(p.price)}`));
-    main.innerHTML = `<article class="team-card board-card">
-      <div class="team-head static"><h2 class="team-name">All Owned Players</h2>
-        <div class="team-meta">${list.length} players · by ESPN ADP</div></div>
-      <div class="roster">${rows.join('')}</div>
-    </article>`;
+    const universe = [
+      ...players.map((p) => ({ ...p, owned: true })),
+      ...(D.pool || []).map((p) => ({ ...p, owned: false })),
+    ];
+    let group = localStorage.getItem('sf-adp-group') === 'position' ? 'position' : 'overall';
+    let show = localStorage.getItem('sf-adp-show') || 'everyone';
+    if (!['everyone', 'owned', 'available'].includes(show)) show = 'everyone';
+
+    const adpRow = (p, i) => rowHtml(p, i + 1, p.market,
+      p.owned ? `keep for ${money(p.price)}` : '');
+
+    function cardHtml(title, list) {
+      return `<article class="team-card board-card">
+        <div class="team-head static"><h2 class="team-name">${esc(title)}</h2>
+          <div class="team-meta">${list.length} players · by ESPN ADP</div></div>
+        <div class="roster">${list.map(adpRow).join('')}</div>
+      </article>`;
+    }
+
+    function render() {
+      const list = universe
+        .filter((p) => show === 'everyone' ||
+          (show === 'owned' ? p.owned : !p.owned))
+        .sort((a, b) => (b.market - a.market) ||
+          ((b.price || 0) - (a.price || 0)) || a.name.localeCompare(b.name));
+      main.innerHTML = group === 'overall'
+        ? cardHtml('Overall', list)
+        : POS_ORDER.map((pos) => {
+            const g = list.filter((p) => p.pos === pos);
+            return g.length ? cardHtml(pos, g) : '';
+          }).join('');
+      document.getElementById('group-toggle').textContent = 'Group: ' + group;
+      document.getElementById('show-toggle').textContent = 'Show: ' + show;
+    }
+
+    document.getElementById('group-toggle').addEventListener('click', () => {
+      group = group === 'overall' ? 'position' : 'overall';
+      localStorage.setItem('sf-adp-group', group);
+      render();
+    });
+    document.getElementById('show-toggle').addEventListener('click', () => {
+      show = show === 'everyone' ? 'owned' : show === 'owned' ? 'available' : 'everyone';
+      localStorage.setItem('sf-adp-show', show);
+      render();
+    });
+    render();
   }
 })();

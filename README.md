@@ -21,7 +21,8 @@ team.
 
 - `index.html` — team-by-team keeper planner (the main page)
 - `positions.html` — every owned player grouped by position, priciest first
-- `adp.html` — every owned player ranked by ESPN ADP with keep price + value
+- `adp.html` — everyone ranked by ESPN ADP (owned + available players), with
+  overall/by-position grouping and an owned/available filter
 
 ## Viewing the site
 

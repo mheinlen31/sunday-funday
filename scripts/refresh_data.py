@@ -100,8 +100,21 @@ def fetch_espn():
         key = (norm_name(name), pos)
         # keep the highest AAV if a name collides
         if key not in market or aav > market[key]["aav"]:
-            market[key] = {"aav": aav, "id": p.get("id")}
+            market[key] = {"aav": aav, "id": p.get("id"), "name": name}
     return market
+
+
+def build_pool(market, owned_ids, limit=300):
+    """Unowned ESPN players worth showing on the ADP board."""
+    pool = []
+    for (_, pos), e in market.items():
+        if e["id"] in owned_ids or e["aav"] < 0.5:
+            continue
+        pool.append({"name": e["name"], "pos": pos,
+                     "market": max(1, round(e["aav"])),
+                     "img": player_img(e["name"], pos, e["id"])})
+    pool.sort(key=lambda p: -p["market"])
+    return pool[:limit]
 
 
 def lookup(market, name, pos):
@@ -227,6 +240,7 @@ def main():
     teams = read_rosters()
     market = fetch_espn()
     purses = read_purses()
+    owned_ids = set()
     for team in teams:
         team["purse"] = purses.get(team["name"])
         if team["purse"] is None:
@@ -241,6 +255,7 @@ def main():
                 mval = float(p["sheetMarket"] or 1)
                 p["img"] = player_img(p["name"], p["pos"], None)
             else:
+                owned_ids.add(entry["id"])
                 mval = max(1, round(entry["aav"]))
                 if espn_pos != p["pos"]:
                     print(f'note: {p["name"]} listed as {p["pos"]} in sheet, '
@@ -279,6 +294,7 @@ def main():
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "changeLog": changelog,
         "teams": teams,
+        "pool": build_pool(market, owned_ids),
     }
     (ROOT / "data").mkdir(exist_ok=True)
     (ROOT / "data" / "keepers.json").write_text(json.dumps(out, indent=2))

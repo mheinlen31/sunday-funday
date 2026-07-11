@@ -61,7 +61,8 @@ def fetch_espn(season):
             continue
         name = p.get("fullName", "").replace(" D/ST", "")
         key = (norm_name(name), pos)
-        market[key] = max(market.get(key, 0), aav)
+        if key not in market or aav > market[key]["aav"]:
+            market[key] = {"aav": aav, "id": p.get("id"), "name": name}
     return market
 
 
@@ -69,10 +70,42 @@ def lookup(market, name, pos):
     n = ALIASES.get(norm_name(name), norm_name(name))
     if (n, pos) in market:
         return market[(n, pos)]
-    for (mn, _), aav in market.items():
+    for (mn, _), entry in market.items():
         if mn == n:
-            return aav
+            return entry
     return None
+
+
+NFL_ABBR = {
+    "cardinals": "ari", "falcons": "atl", "ravens": "bal", "bills": "buf",
+    "panthers": "car", "bears": "chi", "bengals": "cin", "browns": "cle",
+    "cowboys": "dal", "broncos": "den", "lions": "det", "packers": "gb",
+    "texans": "hou", "colts": "ind", "jaguars": "jax", "chiefs": "kc",
+    "raiders": "lv", "chargers": "lac", "rams": "lar", "dolphins": "mia",
+    "vikings": "min", "patriots": "ne", "saints": "no", "giants": "nyg",
+    "jets": "nyj", "eagles": "phi", "steelers": "pit", "49ers": "sf",
+    "seahawks": "sea", "buccaneers": "tb", "titans": "ten", "commanders": "wsh",
+}
+
+
+def player_img(name, pos, espn_id):
+    if pos == "D/ST":
+        abbr = NFL_ABBR.get(norm_name(name))
+        return f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png" if abbr else None
+    return f"https://a.espncdn.com/i/headshots/nfl/players/full/{espn_id}.png" if espn_id else None
+
+
+def build_pool(market, owned_ids, limit=300):
+    """Unowned ESPN players worth showing on the ADP board."""
+    pool = []
+    for (_, pos), e in market.items():
+        if e["id"] in owned_ids or e["aav"] < 0.5:
+            continue
+        pool.append({"name": e["name"], "pos": pos,
+                     "market": max(1, round(e["aav"])),
+                     "img": player_img(e["name"], pos, e["id"])})
+    pool.sort(key=lambda p: -p["market"])
+    return pool[:limit]
 
 
 def keeper_price(draft_cost, market_val):
@@ -98,15 +131,17 @@ def main():
     today = datetime.now(timezone.utc).date()
     log = list(d.get("changeLog", []))
     unmatched = []
+    owned_ids = set()
 
     for t in d["teams"]:
         for p in t["players"]:
-            aav = lookup(market, p["name"], p["pos"])
-            if aav is None:
+            entry = lookup(market, p["name"], p["pos"])
+            if entry is None:
                 unmatched.append(p["name"])
                 mval = p["market"]
             else:
-                mval = max(1, round(aav))
+                owned_ids.add(entry["id"])
+                mval = max(1, round(entry["aav"]))
             p["market"] = fmt_money(mval)
             if p["status"] == "market":
                 old_price = p["price"]
@@ -133,6 +168,7 @@ def main():
 
     cutoff = (today - timedelta(days=14)).isoformat()
     d["changeLog"] = [e for e in log if e["d"] >= cutoff]
+    d["pool"] = build_pool(market, owned_ids)
     d["generated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     DATA_JS.write_text("window.LEAGUE_DATA = " + json.dumps(d) + ";\n")
