@@ -42,7 +42,7 @@
   }
 
   function tenureText(p) {
-    if (p.seasons <= 1) return 'New this year';
+    if (p.seasons <= 1) return '';
     return `${ord(p.seasons)} year · since ${p.since}`;
   }
 
@@ -71,7 +71,7 @@
         <div class="pname">${esc(p.name)}</div>
         <div class="psub">
           <span class="pos ${posClass}">${esc(p.pos)}</span>
-          <span class="tenure">${tenureText(p)}</span>
+          ${tenureText(p) ? `<span class="tenure">${tenureText(p)}</span>` : ''}
           <span class="badge acq">${esc(p.acquired)}</span>
         </div>
         <div class="pmath">
