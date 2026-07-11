@@ -255,13 +255,27 @@ body {
 .team-card.collapsed .team-meta .copy,
 .team-card.collapsed .team-meta .reset { display: none; }
 
-/* top-five headshots shown while a team is collapsed */
+/* collapsed header: fixed grid so every card lays out identically —
+   name left, top-five mugs right, stats on their own line below */
 .mugrow { display: none; }
+.team-card.collapsed .team-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  row-gap: 4px;
+}
 .team-card.collapsed .mugrow {
   display: flex;
   align-items: center;
-  margin: 0 4px;
+  grid-column: 2;
+  justify-self: end;
 }
+.team-card.collapsed .team-name { grid-column: 1; }
+.team-card.collapsed .team-meta {
+  grid-column: 1 / -1;
+  text-align: left;
+}
+.team-card.collapsed .team-meta .stat { margin-left: 0; margin-right: 14px; }
 .minimug {
   width: 34px; height: 34px;
   border-radius: 50%;
