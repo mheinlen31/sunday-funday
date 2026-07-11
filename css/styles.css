@@ -260,12 +260,11 @@ body.show-math .pmath { display: block; }
 
 .pcontract { flex: 0 0 auto; text-align: right; }
 
+.pkeep { flex: 0 0 auto; min-width: 92px; }
 .pprice {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 92px;
   justify-content: flex-end;
 }
 .pprice .amount {
@@ -274,6 +273,14 @@ body.show-math .pmath { display: block; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.pnext {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  text-align: right;
+  white-space: nowrap;
+  margin-top: -2px;
+  padding-right: 27px; /* align under the amount, clear of the tick */
 }
 
 /* position pill */
@@ -312,7 +319,6 @@ body.show-math .pmath { display: block; }
 .badge.acq { font-size: 9px; padding: 1px 5px; background: none; }
 .badge-contract { border-color: var(--gold); color: #7c6114; background: #f7efd8; }
 .badge-deal { border-color: var(--gold); color: #7c6114; background: #fbf6e9; }
-.badge-deal.outline { background: none; border-style: dashed; color: var(--ink-faint); border-color: #cfc9be; }
 
 /* value delta */
 .delta { font-weight: 700; }

@@ -50,11 +50,8 @@
     if (isContract(p)) {
       return '<span class="badge badge-contract">Signed for \'' + String(D.season).slice(2) + '</span>';
     }
-    if (p.status === 'contract-renewal') {
-      return `<span class="badge badge-deal">Re-sign 2 yrs · then ${money(p.nextYear)} in '${ny}</span>`;
-    }
     if (p.nextYear != null) {
-      return `<span class="badge badge-deal outline">If kept: 2-yr deal · ${money(p.nextYear)} in '${ny}</span>`;
+      return '<span class="badge badge-deal">New 2-yr contract if kept</span>';
     }
     return '';
   }
@@ -82,9 +79,12 @@
         </div>
       </div>
       <div class="pcontract">${contractHtml(p)}</div>
-      <div class="pprice">
-        <span class="amount">${money(p.price)}</span>
-        ${contract ? '<span class="lockmark">✓</span>' : '<span class="tick"></span>'}
+      <div class="pkeep">
+        <div class="pprice">
+          <span class="amount">${money(p.price)}</span>
+          ${contract ? '<span class="lockmark">✓</span>' : '<span class="tick"></span>'}
+        </div>
+        ${p.nextYear != null && !contract ? `<div class="pnext">then ${money(p.nextYear)} in '${ny}</div>` : ''}
       </div>
     </div>`;
   }
