@@ -82,13 +82,9 @@
       const rows = group.map((p, i) => rowHtml(
         p, i + 1, p.price,
         p.nextYear != null ? `then ${money(p.nextYear)} in '${ny}` : ''));
-      const prices = group.map((p) => p.price).sort((a, b) => a - b);
-      const mid = prices.length % 2
-        ? prices[(prices.length - 1) / 2]
-        : Math.floor((prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2);
       return `<article class="team-card board-card">
         <div class="team-head static"><h2 class="team-name">${esc(pos)}</h2>
-          <div class="team-meta">${group.length} owned · median keep <strong>$${mid}</strong></div></div>
+          <div class="team-meta">${group.length} owned</div></div>
         <div class="roster">${rows.join('')}</div>
       </article>`;
     }).join('');
