@@ -32,6 +32,17 @@
     if (isContract(p)) kept.delete(pid(t, p));
   }));
 
+  // which team cards are expanded (all collapsed by default)
+  const OPEN_KEY = 'sf-open-' + D.season;
+  let openTeams;
+  try { openTeams = new Set(JSON.parse(localStorage.getItem(OPEN_KEY) || '[]')); }
+  catch { openTeams = new Set(); }
+  function setOpen(ti, open) {
+    open ? openTeams.add(ti) : openTeams.delete(ti);
+    localStorage.setItem(OPEN_KEY, JSON.stringify([...openTeams]));
+    document.getElementById('team-' + ti).classList.toggle('collapsed', !open);
+  }
+
   function deltaHtml(p) {
     const d = p.surplus;
     if (d == null) return '';
@@ -149,9 +160,10 @@
   }
 
   function teamHtml(t, ti) {
-    return `<article class="team-card" id="team-${ti}" data-ti="${ti}">
+    return `<article class="team-card${openTeams.has(ti) ? '' : ' collapsed'}"
+        id="team-${ti}" data-ti="${ti}">
       <div class="team-head">
-        <h2 class="team-name">${esc(t.name)}</h2>
+        <h2 class="team-name"><span class="caret"></span>${esc(t.name)}</h2>
         <div class="team-meta" id="meta-${ti}">${summaryHtml(t)}</div>
       </div>
       <div class="roster" id="roster-${ti}">${rosterHtml(t, ti)}</div>
@@ -167,14 +179,26 @@
   const teamsEl = document.getElementById('teams');
   teamsEl.innerHTML = D.teams.map(teamHtml).join('');
 
-  // team quick-nav: name + committed contract dollars
-  document.getElementById('teamnav').innerHTML = D.teams.map((t, ti) => {
+  // team quick-nav: name + committed contract dollars; jumping opens the card
+  const navEl = document.getElementById('teamnav');
+  navEl.innerHTML = D.teams.map((t, ti) => {
     const committed = t.players.reduce((s, p) => s + (isContract(p) ? p.price : 0), 0);
-    return `<a class="navchip" href="#team-${ti}">${esc(t.name)}${
+    return `<a class="navchip" href="#team-${ti}" data-ti="${ti}">${esc(t.name)}${
       committed ? `<b>$${committed}</b>` : ''}</a>`;
   }).join('');
+  navEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('.navchip');
+    if (chip) setOpen(+chip.dataset.ti, true);
+  });
 
   teamsEl.addEventListener('click', (e) => {
+    // header click (not the links) opens/closes the roster
+    const head = e.target.closest('.team-head');
+    if (head && !e.target.closest('.copy, .reset')) {
+      const ti = +head.closest('.team-card').dataset.ti;
+      setOpen(ti, head.closest('.team-card').classList.contains('collapsed'));
+      return;
+    }
     const copy = e.target.closest('.copy');
     if (copy) {
       e.preventDefault();
