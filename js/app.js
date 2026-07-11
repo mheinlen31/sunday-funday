@@ -68,7 +68,7 @@
           <span class="badge acq">${esc(p.acquired)}</span>
         </div>
         <div class="pmath">
-          '${py} cost ${money(p.draftCost)} · market ${money(p.market)} · value ${deltaHtml(p)}
+          '${py} cost ${money(p.draftCost)} · ESPN ADP ${money(p.market)} · value ${deltaHtml(p)}
         </div>
       </div>
       <div class="pcontract">${contractHtml(p)}</div>
@@ -195,6 +195,22 @@
   mathBtn.addEventListener('click', () =>
     setMath(!document.body.classList.contains('show-math')));
   setMath(!!localStorage.getItem('sf-show-math'));
+
+  // ---- price moves (last 7 days) ----
+  const movesEl = document.getElementById('moves');
+  const cutoff = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const moves = (D.changeLog || [])
+    .filter((m) => m.d >= cutoff)
+    .sort((a, b) => b.d.localeCompare(a.d) ||
+      Math.abs(b.to - b.from) - Math.abs(a.to - a.from));
+  if (moves.length) {
+    movesEl.innerHTML = moves.map((m) => `
+      <span class="move ${m.to > m.from ? 'up' : 'down'}" title="${esc(m.team)} · ${esc(m.d)}">
+        ${esc(m.name)} <b>${m.to > m.from ? '▲' : '▼'} $${m.from} → $${m.to}</b>
+      </span>`).join('');
+  } else {
+    movesEl.innerHTML = '<span class="no-moves">No keeper-price changes in the last 7 days.</span>';
+  }
 
   // ---- best bargains ----
   const all = D.teams.flatMap((t) =>

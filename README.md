@@ -39,9 +39,22 @@ scripts/publish.sh
 (Or run the refresh script below, then commit & push `js/data.js` from
 GitHub Desktop like any other change.)
 
-## Refreshing keeper values
+## Automatic daily refresh
 
-ESPN auction values drift all offseason. To pull the latest and recompute prices:
+A GitHub Action (`.github/workflows/refresh.yml`) runs every morning at 7am
+Central: it pulls current ESPN ADP values, recomputes keeper prices, logs any
+changes to the site's "Price Moves" strip, and redeploys. It runs entirely in
+the cloud via `scripts/refresh_cloud.py`, which works off the committed
+`js/data.js` — no workbook needed. You can also trigger it manually from the
+repo's Actions tab ("Run workflow").
+
+Roster changes (trades) still require the manual route below, since rosters
+live in the workbook.
+
+## Refreshing keeper values manually
+
+After editing the workbook (trades, corrections), pull the latest and
+recompute prices:
 
 ```bash
 python3 scripts/refresh_data.py

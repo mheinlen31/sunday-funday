@@ -22,7 +22,7 @@
 
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="css/styles.css?v=202607102045">
+<link rel="stylesheet" href="css/styles.css?v=202607110154">
 </head>
 <body>
 <header class="masthead">
@@ -30,7 +30,7 @@
     <p class="kicker">Fantasy Football · Offseason</p>
     <h1>Sunday Funday</h1>
     <p class="deck"><span id="season"></span> Keeper Values</p>
-    <p class="updated">ESPN market values as of <span id="updated"></span></p>
+    <p class="updated">Values update daily from ESPN · last refresh <span id="updated"></span></p>
   </div>
 </header>
 
@@ -45,6 +45,11 @@
   <div class="strip-scroll" id="bargains"></div>
 </section>
 
+<section class="strip" id="moves-strip">
+  <h2 class="strip-title">Price Moves — Last 7 Days</h2>
+  <div class="moves" id="moves"></div>
+</section>
+
 <main class="team-grid" id="teams"></main>
 
 <footer class="legend">
@@ -57,11 +62,11 @@
     <li><span class="badge badge-deal">New 2-yr contract if kept</span> — keeping this player signs him to another two-year contract; "then $X in '27" under the price is what year two will cost. Players with no badge are first-time keeps with no strings attached.</li>
     <li><span class="delta pos">+$8</span> / <span class="delta neg">−$8</span> — value vs. market: green means keeping him costs less than he'd go for at auction.</li>
     <li><strong>Sort</strong> — rosters list each position's most expensive players first; "Sort: price" flattens the whole roster high-to-low instead. Contract players stay pinned at the top either way.</li>
-    <li><strong>Show the math</strong> reveals the inputs: last year's draft cost, current market value, and next season's contract price.</li>
+    <li><strong>Show the math</strong> reveals the inputs: last year's draft cost, current ESPN ADP (the average auction value from ESPN Live Draft Results, refreshed daily), and the value vs. that number.</li>
   </ul>
 </footer>
 
-<script src="js/data.js?v=202607102045"></script>
-<script src="js/app.js?v=202607102045"></script>
+<script src="js/data.js?v=202607110154"></script>
+<script src="js/app.js?v=202607110154"></script>
 </body>
 </html>

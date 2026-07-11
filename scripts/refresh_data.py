@@ -21,7 +21,7 @@ import math
 import re
 import unicodedata
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -166,6 +166,42 @@ def read_rosters():
     return teams
 
 
+def load_previous():
+    """Previous data.js payload, for diffing prices into the change log."""
+    p = ROOT / "js" / "data.js"
+    if not p.exists():
+        return None
+    s = p.read_text()
+    try:
+        return json.loads(s[s.index("{"):s.rindex("}") + 1])
+    except (ValueError, json.JSONDecodeError):
+        return None
+
+
+def update_changelog(prev, teams):
+    """Append today's keeper-price changes; keep a rolling 14 days."""
+    log = list((prev or {}).get("changeLog", []))
+    today = datetime.now(timezone.utc).date()
+    prev_prices = {(t["name"], p["name"]): p["price"]
+                   for t in (prev or {}).get("teams", []) for p in t["players"]}
+    for t in teams:
+        for p in t["players"]:
+            old = prev_prices.get((t["name"], p["name"]))
+            if old is None or old == p["price"]:
+                continue
+            same_day = next((e for e in log if e["d"] == today.isoformat()
+                             and e["team"] == t["name"] and e["name"] == p["name"]), None)
+            if same_day:  # second refresh today: keep original 'from'
+                same_day["to"] = p["price"]
+                if same_day["from"] == same_day["to"]:
+                    log.remove(same_day)
+            else:
+                log.append({"d": today.isoformat(), "team": t["name"],
+                            "name": p["name"], "from": old, "to": p["price"]})
+    cutoff = (today - timedelta(days=14)).isoformat()
+    return [e for e in log if e["d"] >= cutoff]
+
+
 def read_purses():
     """Auction purse per team from the '{SEASON} Auction Money' budget section."""
     ws = load_workbook(XLSX, data_only=True)["Sunday Funday Budgets"]
@@ -235,10 +271,13 @@ def main():
             for k in ("sheetMarket", "sheetPrice", "priceLocked", "contractCell"):
                 p.pop(k)
 
+    prev = load_previous()
+    changelog = update_changelog(prev, teams)
     out = {
         "season": SEASON,
         "priorSeason": SEASON - 1,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "changeLog": changelog,
         "teams": teams,
     }
     (ROOT / "data").mkdir(exist_ok=True)
