@@ -85,6 +85,7 @@ body {
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
+.strip-actions { display: flex; gap: 8px; }
 .math-toggle {
   font-family: var(--sans);
   font-size: 11px;

@@ -37,7 +37,10 @@
 <section class="strip" id="bargains-strip">
   <div class="strip-bar">
     <h2 class="strip-title">Best Keeper Bargains</h2>
-    <button id="math-toggle" class="math-toggle" type="button">Show the math</button>
+    <div class="strip-actions">
+      <button id="sort-toggle" class="math-toggle" type="button">Sort: position</button>
+      <button id="math-toggle" class="math-toggle" type="button">Show the math</button>
+    </div>
   </div>
   <div class="strip-scroll" id="bargains"></div>
 </section>
@@ -53,6 +56,7 @@
     <li><span class="badge badge-contract">Signed for '26</span> — already kept: the contract was signed last year, the price is locked, and it always counts against the cap. These players are pinned at the top of the Keeper plan and can't be toggled.</li>
     <li><span class="badge badge-deal">New 2-yr contract if kept</span> — keeping this player signs him to another two-year contract; "then $X in '27" under the price is what year two will cost. Players with no badge are first-time keeps with no strings attached.</li>
     <li><span class="delta pos">+$8</span> / <span class="delta neg">−$8</span> — value vs. market: green means keeping him costs less than he'd go for at auction.</li>
+    <li><strong>Sort</strong> — rosters list each position's most expensive players first; "Sort: price" flattens the whole roster high-to-low instead. Contract players stay pinned at the top either way.</li>
     <li><strong>Show the math</strong> reveals the inputs: last year's draft cost, current market value, and next season's contract price.</li>
   </ul>
 </footer>

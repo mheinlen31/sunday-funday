@@ -104,11 +104,27 @@
       <a class="reset" href="#">clear</a>`;
   }
 
+  // display order: within position groups (or flat, in price mode) by price
+  // high-to-low; ties keep the sheet's original order
+  const POS_ORDER = { QB: 0, RB: 1, WR: 2, TE: 3, K: 4, 'D/ST': 5 };
+  let sortMode = localStorage.getItem('sf-sort') === 'price' ? 'price' : 'position';
+  function orderedIdx(t) {
+    return t.players.map((_, i) => i).sort((a, b) => {
+      const pa = t.players[a], pb = t.players[b];
+      if (sortMode === 'position') {
+        const d = (POS_ORDER[pa.pos] ?? 9) - (POS_ORDER[pb.pos] ?? 9);
+        if (d) return d;
+      }
+      return (pb.price - pa.price) || (a - b);
+    });
+  }
+
   function rosterHtml(t, ti) {
     const plan = [];     // contract players first, then selected keepers
     const selected = [];
     const options = [];
-    t.players.forEach((p, pi) => {
+    orderedIdx(t).forEach((pi) => {
+      const p = t.players[pi];
       if (isContract(p)) plan.push(rowHtml(t, p, ti, pi));
       else if (kept.has(pid(t, p))) selected.push(rowHtml(t, p, ti, pi));
       else options.push(rowHtml(t, p, ti, pi));
@@ -162,6 +178,19 @@
     save();
     refreshTeam(ti);
   });
+
+  // ---- sort toggle ----
+  const sortBtn = document.getElementById('sort-toggle');
+  const applySort = () => {
+    sortBtn.textContent = 'Sort: ' + sortMode;
+    D.teams.forEach((_, ti) => refreshTeam(ti));
+  };
+  sortBtn.addEventListener('click', () => {
+    sortMode = sortMode === 'position' ? 'price' : 'position';
+    localStorage.setItem('sf-sort', sortMode);
+    applySort();
+  });
+  sortBtn.textContent = 'Sort: ' + sortMode;
 
   // ---- show-the-math toggle ----
   const mathBtn = document.getElementById('math-toggle');
