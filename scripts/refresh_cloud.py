@@ -173,10 +173,10 @@ def main():
 
     DATA_JS.write_text("window.LEAGUE_DATA = " + json.dumps(d) + ";\n")
 
-    # cache-bust so league browsers pick up the fresh data
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
-    for page in ROOT.glob("*.html"):
-        page.write_text(re.sub(r"\?v=[A-Za-z0-9]+", f"?v={stamp}", page.read_text()))
+    # NOTE: deliberately no html re-stamping here — GitHub Pages caches
+    # data.js for only 10 minutes, and daily stamp edits to the html files
+    # collide with unpushed local commits. Stamps are for code changes,
+    # which only happen locally (publish.sh handles them).
 
     changed_today = [e for e in d["changeLog"] if e["d"] == today.isoformat()]
     print(f"{len(changed_today)} price change(s) today")
