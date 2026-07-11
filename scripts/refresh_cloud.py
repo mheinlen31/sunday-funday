@@ -13,6 +13,7 @@ Stdlib only, so the Action needs no pip installs.
 import json
 import math
 import re
+import sys
 import unicodedata
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -20,6 +21,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_JS = ROOT / "js" / "data.js"
+
+# sanity guards: abort (nonzero exit -> failed Action -> email) rather than
+# auto-publish garbage if ESPN's feed looks broken or reset
+MIN_POOL = 300        # fetched player pool smaller than this = broken feed
+MAX_CHANGES = 60      # more simultaneous price changes than this = data reset
 
 POS_IDS = {1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "D/ST"}
 SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
@@ -86,6 +92,8 @@ def main():
     d = json.loads(s[s.index("{"):s.rindex("}") + 1])
     market = fetch_espn(d["season"])
     print(f"ESPN pool: {len(market)} players")
+    if len(market) < MIN_POOL:
+        sys.exit(f"abort: ESPN pool only {len(market)} players — feed looks broken")
 
     today = datetime.now(timezone.utc).date()
     log = list(d.get("changeLog", []))
@@ -117,6 +125,11 @@ def main():
                         log.append({"d": today.isoformat(), "team": t["name"],
                                     "name": p["name"], "from": old_price, "to": p["price"]})
             p["surplus"] = fmt_money(round(p["market"] - p["price"]))
+
+    changed_now = [e for e in log if e["d"] == today.isoformat()]
+    if len(changed_now) > MAX_CHANGES:
+        sys.exit(f"abort: {len(changed_now)} price changes in one refresh — "
+                 "looks like an ESPN data reset, not publishing")
 
     cutoff = (today - timedelta(days=14)).isoformat()
     d["changeLog"] = [e for e in log if e["d"] >= cutoff]

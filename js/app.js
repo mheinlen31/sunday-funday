@@ -94,7 +94,24 @@
       <span class="stat"><strong class="${spend > CAP ? 'over' : ''}">$${spendR}</strong> / $${CAP} cap</span>
       ${tax ? `<span class="stat tax">tax <strong class="over">$${tax}</strong></span>` : ''}
       ${left != null ? `<span class="stat">draft budget <strong>$${left}</strong> of $${purse}</span>` : ''}
+      <a class="copy" href="#">copy plan</a>
       <a class="reset" href="#">clear</a>`;
+  }
+
+  function planText(t) {
+    const rows = t.players
+      .filter((p) => isContract(p) || kept.has(pid(t, p)))
+      .map((p) => `• ${p.name} (${p.pos}) $${p.price}${isContract(p) ? ' — under contract' : ''}`);
+    const spend = t.players.reduce((s, p) =>
+      s + (isContract(p) || kept.has(pid(t, p)) ? p.price : 0), 0);
+    const tax = Math.max(0, spend - CAP) * 2;
+    const left = t.purse != null ? t.purse - spend - tax : null;
+    let out = `${t.name} — ${D.season} keeper plan\n`;
+    out += rows.length ? rows.join('\n') : '(keeping nobody)';
+    out += `\nTotal: $${spend} of $${CAP} cap`;
+    if (tax) out += ` · luxury tax $${tax}`;
+    if (left != null) out += ` · $${left} left for the draft`;
+    return out;
   }
 
   // display order: within position groups (or flat, in price mode) by price
@@ -132,7 +149,7 @@
   }
 
   function teamHtml(t, ti) {
-    return `<article class="team-card" data-ti="${ti}">
+    return `<article class="team-card" id="team-${ti}" data-ti="${ti}">
       <div class="team-head">
         <h2 class="team-name">${esc(t.name)}</h2>
         <div class="team-meta" id="meta-${ti}">${summaryHtml(t)}</div>
@@ -150,7 +167,36 @@
   const teamsEl = document.getElementById('teams');
   teamsEl.innerHTML = D.teams.map(teamHtml).join('');
 
+  // team quick-nav: name + committed contract dollars
+  document.getElementById('teamnav').innerHTML = D.teams.map((t, ti) => {
+    const committed = t.players.reduce((s, p) => s + (isContract(p) ? p.price : 0), 0);
+    return `<a class="navchip" href="#team-${ti}">${esc(t.name)}${
+      committed ? `<b>$${committed}</b>` : ''}</a>`;
+  }).join('');
+
   teamsEl.addEventListener('click', (e) => {
+    const copy = e.target.closest('.copy');
+    if (copy) {
+      e.preventDefault();
+      const ti = +copy.closest('.team-card').dataset.ti;
+      const text = planText(D.teams[ti]);
+      const done = () => {
+        copy.textContent = 'copied ✓';
+        setTimeout(() => { copy.textContent = 'copy plan'; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, () => { copy.textContent = 'copy failed'; });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); }
+        catch { copy.textContent = 'copy failed'; }
+        ta.remove();
+      }
+      return;
+    }
     const reset = e.target.closest('.reset');
     if (reset) {
       e.preventDefault();

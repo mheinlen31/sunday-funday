@@ -51,6 +51,9 @@ repo's Actions tab ("Run workflow").
 Roster changes (trades) still require the manual route below, since rosters
 live in the workbook.
 
+Because the bot commits daily, **pull (Fetch origin) in GitHub Desktop before
+making local changes** so your push doesn't get rejected.
+
 ## Refreshing keeper values manually
 
 After editing the workbook (trades, corrections), pull the latest and
