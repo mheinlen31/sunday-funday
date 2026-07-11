@@ -69,6 +69,25 @@ body {
 }
 .updated .stale { color: var(--bad); font-weight: 700; }
 
+.pagetabs {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 26px;
+}
+.pagetabs a {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink-faint);
+  padding-bottom: 5px;
+  border-bottom: 3px solid transparent;
+}
+.pagetabs a:hover { color: var(--ink); }
+.pagetabs a.active { color: var(--ink); border-bottom-color: var(--accent); }
+
 /* ---------- team quick-nav + controls ---------- */
 .topbar {
   max-width: 1280px;
@@ -453,6 +472,31 @@ body.show-math .pmath { display: block; }
 .delta.pos { color: var(--good); }
 .delta.neg { color: var(--bad); }
 .delta.zero { color: var(--ink-faint); font-weight: 500; }
+
+/* ---------- league-wide boards (positions / adp pages) ---------- */
+.team-grid.board { grid-template-columns: 1fr; max-width: 860px; }
+.board-card { border-top-color: var(--rule-dark); }
+.team-head.static { cursor: default; }
+.prow.static { cursor: default; }
+.prow.static:hover { background: transparent; }
+.rank {
+  flex: 0 0 30px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.teamtag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.teamtag:hover { color: var(--accent); text-decoration: underline; }
+.teamtag .teamdot { margin-right: 5px; }
+.boardnote { font-size: 13px; padding-top: 12px; border-top: 3px solid var(--rule-dark); }
 
 /* row flash after jumping from a strip chip */
 @keyframes flashrow {

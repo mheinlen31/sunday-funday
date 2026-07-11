@@ -17,6 +17,12 @@ team's auction purse (from the Budgets sheet). Players already under contract
 start checked. Plans persist in the browser (localStorage); "clear" resets a
 team.
 
+## Pages
+
+- `index.html` — team-by-team keeper planner (the main page)
+- `positions.html` — every owned player grouped by position, priciest first
+- `adp.html` — every owned player ranked by ESPN ADP with keep price + value
+
 ## Viewing the site
 
 Open `index.html` in a browser, or serve the folder:

@@ -241,6 +241,13 @@
   });
   relabelAll();
 
+  // arriving with #team-N (e.g. from the boards) opens that card
+  const hashMatch = location.hash.match(/^#team-(\d+)$/);
+  if (hashMatch && D.teams[+hashMatch[1]]) {
+    setOpen(+hashMatch[1], true);
+    relabelAll();
+  }
+
   teamsEl.addEventListener('click', (e) => {
     // header click (not the links) opens/closes the roster
     const head = e.target.closest('.team-head');

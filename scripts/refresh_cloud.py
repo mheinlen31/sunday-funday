@@ -138,9 +138,9 @@ def main():
     DATA_JS.write_text("window.LEAGUE_DATA = " + json.dumps(d) + ";\n")
 
     # cache-bust so league browsers pick up the fresh data
-    idx = ROOT / "index.html"
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
-    idx.write_text(re.sub(r"\?v=[A-Za-z0-9]+", f"?v={stamp}", idx.read_text()))
+    for page in ROOT.glob("*.html"):
+        page.write_text(re.sub(r"\?v=[A-Za-z0-9]+", f"?v={stamp}", page.read_text()))
 
     changed_today = [e for e in d["changeLog"] if e["d"] == today.isoformat()]
     print(f"{len(changed_today)} price change(s) today")
