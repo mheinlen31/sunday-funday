@@ -17,7 +17,6 @@
   const money = (v) => (v == null ? '—' : '$' + v);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const ord = (n) => n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10 <= 3 && Math.floor(n / 10) !== 1 ? n % 10 : 0] || 'th');
 
   // ---- keeper selections (persisted) ----
   let kept;
@@ -39,11 +38,6 @@
     if (d > 0) return `<span class="delta pos">+$${d}</span>`;
     if (d < 0) return `<span class="delta neg">−$${Math.abs(d)}</span>`;
     return '<span class="delta zero">even</span>';
-  }
-
-  function tenureText(p) {
-    if (p.seasons <= 1) return '';
-    return `${ord(p.seasons)} year · since ${p.since}`;
   }
 
   function contractHtml(p) {
@@ -71,7 +65,6 @@
         <div class="pname">${esc(p.name)}</div>
         <div class="psub">
           <span class="pos ${posClass}">${esc(p.pos)}</span>
-          ${tenureText(p) ? `<span class="tenure">${tenureText(p)}</span>` : ''}
           <span class="badge acq">${esc(p.acquired)}</span>
         </div>
         <div class="pmath">

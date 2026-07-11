@@ -250,12 +250,6 @@ body {
   gap: 7px;
   margin-top: 2px;
 }
-.tenure {
-  font-size: 11px;
-  color: var(--ink-faint);
-  white-space: nowrap;
-}
-
 /* the math (hidden unless body.show-math) */
 .pmath {
   display: none;

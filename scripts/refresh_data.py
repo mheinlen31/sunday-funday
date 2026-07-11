@@ -166,49 +166,6 @@ def read_rosters():
     return teams
 
 
-def read_history_slots(wb):
-    """Per year sheet, the roster of each franchise slot (stable grid position).
-
-    Team names change year to year, but every sheet keeps the same 5x2 grid of
-    franchises, so slot index (band-then-block order) identifies the franchise.
-    Returns {year: [set(norm player names), ...10 slots...]}.
-    """
-    history = {}
-    for year in range(2019, SEASON + 1):
-        ws = wb[f"{year} Keeper Values"]
-        headers = []  # (row, name_col) per slot, row-major
-        for row in ws.iter_rows(min_row=1, max_row=140):
-            for c in row:
-                if c.value == "Position" and c.column > 1:
-                    headers.append((c.row, c.column - 1))
-        slots = []
-        for hrow, col in headers:
-            names = set()
-            for r in range(hrow + 1, hrow + 20):
-                v = ws.cell(r, col).value
-                if v is None:
-                    break
-                names.add(norm_name(str(v)))
-            slots.append(names)
-        if len(slots) != 10:
-            print(f"warning: {year} sheet has {len(slots)} team blocks, expected 10")
-        history[year] = slots
-    return history
-
-
-def tenure(history, slot, player_name):
-    """Consecutive year-sheets (through SEASON) this player appears in this slot."""
-    n = norm_name(player_name)
-    streak = 1  # present on the SEASON sheet by definition
-    for year in range(SEASON - 1, 2018, -1):
-        slots = history.get(year, [])
-        if slot < len(slots) and n in slots[slot]:
-            streak += 1
-        else:
-            break
-    return streak
-
-
 def read_purses():
     """Auction purse per team from the '{SEASON} Auction Money' budget section."""
     ws = load_workbook(XLSX, data_only=True)["Sunday Funday Budgets"]
@@ -234,15 +191,10 @@ def main():
     teams = read_rosters()
     market = fetch_espn()
     purses = read_purses()
-    history = read_history_slots(load_workbook(XLSX, data_only=True))
-    for slot, team in enumerate(teams):
+    for team in teams:
         team["purse"] = purses.get(team["name"])
         if team["purse"] is None:
             print(f'warning: no {SEASON} auction purse found for {team["name"]}')
-        for p in team["players"]:
-            streak = tenure(history, slot, p["name"])
-            p["seasons"] = streak            # seasons with the franchise, incl. upcoming decision
-            p["since"] = SEASON - streak     # first NFL season on this roster
     unmatched = []
 
     for team in teams:

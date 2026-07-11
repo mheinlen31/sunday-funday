@@ -1,13 +1,14 @@
 # Sunday Funday
 
 Offseason keeper-value tracker for the Sunday Funday fantasy football league.
-Shows all 10 teams' end-of-season rosters — ESPN headshot, roster tenure,
-contract status, and what it costs to keep each player. The raw inputs (prior
-draft cost, market value, surplus) are tucked behind a "Show the math" toggle.
+Shows all 10 teams' end-of-season rosters — ESPN headshot, contract status,
+and what it costs to keep each player. The raw inputs (prior draft cost,
+market value, surplus) are tucked behind a "Show the math" toggle.
 
-Tenure is mined from the 2019–2025 sheets of the workbook: each franchise
-occupies the same grid slot every year (team names change, positions don't),
-so consecutive appearances in a slot = consecutive seasons on that roster.
+(Roster tenure was displayed briefly but removed: the year sheets only hold
+end-of-season snapshots, so a player dropped and re-added via FA — which
+resets his keeper clock — still looks continuous. Not reliably computable
+from the workbook.)
 
 Keeping is discretionary, so the site doubles as a planner: click players to
 build a team's keeper list and the header tracks spend against the $100 cap,
