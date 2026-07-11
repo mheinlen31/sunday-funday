@@ -104,22 +104,38 @@
       <a class="reset" href="#">clear</a>`;
   }
 
-  function teamHtml(t, ti) {
-    const contracted = [];
+  function rosterHtml(t, ti) {
+    const plan = [];     // contract players first, then selected keepers
+    const selected = [];
     const options = [];
-    t.players.forEach((p, pi) => (isContract(p) ? contracted : options)
-      .push(rowHtml(t, p, ti, pi)));
-    const contractBlock = contracted.length ? `
-      <div class="group-label contract-label">Already kept — under contract</div>
-      ${contracted.join('')}
-      <div class="group-label">Keeper options</div>` : '';
+    t.players.forEach((p, pi) => {
+      if (isContract(p)) plan.push(rowHtml(t, p, ti, pi));
+      else if (kept.has(pid(t, p))) selected.push(rowHtml(t, p, ti, pi));
+      else options.push(rowHtml(t, p, ti, pi));
+    });
+    plan.push(...selected);
+    const planBlock = plan.length ? `
+      <div class="group-label contract-label">Keeper plan</div>
+      ${plan.join('')}` : '';
+    return `${planBlock}
+      <div class="group-label">Keeper options</div>
+      ${options.join('') || '<div class="empty-note">Everyone\'s in the plan.</div>'}`;
+  }
+
+  function teamHtml(t, ti) {
     return `<article class="team-card" data-ti="${ti}">
       <div class="team-head">
         <h2 class="team-name">${esc(t.name)}</h2>
         <div class="team-meta" id="meta-${ti}">${summaryHtml(t)}</div>
       </div>
-      <div class="roster">${contractBlock}${options.join('')}</div>
+      <div class="roster" id="roster-${ti}">${rosterHtml(t, ti)}</div>
     </article>`;
+  }
+
+  function refreshTeam(ti) {
+    const t = D.teams[ti];
+    document.getElementById('roster-' + ti).innerHTML = rosterHtml(t, ti);
+    document.getElementById('meta-' + ti).innerHTML = summaryHtml(t);
   }
 
   const teamsEl = document.getElementById('teams');
@@ -133,9 +149,7 @@
       const t = D.teams[ti];
       t.players.forEach((p) => kept.delete(pid(t, p)));
       save();
-      reset.closest('.team-card').querySelectorAll('.prow')
-        .forEach((r) => r.classList.remove('kept'));
-      document.getElementById('meta-' + ti).innerHTML = summaryHtml(t);
+      refreshTeam(ti);
       return;
     }
     const row = e.target.closest('.prow.choosable');
@@ -145,9 +159,8 @@
     const p = t.players[+row.dataset.pi];
     const id = pid(t, p);
     kept.has(id) ? kept.delete(id) : kept.add(id);
-    row.classList.toggle('kept');
     save();
-    document.getElementById('meta-' + ti).innerHTML = summaryHtml(t);
+    refreshTeam(ti);
   });
 
   // ---- show-the-math toggle ----

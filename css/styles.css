@@ -195,6 +195,12 @@ body {
   background: #f7f5f1;
 }
 .group-label.contract-label { color: #7c6114; background: #f3ecd9; }
+.empty-note {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
 
 .prow {
   display: flex;
