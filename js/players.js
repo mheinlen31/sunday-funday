@@ -50,7 +50,7 @@
            <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(p.team)}</a>
          <span class="badge acq">${esc(p.acquired)}</span>`
       : '<span class="badge avail">Available</span>';
-    const side = page === 'adp' ? (p.team ? deltaHtml(p) : '') : contractHtml(p);
+    const side = page === 'adp' ? '' : contractHtml(p);
     return `<div class="prow static${p.team ? '' : ' unowned'}">
       <span class="rank">${rank}</span>
       <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
@@ -100,7 +100,7 @@
     if (!['everyone', 'owned', 'available'].includes(show)) show = 'everyone';
 
     const adpRow = (p, i) => rowHtml(p, i + 1, p.market,
-      p.owned ? `keep for ${money(p.price)}` : '');
+      p.owned ? `keep for ${money(p.price)} · ${deltaHtml(p)}` : '');
 
     function cardHtml(title, list) {
       return `<article class="team-card board-card">
