@@ -90,6 +90,141 @@
     }).join('');
   }
 
+  if (page === 'moves') {
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fmtDate = (d) => {
+      const [, m, day] = d.split('-');
+      return MONTHS[+m - 1] + ' ' + +day;
+    };
+    const netHtml = (n) => n > 0
+      ? `<span class="delta pos">▲ +$${n}</span>`
+      : `<span class="delta neg">▼ −$${Math.abs(n)}</span>`;
+
+    const byPlayer = new Map(); // team|name -> aggregate
+    (D.changeLog || []).forEach((e) => {
+      const k = e.team + '|' + e.name;
+      if (!byPlayer.has(k)) byPlayer.set(k, { ...e, steps: [] });
+      byPlayer.get(k).steps.push(e);
+    });
+    const info = new Map(players.map((p) => [p.team + '|' + p.name, p]));
+    const aggs = [...byPlayer.values()].map((a) => {
+      a.steps.sort((x, y) => x.d.localeCompare(y.d));
+      a.net = a.steps.reduce((s, e) => s + (e.to - e.from), 0);
+      a.player = info.get(a.team + '|' + a.name);
+      a.pos = (a.player && a.player.pos) || a.pos || 'Other';
+      return a;
+    }).filter((a) => a.net !== 0);
+
+    // feature cards: biggest riser and faller
+    const featEl = document.getElementById('features');
+    const risers = [...aggs].sort((x, y) => y.net - x.net);
+    const featCard = (a, label, cls) => a && (cls === 'up' ? a.net > 0 : a.net < 0) ? `
+      <div class="feature-card ${cls}">
+        <img class="mug" src="${esc((a.player && a.player.img) || FALLBACK_IMG)}" alt=""
+             onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
+        <div>
+          <div class="f-label">${label}</div>
+          <div class="f-name">${esc(a.name)}</div>
+          <div class="f-line">${netHtml(a.net)} · now ${money(a.steps[a.steps.length - 1].to)}
+            · ${esc(a.team)}</div>
+        </div>
+      </div>` : '';
+    featEl.innerHTML = aggs.length
+      ? featCard(risers[0], 'Biggest riser', 'up') +
+        featCard(risers[risers.length - 1], 'Biggest faller', 'down')
+      : '';
+
+    const stepsHtml = (a) => a.steps.map((e) =>
+      `${fmtDate(e.d)}: $${e.from} → $${e.to}`).join(' · ');
+
+    function aggRow(a, i) {
+      const p = a.player || {};
+      const posClass = 'pos-' + a.pos.replace('/', '');
+      const ti = p.ti;
+      return `<div class="prow static">
+        <span class="rank">${i + 1}</span>
+        <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
+             onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
+        <div class="pinfo">
+          <div class="pname">${esc(a.name)}</div>
+          <div class="psub">
+            <span class="pos ${posClass}">${esc(a.pos)}</span>
+            ${ti != null ? `<a class="teamtag" href="./#team-${ti}">
+              <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(a.team)}</a>`
+              : `<span class="teamtag">${esc(a.team)}</span>`}
+          </div>
+          <div class="steps">${stepsHtml(a)}</div>
+        </div>
+        <div class="pkeep">
+          <div class="pprice"><span class="amount">${money(a.steps[a.steps.length - 1].to)}</span></div>
+          <div class="pnext">${netHtml(a.net)}</div>
+        </div>
+      </div>`;
+    }
+
+    function dateRow(e, i) {
+      const p = info.get(e.team + '|' + e.name) || {};
+      const pos = p.pos || e.pos || 'Other';
+      const posClass = 'pos-' + pos.replace('/', '');
+      return `<div class="prow static">
+        <span class="rank">${i + 1}</span>
+        <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
+             onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
+        <div class="pinfo">
+          <div class="pname">${esc(e.name)}</div>
+          <div class="psub">
+            <span class="pos ${posClass}">${esc(pos)}</span>
+            ${p.ti != null ? `<a class="teamtag" href="./#team-${p.ti}">
+              <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(e.team)}</a>`
+              : `<span class="teamtag">${esc(e.team)}</span>`}
+          </div>
+        </div>
+        <div class="pkeep">
+          <div class="pprice"><span class="amount">$${e.from} → $${e.to}</span></div>
+          <div class="pnext">${netHtml(e.to - e.from)}</div>
+        </div>
+      </div>`;
+    }
+
+    let group = localStorage.getItem('sf-moves-group') === 'date' ? 'date' : 'position';
+    function render() {
+      if (!aggs.length) {
+        main.innerHTML = `<article class="team-card board-card"><div class="empty-note">
+          No price changes yet — check back after the next daily refresh.</div></article>`;
+      } else if (group === 'position') {
+        main.innerHTML = POS_ORDER.concat('Other').map((pos) => {
+          const g = aggs.filter((a) => a.pos === pos)
+            .sort((x, y) => Math.abs(y.net) - Math.abs(x.net));
+          if (!g.length) return '';
+          return `<article class="team-card board-card">
+            <div class="team-head static"><h2 class="team-name">${esc(pos)}</h2>
+              <div class="team-meta">${g.length} player${g.length > 1 ? 's' : ''} moved</div></div>
+            <div class="roster">${g.map(aggRow).join('')}</div>
+          </article>`;
+        }).join('');
+      } else {
+        const dates = [...new Set((D.changeLog || []).map((e) => e.d))].sort().reverse();
+        main.innerHTML = dates.map((d) => {
+          const g = (D.changeLog || []).filter((e) => e.d === d)
+            .sort((x, y) => Math.abs(y.to - y.from) - Math.abs(x.to - x.from));
+          return `<article class="team-card board-card">
+            <div class="team-head static"><h2 class="team-name">${fmtDate(d)}</h2>
+              <div class="team-meta">${g.length} move${g.length > 1 ? 's' : ''}</div></div>
+            <div class="roster">${g.map(dateRow).join('')}</div>
+          </article>`;
+        }).join('');
+      }
+      document.getElementById('group-toggle').textContent = 'Group: ' + group;
+    }
+    document.getElementById('group-toggle').addEventListener('click', () => {
+      group = group === 'position' ? 'date' : 'position';
+      localStorage.setItem('sf-moves-group', group);
+      render();
+    });
+    render();
+  }
+
   if (page === 'adp') {
     const universe = [
       ...players.map((p) => ({ ...p, owned: true })),

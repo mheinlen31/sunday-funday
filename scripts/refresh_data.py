@@ -192,7 +192,8 @@ def load_previous():
 
 
 def update_changelog(prev, teams):
-    """Append today's keeper-price changes; keep a rolling 14 days."""
+    """Append today's keeper-price changes; keep the whole offseason
+    (capped at the most recent 500 entries)."""
     log = list((prev or {}).get("changeLog", []))
     today = datetime.now(timezone.utc).date()
     prev_prices = {(t["name"], p["name"]): p["price"]
@@ -210,9 +211,9 @@ def update_changelog(prev, teams):
                     log.remove(same_day)
             else:
                 log.append({"d": today.isoformat(), "team": t["name"],
-                            "name": p["name"], "from": old, "to": p["price"]})
-    cutoff = (today - timedelta(days=14)).isoformat()
-    return [e for e in log if e["d"] >= cutoff]
+                            "name": p["name"], "pos": p["pos"],
+                            "from": old, "to": p["price"]})
+    return log[-500:]
 
 
 def read_purses():

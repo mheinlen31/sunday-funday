@@ -158,7 +158,8 @@ def main():
                             log.remove(same_day)
                     else:
                         log.append({"d": today.isoformat(), "team": t["name"],
-                                    "name": p["name"], "from": old_price, "to": p["price"]})
+                                    "name": p["name"], "pos": p["pos"],
+                                    "from": old_price, "to": p["price"]})
             p["surplus"] = fmt_money(round(p["market"] - p["price"]))
 
     changed_now = [e for e in log if e["d"] == today.isoformat()]
@@ -166,8 +167,8 @@ def main():
         sys.exit(f"abort: {len(changed_now)} price changes in one refresh — "
                  "looks like an ESPN data reset, not publishing")
 
-    cutoff = (today - timedelta(days=14)).isoformat()
-    d["changeLog"] = [e for e in log if e["d"] >= cutoff]
+    # keep the whole offseason, capped at the most recent 500 entries
+    d["changeLog"] = log[-500:]
     d["pool"] = build_pool(market, owned_ids)
     d["generated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 

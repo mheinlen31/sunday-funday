@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sunday Funday — ESPN ADP Board</title>
+<title>Sunday Funday — Price Moves</title>
 <meta name="theme-color" content="#0d5c3f">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/styles.css?v=202607152134">
 </head>
-<body data-page="adp">
+<body data-page="moves">
 <header class="masthead">
   <div class="masthead-inner">
     <p class="kicker">Fantasy Football · Offseason</p>
@@ -19,25 +19,25 @@
     <nav class="pagetabs">
       <a href="./">Teams</a>
       <a href="positions.html">By Position</a>
-      <a href="adp.html" class="active">ESPN ADP</a>
-      <a href="moves.html">Price Moves</a>
+      <a href="adp.html">ESPN ADP</a>
+      <a href="moves.html" class="active">Price Moves</a>
     </nav>
   </div>
 </header>
 
+<div class="feature-row" id="features"></div>
+
 <div class="board-toolbar">
-  <button id="group-toggle" class="math-toggle" type="button">Group: overall</button>
-  <button id="show-toggle" class="math-toggle" type="button">Show: everyone</button>
+  <button id="group-toggle" class="math-toggle" type="button">Group: position</button>
 </div>
 
 <main class="team-grid board" id="board"></main>
 
 <footer class="legend">
-  <p class="boardnote">Everyone ordered by ESPN ADP — the average auction value
-  from ESPN Live Draft Results, refreshed daily. Owned players show their team,
-  what they'd cost to keep, and value vs. that price; players tagged
-  <span class="badge avail">Available</span> are unowned and headed to the
-  draft pool. Use the buttons to group by position or filter owned/available.</p>
+  <p class="boardnote">Every keeper-price change of the offseason, straight from
+  the daily ESPN refresh. Prices move when a player's ESPN ADP moves. Net shows
+  a player's total change across all his moves; the dated trail underneath is
+  each step. Tap a team name to jump to that roster.</p>
 </footer>
 
 <script src="js/data.js?v=202607152134"></script>
