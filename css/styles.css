@@ -88,6 +88,26 @@ body {
 .pagetabs a:hover { color: var(--ink); }
 .pagetabs a.active { color: var(--ink); border-bottom-color: var(--accent); }
 
+/* keeper-deadline countdown */
+.deadline {
+  margin-top: 14px;
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  background: #f1efe9;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+.deadline:empty { display: none; }
+.deadline strong { color: var(--ink); }
+.deadline .dl-count { color: var(--accent); font-weight: 800; }
+.deadline.urgent { background: #fbeceb; border-color: #e6b3b0; }
+.deadline.urgent .dl-count { color: var(--bad); }
+.deadline.passed { color: var(--ink-faint); }
+
 /* ---------- team quick-nav + controls ---------- */
 .topbar {
   max-width: 1280px;
@@ -166,6 +186,24 @@ body {
   margin-right: 7px;
   vertical-align: 0.5px;
 }
+/* shared-plan banner (from a ?plan= link) */
+.share-banner {
+  max-width: 1280px;
+  margin: 4px auto 0;
+  padding: 10px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #7c6114;
+  background: #f7efd8;
+  border: 1px solid var(--gold);
+}
+.share-banner a { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.share-banner a:hover { text-decoration: underline; }
+
 .team-card { scroll-margin-top: 12px; }
 .team-card.fav { order: -1; }
 .favstar {
@@ -595,12 +633,19 @@ body.show-math .pmath { display: block; }
 .f-name { font-family: var(--serif); font-size: 21px; font-weight: 700; }
 .f-line { font-size: 12.5px; color: var(--ink-soft); }
 
-/* dated step trail under a mover's name */
-.steps {
+/* compact move summary under a mover's name (full trail on hover) */
+.trail {
   font-size: 11px;
   color: var(--ink-faint);
   margin-top: 3px;
   font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.sparkwrap { flex: 0 0 auto; padding: 0 6px; }
+.spark { display: block; }
+@media (max-width: 640px) {
+  .sparkwrap { padding: 0 2px; }
+  .spark { width: 52px; }
 }
 .board-toolbar {
   max-width: 860px;

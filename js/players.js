@@ -135,13 +135,36 @@
         featCard(risers[risers.length - 1], 'Biggest faller', 'down')
       : '';
 
-    const stepsHtml = (a) => a.steps.map((e) =>
-      `${fmtDate(e.d)}: $${e.from} → $${e.to}`).join(' · ');
+    // price series across a player's moves: opening 'from' then each 'to'
+    const seriesOf = (a) => [a.steps[0].from].concat(a.steps.map((e) => e.to));
+    // full dated trail, for the hover tooltip
+    const trailOf = (a) => a.steps.map((e) =>
+      `${fmtDate(e.d)}: $${e.from}→$${e.to}`).join('  ·  ');
+
+    function sparkline(series, positive) {
+      const w = 70, h = 22, pad = 3;
+      const min = Math.min(...series), max = Math.max(...series);
+      const range = (max - min) || 1;
+      const x = (i) => pad + (series.length === 1 ? 0 : (i / (series.length - 1)) * (w - 2 * pad));
+      const y = (v) => h - pad - ((v - min) / range) * (h - 2 * pad);
+      const pts = series.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+      const stroke = positive ? 'var(--good)' : 'var(--bad)';
+      const lx = x(series.length - 1), ly = y(series[series.length - 1]);
+      return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+        <polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"
+          stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2" fill="${stroke}"/>
+      </svg>`;
+    }
 
     function aggRow(a, i) {
       const p = a.player || {};
       const posClass = 'pos-' + a.pos.replace('/', '');
       const ti = p.ti;
+      const n = a.steps.length;
+      const span = n > 1
+        ? `${n} moves · ${fmtDate(a.steps[0].d)}–${fmtDate(a.steps[n - 1].d)}`
+        : `1 move · ${fmtDate(a.steps[0].d)}`;
       return `<div class="prow static">
         <span class="rank">${i + 1}</span>
         <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
@@ -154,8 +177,9 @@
               <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(a.team)}</a>`
               : `<span class="teamtag">${esc(a.team)}</span>`}
           </div>
-          <div class="steps">${stepsHtml(a)}</div>
+          <div class="trail" title="${esc(trailOf(a))}">${span}</div>
         </div>
+        <div class="sparkwrap">${sparkline(seriesOf(a), a.net > 0)}</div>
         <div class="pkeep">
           <div class="pprice"><span class="amount">${money(a.steps[a.steps.length - 1].to)}</span></div>
           <div class="pnext">${netHtml(a.net)}</div>

@@ -110,11 +110,19 @@
       <span class="stat"><strong class="${spend > CAP ? 'over' : ''}">$${spendR}</strong> / $${CAP} cap</span>
       ${tax ? `<span class="stat tax">tax <strong class="over">$${tax}</strong></span>` : ''}
       ${left != null ? `<span class="stat">draft budget <strong>$${left}</strong> of $${purse}</span>` : ''}
-      <a class="copy" href="#">copy plan</a>
+      <a class="copy" href="#">share plan</a>
       <a class="reset" href="#">clear</a>`;
   }
 
-  function planText(t) {
+  function planUrl(t, ti) {
+    const picks = t.players
+      .map((p, i) => (!isContract(p) && kept.has(pid(t, p))) ? i : -1)
+      .filter((i) => i >= 0);
+    return location.origin + location.pathname +
+      '?plan=' + ti + (picks.length ? '.' + picks.join('-') : '');
+  }
+
+  function planText(t, ti) {
     const rows = t.players
       .filter((p) => isContract(p) || kept.has(pid(t, p)))
       .map((p) => `• ${p.name} (${p.pos}) $${p.price}${isContract(p) ? ' — under contract' : ''}`);
@@ -127,6 +135,7 @@
     out += `\nTotal: $${spend} of $${CAP} cap`;
     if (tax) out += ` · luxury tax $${tax}`;
     if (left != null) out += ` · $${left} left for the draft`;
+    out += `\n\nSee it: ${planUrl(t, ti)}`;
     return out;
   }
 
@@ -277,6 +286,33 @@
     relabelAll();
   }
 
+  // arriving with ?plan=<ti>.<pick>-<pick> shows someone's shared keeper plan.
+  // Applied in memory only — the viewer's own saved plan isn't overwritten
+  // unless they start editing.
+  const planParam = new URLSearchParams(location.search).get('plan');
+  if (planParam) {
+    const [tiStr, picksStr] = planParam.split('.');
+    const ti = +tiStr;
+    const t = D.teams[ti];
+    if (t) {
+      const picks = (picksStr || '').split('-').filter((x) => x !== '').map(Number);
+      t.players.forEach((p) => kept.delete(pid(t, p)));
+      picks.forEach((i) => {
+        if (t.players[i] && !isContract(t.players[i])) kept.add(pid(t, t.players[i]));
+      });
+      refreshTeam(ti);
+      setOpen(ti, true);
+      relabelAll();
+      const banner = document.createElement('div');
+      banner.className = 'share-banner';
+      banner.innerHTML = `<span>📋 Viewing <strong>${esc(t.name)}</strong>'s shared keeper plan</span>
+        <a href="${location.pathname}">Back to your own view</a>`;
+      teamsEl.parentNode.insertBefore(banner, teamsEl);
+      document.getElementById('team-' + ti)
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   // ---- player search ----
   const searchIndex = D.teams.flatMap((t, ti) =>
     t.players.map((p) => ({ name: p.name, pos: p.pos, price: p.price,
@@ -335,10 +371,10 @@
     if (copy) {
       e.preventDefault();
       const ti = +copy.closest('.team-card').dataset.ti;
-      const text = planText(D.teams[ti]);
+      const text = planText(D.teams[ti], ti);
       const done = () => {
         copy.textContent = 'copied ✓';
-        setTimeout(() => { copy.textContent = 'copy plan'; }, 1500);
+        setTimeout(() => { copy.textContent = 'share plan'; }, 1500);
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done, () => { copy.textContent = 'copy failed'; });

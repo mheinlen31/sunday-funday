@@ -27,7 +27,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sunday Funday">
-<link rel="stylesheet" href="css/styles.css?v=202607152134">
+<link rel="stylesheet" href="css/styles.css?v=202607231753">
 </head>
 <body>
 <header class="masthead">
@@ -42,6 +42,7 @@
       <a href="adp.html">ESPN ADP</a>
       <a href="moves.html">Price Moves</a>
     </nav>
+    <div class="deadline" id="deadline"></div>
   </div>
 </header>
 
@@ -77,7 +78,7 @@
   <ul>
     <li><strong>Tap a team's name</strong> to open or close its roster; the chips up top jump straight to a team. Hit the ☆ next to a team's name to pin it as yours — it moves to the top and opens automatically every visit.</li>
     <li><strong>Find a player</strong> — type in the search box and tap a result to jump straight to him.</li>
-    <li><strong>Click any player</strong> to move him up into that team's Keeper plan; click him again there to send him back to the options. Keeping is discretionary — nobody has to keep anyone. Plans save in your browser; "clear" resets a team.</li>
+    <li><strong>Click any player</strong> to move him up into that team's Keeper plan; click him again there to send him back to the options. Keeping is discretionary — nobody has to keep anyone. Plans save in your browser; "clear" resets a team, and "share plan" copies a text summary plus a link you can text to the group.</li>
     <li><strong>Cap math</strong> — keepers come out of a $100 budget. Going over costs a $2 luxury tax per $1 over, and everything is deducted from that team's auction purse (shown as "draft budget").</li>
     <li><strong>The price</strong> is what it costs to keep the player, per the Manifesto: FA pickups at ESPN market value; drafted players at the average of last year's cost and market (or cost + $10 if market jumped more than $10). Previously-kept players re-sign 2-year deals at +$5 per year. Fractional results round down to whole dollars.</li>
     <li><span class="badge badge-contract">Signed for '26</span> — already kept: the contract was signed last year, the price is locked, and it always counts against the cap. These players are pinned at the top of the Keeper plan and can't be toggled.</li>
@@ -88,7 +89,8 @@
   </ul>
 </footer>
 
-<script src="js/data.js?v=202607152134"></script>
-<script src="js/app.js?v=202607152134"></script>
+<script src="js/data.js?v=202607231753"></script>
+<script src="js/app.js?v=202607231753"></script>
+<script src="js/deadline.js?v=202607231753"></script>
 </body>
 </html>
