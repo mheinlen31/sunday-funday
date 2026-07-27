@@ -107,6 +107,13 @@ body {
 .deadline.urgent { background: #fbeceb; border-color: #e6b3b0; }
 .deadline.urgent .dl-count { color: var(--bad); }
 .deadline.passed { color: var(--ink-faint); }
+.deadline .dl-second { color: var(--ink-faint); font-weight: 500; }
+.deadline .dl-final {
+  color: var(--bad);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 /* ---------- team quick-nav + controls ---------- */
 .topbar {

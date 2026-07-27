@@ -2,7 +2,10 @@ name: Daily ESPN refresh
 
 on:
   schedule:
-    - cron: '0 12 * * *'   # 7am Central (12:00 UTC) daily
+    - cron: '0 12 * * *'    # 7am Central (12:00 UTC) daily
+    - cron: '50 16 * * *'   # 11:50am Central (16:50 UTC) — captures a near-noon
+                            # snapshot on the Sept 2 values-lock day; harmless
+                            # midday refresh otherwise. Both no-op after the lock.
   workflow_dispatch:        # manual "Run workflow" button
 
 permissions:

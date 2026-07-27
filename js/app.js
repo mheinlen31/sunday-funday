@@ -13,8 +13,9 @@
     new Date(D.generated).toLocaleString(undefined, {
       month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
     });
-  // flag it if the daily refresh has silently stopped
-  if (Date.now() - new Date(D.generated).getTime() > 48 * 3600e3) {
+  // flag it if the daily refresh has silently stopped — but not once values
+  // are locked, when a frozen (non-advancing) timestamp is expected
+  if (!D.locked && Date.now() - new Date(D.generated).getTime() > 48 * 3600e3) {
     document.querySelector('.updated').insertAdjacentHTML('beforeend',
       ' <span class="stale">· refresh overdue — values may be out of date</span>');
   }

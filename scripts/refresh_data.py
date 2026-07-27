@@ -33,6 +33,12 @@ SEASON = 2026
 BAND_ROWS = (1, 21, 41, 61, 81)  # header row of each two-team band
 BLOCK_COLS = (1, 9)              # first column of the left/right team block
 
+# Keeper values lock at Sept 2, 2026, noon Central (CDT = UTC-5) -> 17:00 UTC.
+# After this, values are FINAL: don't query ESPN, reuse the frozen values from
+# the last pre-lock data.js. Trades (roster changes) still apply — a player
+# carries his frozen value to his new team.
+VALUES_LOCK = datetime(2026, 9, 2, 17, 0, tzinfo=timezone.utc)
+
 ESPN_URL = (
     "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/"
     f"{SEASON}/segments/0/leaguedefaults/3?view=kona_player_info"
@@ -179,6 +185,30 @@ def read_rosters():
     return teams
 
 
+def frozen_market(prev):
+    """A lookup()-compatible market map rebuilt from a locked data.js, so
+    post-lock trades keep the final frozen values instead of new ESPN ADP."""
+    m = {}
+
+    def add(name, pos, market_val, img):
+        eid = None
+        if img:
+            mo = re.search(r"/full/(\d+)\.png", img)
+            if mo:
+                eid = int(mo.group(1))
+        # key the same way lookup() searches (alias-normalized) so the three
+        # sheet/ESPN spelling mismatches still resolve
+        key = ALIASES.get(norm_name(name), norm_name(name))
+        m[(key, pos)] = {"aav": market_val, "id": eid, "name": name}
+
+    for t in (prev or {}).get("teams", []):
+        for p in t["players"]:
+            add(p["name"], p["pos"], p["market"], p.get("img"))
+    for p in (prev or {}).get("pool", []):
+        add(p["name"], p["pos"], p["market"], p.get("img"))
+    return m
+
+
 def load_previous():
     """Previous data.js payload, for diffing prices into the change log."""
     p = ROOT / "js" / "data.js"
@@ -239,8 +269,15 @@ def read_purses():
 
 def main():
     teams = read_rosters()
-    market = fetch_espn()
     purses = read_purses()
+    prev = load_previous()
+    locked = bool(prev and prev.get("locked")) or datetime.now(timezone.utc) >= VALUES_LOCK
+    if locked:
+        market = frozen_market(prev)
+        print("VALUES LOCKED — reusing frozen keeper values (ESPN not queried); "
+              "trades/roster edits still apply.")
+    else:
+        market = fetch_espn()
     owned_ids = set()
     for team in teams:
         team["purse"] = purses.get(team["name"])
@@ -287,12 +324,12 @@ def main():
             for k in ("sheetMarket", "sheetPrice", "priceLocked", "contractCell"):
                 p.pop(k)
 
-    prev = load_previous()
     changelog = update_changelog(prev, teams)
     out = {
         "season": SEASON,
         "priorSeason": SEASON - 1,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "locked": locked,
         "changeLog": changelog,
         "teams": teams,
         "pool": build_pool(market, owned_ids),

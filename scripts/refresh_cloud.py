@@ -22,6 +22,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA_JS = ROOT / "js" / "data.js"
 
+# Keeper values lock at Sept 2, 2026, noon Central (CDT = UTC-5) -> 17:00 UTC.
+# After this, ESPN ADP changes no longer matter — values are FINAL, so the
+# daily refresh stops touching prices.
+VALUES_LOCK = datetime(2026, 9, 2, 17, 0, tzinfo=timezone.utc)
+
 # sanity guards: abort (nonzero exit -> failed Action -> email) rather than
 # auto-publish garbage if ESPN's feed looks broken or reset
 MIN_POOL = 300        # fetched player pool smaller than this = broken feed
@@ -123,6 +128,18 @@ def fmt_money(x):
 def main():
     s = DATA_JS.read_text()
     d = json.loads(s[s.index("{"):s.rindex("}") + 1])
+
+    # once values lock, freeze them: stop touching prices entirely
+    if datetime.now(timezone.utc) >= VALUES_LOCK:
+        if not d.get("locked"):
+            d["locked"] = True
+            d["generated"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            DATA_JS.write_text("window.LEAGUE_DATA = " + json.dumps(d) + ";\n")
+            print("values locked — froze final keeper values; no further ESPN updates")
+        else:
+            print("values already locked — nothing to do")
+        return
+
     market = fetch_espn(d["season"])
     print(f"ESPN pool: {len(market)} players")
     if len(market) < MIN_POOL:
