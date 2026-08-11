@@ -116,6 +116,37 @@
       return a;
     }).filter((a) => a.net !== 0);
 
+    // ---- Latest Moves: the most recent refresh day's changes (prominent) ----
+    const latestEl = document.getElementById('latest');
+    const allDates = [...new Set((D.changeLog || []).map((e) => e.d))].sort();
+    const latestDate = allDates.length ? allDates[allDates.length - 1] : null;
+    const genDate = (D.generated || '').slice(0, 10);
+    if (latestDate) {
+      const todays = (D.changeLog || []).filter((e) => e.d === latestDate)
+        .sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from));
+      const ups = todays.filter((e) => e.to > e.from).length;
+      const downs = todays.length - ups;
+      const fresh = latestDate === genDate && !D.locked;
+      const note = fresh ? '' : (D.locked
+        ? ' · <span class="latest-note">values now final</span>'
+        : ` · <span class="latest-note">no change in the ${fmtDate(genDate)} refresh</span>`);
+      latestEl.innerHTML = `
+        <article class="team-card board-card latest-card">
+          <div class="team-head static">
+            <h2 class="team-name">${fresh ? "Today's Moves" : 'Latest Moves'} · ${fmtDate(latestDate)}</h2>
+            <div class="team-meta">${todays.length} change${todays.length !== 1 ? 's' : ''} ·
+              <span class="delta pos">${ups} up</span> · <span class="delta neg">${downs} down</span>${note}</div>
+          </div>
+          <div class="roster">${todays.map(dateRow).join('')}</div>
+        </article>`;
+    } else {
+      latestEl.innerHTML = `
+        <article class="team-card board-card latest-card">
+          <div class="team-head static"><h2 class="team-name">Latest Moves</h2></div>
+          <div class="empty-note">No price changes recorded yet — check back after the next daily refresh.</div>
+        </article>`;
+    }
+
     // feature cards: biggest riser and faller
     const featEl = document.getElementById('features');
     const risers = [...aggs].sort((x, y) => y.net - x.net);

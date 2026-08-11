@@ -604,6 +604,33 @@ body.show-math .pmath { display: block; }
 }
 .strip-link:hover { text-decoration: underline; }
 
+/* price-moves: Latest section (prominent) + Season section */
+.latest-strip {
+  max-width: 860px;
+  margin: 18px auto 0;
+  padding: 0 24px;
+}
+.latest-card {
+  border-top: 4px solid var(--accent);
+  box-shadow: 0 2px 14px rgba(13, 92, 63, 0.09);
+}
+.latest-card .team-head { background: #f4f8f5; }
+.latest-note { color: var(--ink-faint); font-weight: 500; }
+.section-head {
+  max-width: 860px;
+  margin: 28px auto 0;
+  padding: 0 24px 8px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 2px solid var(--rule-dark);
+}
+.section-title { font-family: var(--serif); font-size: 21px; font-weight: 700; }
+@media (max-width: 640px) {
+  .latest-strip, .section-head { padding-left: 12px; padding-right: 12px; }
+}
+
 /* price-moves feature cards */
 .feature-row {
   max-width: 860px;
