@@ -209,6 +209,61 @@ def frozen_market(prev):
     return m
 
 
+HISTORY_YEARS = range(2025, 2018, -1)  # 2025 down to 2019
+
+
+def read_history():
+    """Past-season rosters from the older '<year> Keeper Values' sheets.
+
+    Block layout (header row, name column) varies year to year, so team
+    blocks are found dynamically by locating 'Position' header cells. Columns
+    relative to the name column are stable: +1 pos, +2 acquired, +3 prior
+    draft cost, +5 keeper price. Row-major block order matches the current
+    roster order, so a block's index is its stable franchise slot.
+    """
+    wb = load_workbook(XLSX, data_only=True)
+
+    def num(v):
+        try:
+            return fmt_money(float(v))
+        except (TypeError, ValueError):
+            return None
+
+    by_year = {}
+    for year in HISTORY_YEARS:
+        name = f"{year} Keeper Values"
+        if name not in wb.sheetnames:
+            continue
+        ws = wb[name]
+        headers = []  # (header_row, name_col), row-major
+        for row in ws.iter_rows(min_row=1, max_row=160):
+            for c in row:
+                if c.value == "Position" and c.column > 1:
+                    headers.append((c.row, c.column - 1))
+        teams = []
+        for slot, (hr, nc) in enumerate(headers):
+            tname = ws.cell(hr, nc).value
+            if not tname:
+                continue
+            players = []
+            for r in range(hr + 1, hr + 25):
+                pn = ws.cell(r, nc).value
+                if pn is None:
+                    break
+                raw_cost = ws.cell(r, nc + 3).value
+                players.append({
+                    "name": str(pn).strip(),
+                    "pos": ws.cell(r, nc + 1).value,
+                    "acquired": ws.cell(r, nc + 2).value,
+                    "draftCost": None if raw_cost in ("-", None) else num(raw_cost),
+                    "price": num(ws.cell(r, nc + 5).value),
+                })
+            teams.append({"name": str(tname).strip(), "slot": slot, "players": players})
+        by_year[str(year)] = teams
+    return {"seasons": [y for y in HISTORY_YEARS if str(y) in by_year],
+            "byYear": by_year}
+
+
 def load_previous():
     """Previous data.js payload, for diffing prices into the change log."""
     p = ROOT / "js" / "data.js"
@@ -340,8 +395,16 @@ def main():
     (ROOT / "js").mkdir(exist_ok=True)
     (ROOT / "js" / "data.js").write_text(js)
 
+    # past-season rosters — static reference, its own file so the daily cloud
+    # refresh (which only round-trips data.js) never has to carry it
+    history = read_history()
+    (ROOT / "js" / "history.js").write_text(
+        "window.LEAGUE_HISTORY = " + json.dumps(history) + ";\n")
+
     n = sum(len(t["players"]) for t in teams)
+    hn = sum(len(t["players"]) for yr in history["byYear"].values() for t in yr)
     print(f"{len(teams)} teams, {n} players. ESPN pool: {len(market)} players.")
+    print(f"history: {len(history['seasons'])} seasons ({history['seasons']}), {hn} roster rows.")
     if unmatched:
         print("No ESPN match (kept sheet value):")
         for u in unmatched:

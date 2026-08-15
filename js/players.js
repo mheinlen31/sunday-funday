@@ -328,4 +328,62 @@
     });
     render();
   }
+
+  if (page === 'rosters') {
+    const H = window.LEAGUE_HISTORY || { seasons: [], byYear: {} };
+    const sel = document.getElementById('year-select');
+    if (!H.seasons.length) {
+      main.innerHTML = `<article class="team-card board-card"><div class="empty-note">
+        No past-season rosters found.</div></article>`;
+      return;
+    }
+    sel.innerHTML = H.seasons.map((y) => `<option value="${y}">${y}</option>`).join('');
+    let year = localStorage.getItem('sf-rosters-year');
+    if (!H.seasons.map(String).includes(year)) year = String(H.seasons[0]);
+    sel.value = year;
+
+    function histRow(p, i) {
+      const posClass = 'pos-' + String(p.pos || '').replace('/', '');
+      // headline = that season's keeper value; subline = original draft cost
+      const val = p.price != null ? money(p.price) : '—';
+      const sub = p.draftCost != null ? `draft ${money(p.draftCost)}` : '';
+      return `<div class="prow static nomug">
+        <span class="rank">${i + 1}</span>
+        <div class="pinfo">
+          <div class="pname">${esc(p.name)}</div>
+          <div class="psub">
+            <span class="pos ${posClass}">${esc(p.pos || '—')}</span>
+            <span class="badge acq">${esc(p.acquired || '—')}</span>
+          </div>
+        </div>
+        <div class="pkeep">
+          <div class="pprice"><span class="amount">${val}</span></div>
+          ${sub ? `<div class="pnext">${sub}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    function render() {
+      const teams = H.byYear[year] || [];
+      main.innerHTML = teams.map((t) => {
+        const cur = (D.teams[t.slot] || {}).name;
+        const color = TEAM_COLORS[t.slot % 10];
+        const now = cur && cur !== t.name ? `now ${esc(cur)} · ` : '';
+        return `<article class="team-card board-card" style="--tc:${color}">
+          <div class="team-head static">
+            <h2 class="team-name">${esc(t.name)}</h2>
+            <div class="team-meta">${now}${t.players.length} player${t.players.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div class="roster">${t.players.map(histRow).join('')}</div>
+        </article>`;
+      }).join('');
+    }
+
+    sel.addEventListener('change', () => {
+      year = sel.value;
+      localStorage.setItem('sf-rosters-year', year);
+      render();
+    });
+    render();
+  }
 })();

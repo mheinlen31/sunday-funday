@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sunday Funday — Keepers by Position</title>
+<title>Sunday Funday — Past Rosters</title>
 <meta name="theme-color" content="#0d5c3f">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/styles.css?v=202608141412">
 </head>
-<body data-page="positions">
+<body data-page="rosters">
 <header class="masthead">
   <div class="masthead-inner">
     <p class="kicker">Fantasy Football · Offseason</p>
@@ -18,23 +18,32 @@
     <p class="updated">Values update daily from ESPN · last refresh <span id="updated"></span></p>
     <nav class="pagetabs">
       <a href="./">Teams</a>
-      <a href="positions.html" class="active">By Position</a>
+      <a href="positions.html">By Position</a>
       <a href="adp.html">ESPN ADP</a>
       <a href="moves.html">Price Moves</a>
-      <a href="rosters.html">Past Rosters</a>
+      <a href="rosters.html" class="active">Past Rosters</a>
     </nav>
     <div class="deadline" id="deadline"></div>
   </div>
 </header>
 
+<div class="board-toolbar">
+  <label class="year-picker">Season
+    <select id="year-select"></select>
+  </label>
+</div>
+
 <main class="team-grid board" id="board"></main>
 
 <footer class="legend">
-  <p class="boardnote">Every owned player, grouped by position and ordered by
-  what he'd cost to keep. Tap a team name to jump to that roster.</p>
+  <p class="boardnote">Each team's roster from a past season, with how every
+  player was acquired and his cost — draft price (or FA) and that year's keeper
+  value. Team names are as they were that season; "now" shows the current
+  franchise. Pick a season above.</p>
 </footer>
 
 <script src="js/data.js?v=202608141412"></script>
+<script src="js/history.js?v=202608141412"></script>
 <script src="js/players.js?v=202608141412"></script>
 <script src="js/deadline.js?v=202608141412"></script>
 </body>

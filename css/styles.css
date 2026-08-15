@@ -72,9 +72,11 @@ body {
 .pagetabs {
   margin-top: 16px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 26px;
+  gap: 12px 26px;
 }
+@media (max-width: 640px) { .pagetabs { gap: 10px 18px; } }
 .pagetabs a {
   font-size: 12px;
   font-weight: 800;
@@ -571,7 +573,7 @@ body.show-math .pmath { display: block; }
 
 /* ---------- league-wide boards (positions / adp pages) ---------- */
 .team-grid.board { grid-template-columns: 1fr; max-width: 860px; }
-.board-card { border-top-color: var(--rule-dark); }
+.board-card { border-top-color: var(--tc, var(--rule-dark)); }
 .team-head.static { cursor: default; }
 .prow.static { cursor: default; }
 .prow.static:hover { background: transparent; }
@@ -691,6 +693,32 @@ body.show-math .pmath { display: block; }
 }
 .badge.avail { border-style: dashed; color: var(--ink-faint); background: none; }
 .prow.unowned .pname { color: var(--ink-soft); }
+
+/* past-rosters: year picker + headshot-less rows */
+.year-picker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.year-picker select {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--card);
+  cursor: pointer;
+}
+.prow.nomug .rank { margin-right: 4px; }
 
 /* row flash after jumping from a strip chip */
 @keyframes flashrow {
