@@ -727,6 +727,102 @@ body.show-math .pmath { display: block; }
 }
 .prow.nomug .rank { margin-right: 4px; }
 
+/* ---------- trades page ---------- */
+.section-head.first { margin-top: 18px; }
+.trade-card { border-top-color: var(--rule-dark); }
+.trade-head {
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--rule-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+.trade-date {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: 10px;
+}
+.trade-body { display: flex; align-items: stretch; }
+.trade-side { flex: 1 1 0; padding: 14px 16px; min-width: 0; }
+.trade-side + .trade-vs + .trade-side { border-left: 1px solid var(--rule); }
+.trade-vs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  color: var(--ink-faint);
+  padding: 0 2px;
+}
+.trade-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.trade-side-head .teamtag { font-size: 14px; font-weight: 800; }
+.grade {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 10px;
+  border-radius: 5px;
+  color: #fff;
+}
+.grade.g-a { background: var(--good); }
+.grade.g-b { background: #1f5fa8; }
+.grade.g-c { background: var(--gold); }
+.grade.g-d { background: var(--bad); }
+.got-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 4px;
+}
+.got-item { font-size: 13px; margin-bottom: 4px; }
+.got-name { font-weight: 700; }
+.got-sub { display: block; font-size: 11.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.got-dollars { font-weight: 800; color: var(--good); font-family: var(--serif); font-size: 16px; }
+.trade-note {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dotted var(--rule);
+}
+@media (max-width: 560px) {
+  .trade-body { flex-direction: column; }
+  .trade-side + .trade-vs + .trade-side { border-left: none; border-top: 1px solid var(--rule); }
+  .trade-vs { justify-content: center; transform: rotate(90deg); padding: 4px 0; }
+}
+
+.trade-history { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+.trade-year { border-bottom: 1px solid var(--rule); padding: 8px 0; }
+.trade-year summary {
+  cursor: pointer;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  padding: 4px 0;
+}
+.trade-year .muted { font-family: var(--sans); font-size: 12px; font-weight: 400; }
+.trade-log { list-style: none; padding: 6px 0 8px; }
+.trade-log li {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  padding: 4px 0 4px 16px;
+  border-left: 2px solid var(--rule);
+  margin-bottom: 2px;
+}
+@media (max-width: 640px) { .trade-history { padding: 0 12px; } }
+
 /* row flash after jumping from a strip chip */
 @keyframes flashrow {
   0%, 40% { background: #fbedb7; }

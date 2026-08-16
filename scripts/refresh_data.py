@@ -56,21 +56,32 @@ ALIASES = {
 # Budgets-sheet team name -> Keeper Values sheet team name
 TEAM_ALIASES = {"Chovies": "The Chovies", "HopefulChovies": "The Chovies",
                 "AFRESHAYPEPPER ASAYWHEN": "Pep", "Gorlock": "Loser"}
-# 2026 purses confirmed by Matt 2026-07-10; win over the Budgets sheet.
-# Running total: base purses adjusted for draft-dollar trades (see TRADES).
-PURSE_OVERRIDES = {
-    "The Chovies": 197, "Pep": 201, "Bom Bers": 199, "Centersup": 199,
+# 2026 base auction purses confirmed by Matt 2026-07-10 (pre-trade); win over
+# the Budgets sheet. Draft-dollar trades adjust these via TRADES below.
+BASE_PURSES = {
+    "The Chovies": 197, "Pep": 201, "Bom Bers": 199, "Centersup": 201,
     "Chance": 202, "Juice": 200, "Loser": 196, "Magic Rats": 208,
-    "Paw": 198, "Silent Pugios": 200,
+    "Paw": 196, "Silent Pugios": 200,
 }
-# Offseason 2026 trades. Player moves are applied to the rosters read from the
-# workbook (a player's keeper status/cost follows him); draft-dollar swaps are
-# baked into PURSE_OVERRIDES above. The workbook itself is left untouched so its
-# historical formula caches (past-season keeper prices) stay intact.
+# Offseason 2026 trades. Each side's "players"/"dollars" is what it GIVES UP;
+# in a two-team trade those go to the other side. Roster moves are applied to
+# the rosters read from the workbook (a keeper's status/cost follows him) and
+# purse changes are derived from the dollars — the workbook is left untouched so
+# its historical formula caches stay intact. "grade"/"note" are my hand-authored
+# take per side; the site also shows the objective value each side received.
 TRADES = [
-    # (player, from_team, to_team, date, note)
-    ("Kenneth Gainwell", "Paw", "Centersup", "2026-08-16",
-     "Paw traded Kenneth Gainwell to Centersup for $2 in 2026 draft budget"),
+    {
+        "date": "2026-08-16",
+        "summary": "Paw traded Kenneth Gainwell to Centersup for $2 in 2026 draft budget.",
+        "sides": {
+            "Paw": {"players": ["Kenneth Gainwell"], "dollars": 0, "grade": "B+",
+                    "note": "Converts a fringe committee back with no keeper surplus "
+                            "into flexible draft cash. Low-risk, tidy little win."},
+            "Centersup": {"players": [], "dollars": 2, "grade": "B-",
+                    "note": "Buys cheap RB depth / a $2 keeper flier. A slight overpay "
+                            "in pure value, but $2 is nothing if they wanted the body."},
+        },
+    },
 ]
 # NFL team name -> ESPN logo abbreviation (for D/ST images)
 NFL_ABBR = {
@@ -321,42 +332,60 @@ def update_changelog(prev, teams):
 
 
 def read_purses():
-    """Auction purse per team from the '{SEASON} Auction Money' budget section."""
-    ws = load_workbook(XLSX, data_only=True)["Sunday Funday Budgets"]
-    purses, in_section = {}, False
-    for row in ws.iter_rows(max_col=2):
-        label, val = row[0].value, row[1].value
-        if isinstance(label, str) and label.strip().startswith(str(SEASON)):
-            in_section = True
-            continue
-        if in_section:
-            if not isinstance(label, str) or not label.strip():
-                break
-            name = label.strip()
-            purses[TEAM_ALIASES.get(name, name)] = float(val)
-    for name, purse in PURSE_OVERRIDES.items():
-        if purses.get(name) != purse:
-            print(f"purse override: {name} ${purses.get(name)} (sheet) -> ${purse} (confirmed)")
-        purses[name] = float(purse)
+    """Auction purse per team: confirmed base purses, then draft-dollar trades."""
+    purses = {name: float(v) for name, v in BASE_PURSES.items()}
+    for tr in TRADES:
+        names = list(tr["sides"])
+        for i, name in enumerate(names):
+            other = names[1 - i] if len(names) == 2 else None
+            d = tr["sides"][name].get("dollars", 0)
+            if d and other:
+                purses[name] -= d          # gives dollars away
+                purses[other] += d          # other side receives them
     return purses
 
 
 def apply_trades(teams):
-    """Move traded players between teams (keeper status/cost follows them)."""
+    """Move traded players to the other side (keeper status/cost follows them)."""
     by_name = {t["name"]: t for t in teams}
-    for player, frm, to, _date, note in TRADES:
-        src, dst = by_name.get(frm), by_name.get(to)
-        if not src or not dst:
-            print(f"trade warning: team not found ({frm} / {to})")
+    for tr in TRADES:
+        names = list(tr["sides"])
+        if len(names) != 2:
+            print(f"trade warning: {tr.get('summary')} — not a two-team trade, skipped")
             continue
-        moving = [p for p in src["players"] if norm_name(p["name"]) == norm_name(player)]
-        if not moving:
-            print(f"trade warning: {player} not on {frm}")
+        for i, name in enumerate(names):
+            src, dst = by_name.get(name), by_name.get(names[1 - i])
+            if not src or not dst:
+                print(f"trade warning: team not found ({name})")
+                continue
+            for player in tr["sides"][name].get("players", []):
+                moving = [p for p in src["players"]
+                          if norm_name(p["name"]) == norm_name(player)]
+                if not moving:
+                    print(f"trade warning: {player} not on {name}")
+                for p in moving:
+                    src["players"].remove(p)
+                    dst["players"].append(p)
+    for tr in TRADES:
+        print(f"trade applied: {tr['summary']}")
+
+
+def read_trade_history():
+    """Narrative trade log from the workbook, grouped by year (newest first)."""
+    ws = load_workbook(XLSX, data_only=True)["Sunday Funday Trade History"]
+    groups, cur = [], None
+    for row in ws.iter_rows(max_col=1):
+        v = row[0].value
+        if v is None:
             continue
-        for p in moving:
-            src["players"].remove(p)
-            dst["players"].append(p)
-        print(f"trade applied: {note}")
+        s = str(v).strip()
+        m = re.match(r"^(\d{4})\s+Trades$", s)
+        if m:
+            cur = {"year": int(m.group(1)), "entries": []}
+            groups.append(cur)
+        elif cur is not None:
+            cur["entries"].append(re.sub(r"^\d+\.\s*", "", s))
+    return groups
 
 
 def main():
@@ -428,6 +457,7 @@ def main():
         "changeLog": changelog,
         "teams": teams,
         "pool": build_pool(market, owned_ids),
+        "trades": TRADES,
     }
     (ROOT / "data").mkdir(exist_ok=True)
     (ROOT / "data" / "keepers.json").write_text(json.dumps(out, indent=2))
@@ -435,9 +465,10 @@ def main():
     (ROOT / "js").mkdir(exist_ok=True)
     (ROOT / "js" / "data.js").write_text(js)
 
-    # past-season rosters — static reference, its own file so the daily cloud
-    # refresh (which only round-trips data.js) never has to carry it
+    # past-season rosters + narrative trade log — static reference, its own file
+    # so the daily cloud refresh (which only round-trips data.js) never carries it
     history = read_history()
+    history["tradeHistory"] = read_trade_history()
     (ROOT / "js" / "history.js").write_text(
         "window.LEAGUE_HISTORY = " + json.dumps(history) + ";\n")
 

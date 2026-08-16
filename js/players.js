@@ -387,4 +387,100 @@
     });
     render();
   }
+
+  if (page === 'trades') {
+    const H = window.LEAGUE_HISTORY || {};
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fmtDate = (d) => {
+      const [, m, day] = String(d).split('-');
+      return MONTHS[+m - 1] + ' ' + +day;
+    };
+    const norm = (s) => String(s).toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
+
+    // index every current player (+ team) by name, to price traded assets
+    const pIndex = {};
+    D.teams.forEach((t, ti) => t.players.forEach((p) => {
+      pIndex[norm(p.name)] = { ...p, team: t.name, ti };
+    }));
+    (D.pool || []).forEach((p) => { if (!pIndex[norm(p.name)]) pIndex[norm(p.name)] = { ...p, price: p.market, surplus: 0 }; });
+
+    const gradeClass = (g) => {
+      const c = (g || '')[0];
+      return c === 'A' ? 'g-a' : c === 'B' ? 'g-b' : c === 'C' ? 'g-c' : c ? 'g-d' : '';
+    };
+    const teamColor = (name) => {
+      const ti = D.teams.findIndex((t) => t.name === name);
+      return ti >= 0 ? TEAM_COLORS[ti % 10] : 'var(--ink-faint)';
+    };
+    const teamHref = (name) => {
+      const ti = D.teams.findIndex((t) => t.name === name);
+      return ti >= 0 ? `./#team-${ti}` : null;
+    };
+
+    function assetLine(name) {
+      const p = pIndex[norm(name)];
+      if (!p) return `<div class="got-item"><span class="got-name">${esc(name)}</span>
+        <span class="got-sub muted">no longer rostered</span></div>`;
+      const s = p.surplus;
+      const surplus = s > 0 ? `<span class="delta pos">+$${s}</span>`
+        : s < 0 ? `<span class="delta neg">−$${Math.abs(s)}</span>`
+          : '<span class="delta zero">even</span>';
+      return `<div class="got-item">
+        <span class="got-name">${esc(p.name)}</span>
+        <span class="got-sub">${esc(p.pos)}${p.nfl ? ' · ' + esc(p.nfl) : ''} ·
+          keeper $${p.price} · mkt $${p.market} · ${surplus}</span>
+      </div>`;
+    }
+
+    function sideHtml(tr, name, other) {
+      const got = tr.sides[other] || {};
+      const items = (got.players || []).map(assetLine);
+      if (got.dollars) items.push(`<div class="got-item">
+        <span class="got-dollars">$${got.dollars}</span> in ${D.season} draft budget</div>`);
+      if (!items.length) items.push('<div class="got-item muted">nothing</div>');
+      const g = tr.sides[name].grade || '';
+      return `<div class="trade-side">
+        <div class="trade-side-head">
+          <a class="teamtag"${teamHref(name) ? ` href="${teamHref(name)}"` : ''}>
+            <i class="teamdot" style="background:${teamColor(name)}"></i>${esc(name)}</a>
+          ${g ? `<span class="grade ${gradeClass(g)}">${esc(g)}</span>` : ''}
+        </div>
+        <div class="got-label">received</div>
+        <div class="got-items">${items.join('')}</div>
+        ${tr.sides[name].note ? `<p class="trade-note">${esc(tr.sides[name].note)}</p>` : ''}
+      </div>`;
+    }
+
+    function tradeCard(tr) {
+      const names = Object.keys(tr.sides);
+      const body = names.length === 2
+        ? sideHtml(tr, names[0], names[1]) + '<div class="trade-vs">⇄</div>' +
+          sideHtml(tr, names[1], names[0])
+        : `<div class="empty-note">${esc(tr.summary || '')}</div>`;
+      return `<article class="team-card board-card trade-card">
+        <div class="trade-head"><span class="trade-date">${fmtDate(tr.date)}</span>${esc(tr.summary || '')}</div>
+        <div class="trade-body">${body}</div>
+      </article>`;
+    }
+
+    const trades = (D.trades || []).slice().reverse();
+    const tradesHtml = trades.length
+      ? trades.map(tradeCard).join('')
+      : `<article class="team-card board-card"><div class="empty-note">
+          No trades yet this offseason.</div></article>`;
+
+    const th = H.tradeHistory || [];
+    const historyHtml = th.map((g, i) => `
+      <details class="trade-year"${i === 0 ? ' open' : ''}>
+        <summary>${g.year} Trades <span class="muted">· ${g.entries.length}</span></summary>
+        <ul class="trade-log">${g.entries.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>
+      </details>`).join('');
+
+    main.innerHTML = `
+      <div class="section-head first"><h2 class="section-title">2026 Offseason Trades</h2></div>
+      ${tradesHtml}
+      ${th.length ? `<div class="section-head"><h2 class="section-title">Trade History</h2></div>
+        <div class="trade-history">${historyHtml}</div>` : ''}`;
+  }
 })();
