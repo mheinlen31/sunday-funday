@@ -57,12 +57,21 @@ ALIASES = {
 TEAM_ALIASES = {"Chovies": "The Chovies", "HopefulChovies": "The Chovies",
                 "AFRESHAYPEPPER ASAYWHEN": "Pep", "Gorlock": "Loser"}
 # 2026 purses confirmed by Matt 2026-07-10; win over the Budgets sheet.
-# Delete once the sheet is updated to match.
+# Running total: base purses adjusted for draft-dollar trades (see TRADES).
 PURSE_OVERRIDES = {
-    "The Chovies": 197, "Pep": 201, "Bom Bers": 199, "Centersup": 201,
+    "The Chovies": 197, "Pep": 201, "Bom Bers": 199, "Centersup": 199,
     "Chance": 202, "Juice": 200, "Loser": 196, "Magic Rats": 208,
-    "Paw": 196, "Silent Pugios": 200,
+    "Paw": 198, "Silent Pugios": 200,
 }
+# Offseason 2026 trades. Player moves are applied to the rosters read from the
+# workbook (a player's keeper status/cost follows him); draft-dollar swaps are
+# baked into PURSE_OVERRIDES above. The workbook itself is left untouched so its
+# historical formula caches (past-season keeper prices) stay intact.
+TRADES = [
+    # (player, from_team, to_team, date, note)
+    ("Kenneth Gainwell", "Paw", "Centersup", "2026-08-16",
+     "Paw traded Kenneth Gainwell to Centersup for $2 in 2026 draft budget"),
+]
 # NFL team name -> ESPN logo abbreviation (for D/ST images)
 NFL_ABBR = {
     "cardinals": "ari", "falcons": "atl", "ravens": "bal", "bills": "buf",
@@ -332,8 +341,27 @@ def read_purses():
     return purses
 
 
+def apply_trades(teams):
+    """Move traded players between teams (keeper status/cost follows them)."""
+    by_name = {t["name"]: t for t in teams}
+    for player, frm, to, _date, note in TRADES:
+        src, dst = by_name.get(frm), by_name.get(to)
+        if not src or not dst:
+            print(f"trade warning: team not found ({frm} / {to})")
+            continue
+        moving = [p for p in src["players"] if norm_name(p["name"]) == norm_name(player)]
+        if not moving:
+            print(f"trade warning: {player} not on {frm}")
+            continue
+        for p in moving:
+            src["players"].remove(p)
+            dst["players"].append(p)
+        print(f"trade applied: {note}")
+
+
 def main():
     teams = read_rosters()
+    apply_trades(teams)
     purses = read_purses()
     prev = load_previous()
     locked = bool(prev and prev.get("locked")) or datetime.now(timezone.utc) >= VALUES_LOCK
