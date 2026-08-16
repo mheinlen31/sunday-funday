@@ -59,6 +59,7 @@
         <div class="pname">${esc(p.name)}</div>
         <div class="psub">
           <span class="pos ${posClass}">${esc(p.pos)}</span>
+          ${p.nfl ? `<span class="nfl">${esc(p.nfl)}</span>` : ''}
           ${whose}
         </div>
       </div>

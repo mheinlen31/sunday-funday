@@ -76,6 +76,14 @@ NFL_ABBR = {
 }
 HEADSHOT = "https://a.espncdn.com/i/headshots/nfl/players/full/{}.png"
 TEAM_LOGO = "https://a.espncdn.com/i/teamlogos/nfl/500/{}.png"
+# ESPN proTeamId -> NFL abbreviation (0 = free agent / none)
+PRO_TEAM = {
+    1: "ATL", 2: "BUF", 3: "CHI", 4: "CIN", 5: "CLE", 6: "DAL", 7: "DEN",
+    8: "DET", 9: "GB", 10: "TEN", 11: "IND", 12: "KC", 13: "LV", 14: "LAR",
+    15: "MIA", 16: "MIN", 17: "NE", 18: "NO", 19: "NYG", 20: "NYJ", 21: "PHI",
+    22: "ARI", 23: "PIT", 24: "LAC", 25: "SF", 26: "SEA", 27: "TB", 28: "WSH",
+    29: "CAR", 30: "JAX", 33: "BAL", 34: "HOU",
+}
 
 
 def norm_name(name):
@@ -106,7 +114,8 @@ def fetch_espn():
         key = (norm_name(name), pos)
         # keep the highest AAV if a name collides
         if key not in market or aav > market[key]["aav"]:
-            market[key] = {"aav": aav, "id": p.get("id"), "name": name}
+            market[key] = {"aav": aav, "id": p.get("id"), "name": name,
+                           "nfl": PRO_TEAM.get(p.get("proTeamId"))}
     return market
 
 
@@ -118,6 +127,7 @@ def build_pool(market, owned_ids, limit=300):
             continue
         pool.append({"name": e["name"], "pos": pos,
                      "market": max(1, round(e["aav"])),
+                     "nfl": e.get("nfl") if pos != "D/ST" else None,
                      "img": player_img(e["name"], pos, e["id"])})
     pool.sort(key=lambda p: -p["market"])
     return pool[:limit]
@@ -190,7 +200,7 @@ def frozen_market(prev):
     post-lock trades keep the final frozen values instead of new ESPN ADP."""
     m = {}
 
-    def add(name, pos, market_val, img):
+    def add(name, pos, market_val, img, nfl):
         eid = None
         if img:
             mo = re.search(r"/full/(\d+)\.png", img)
@@ -199,13 +209,13 @@ def frozen_market(prev):
         # key the same way lookup() searches (alias-normalized) so the three
         # sheet/ESPN spelling mismatches still resolve
         key = ALIASES.get(norm_name(name), norm_name(name))
-        m[(key, pos)] = {"aav": market_val, "id": eid, "name": name}
+        m[(key, pos)] = {"aav": market_val, "id": eid, "name": name, "nfl": nfl}
 
     for t in (prev or {}).get("teams", []):
         for p in t["players"]:
-            add(p["name"], p["pos"], p["market"], p.get("img"))
+            add(p["name"], p["pos"], p["market"], p.get("img"), p.get("nfl"))
     for p in (prev or {}).get("pool", []):
-        add(p["name"], p["pos"], p["market"], p.get("img"))
+        add(p["name"], p["pos"], p["market"], p.get("img"), p.get("nfl"))
     return m
 
 
@@ -347,6 +357,7 @@ def main():
                 unmatched.append(f'{p["name"]} ({p["pos"]}, {team["name"]})')
                 mval = float(p["sheetMarket"] or 1)
                 p["img"] = player_img(p["name"], p["pos"], None)
+                p["nfl"] = p.get("nfl")  # keep any prior value
             else:
                 owned_ids.add(entry["id"])
                 mval = max(1, round(entry["aav"]))
@@ -355,6 +366,7 @@ def main():
                           f'{espn_pos} on ESPN — using ESPN position')
                     p["pos"] = espn_pos
                 p["img"] = player_img(p["name"], p["pos"], entry["id"])
+                p["nfl"] = entry.get("nfl") if p["pos"] != "D/ST" else None
             p["market"] = fmt_money(mval)
 
             is_repeat = str(p["acquired"] or "").startswith("Keeper")

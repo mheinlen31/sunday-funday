@@ -39,6 +39,13 @@ ALIASES = {
     "kenneth gainwell": "kenny gainwell",
     "jason meyers": "jason myers",
 }
+PRO_TEAM = {
+    1: "ATL", 2: "BUF", 3: "CHI", 4: "CIN", 5: "CLE", 6: "DAL", 7: "DEN",
+    8: "DET", 9: "GB", 10: "TEN", 11: "IND", 12: "KC", 13: "LV", 14: "LAR",
+    15: "MIA", 16: "MIN", 17: "NE", 18: "NO", 19: "NYG", 20: "NYJ", 21: "PHI",
+    22: "ARI", 23: "PIT", 24: "LAC", 25: "SF", 26: "SEA", 27: "TB", 28: "WSH",
+    29: "CAR", 30: "JAX", 33: "BAL", 34: "HOU",
+}
 
 
 def norm_name(name):
@@ -67,7 +74,8 @@ def fetch_espn(season):
         name = p.get("fullName", "").replace(" D/ST", "")
         key = (norm_name(name), pos)
         if key not in market or aav > market[key]["aav"]:
-            market[key] = {"aav": aav, "id": p.get("id"), "name": name}
+            market[key] = {"aav": aav, "id": p.get("id"), "name": name,
+                           "nfl": PRO_TEAM.get(p.get("proTeamId"))}
     return market
 
 
@@ -108,6 +116,7 @@ def build_pool(market, owned_ids, limit=300):
             continue
         pool.append({"name": e["name"], "pos": pos,
                      "market": max(1, round(e["aav"])),
+                     "nfl": e.get("nfl") if pos != "D/ST" else None,
                      "img": player_img(e["name"], pos, e["id"])})
     pool.sort(key=lambda p: -p["market"])
     return pool[:limit]
@@ -159,6 +168,8 @@ def main():
             else:
                 owned_ids.add(entry["id"])
                 mval = max(1, round(entry["aav"]))
+                if p["pos"] != "D/ST" and entry.get("nfl"):
+                    p["nfl"] = entry["nfl"]
             p["market"] = fmt_money(mval)
             if p["status"] == "market":
                 old_price = p["price"]
