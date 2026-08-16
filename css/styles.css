@@ -823,6 +823,81 @@ body.show-math .pmath { display: block; }
 }
 @media (max-width: 640px) { .trade-history { padding: 0 12px; } }
 
+/* ---------- on the block ---------- */
+.block-post-wrap { max-width: 860px; margin: 16px auto 0; padding: 0 24px; }
+.block-postbar {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.block-fields { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 auto; }
+.block-input {
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 6px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.block-input:focus { outline: none; border-color: var(--accent); }
+.block-note-input { flex: 1 1 200px; min-width: 140px; }
+.block-btn {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 3px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.block-btn:hover { background: #0a4a33; }
+.block-status {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.block-status.live { color: var(--good); }
+.block-status.off { color: var(--bad); }
+
+.block-entries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+}
+.block-entry { background: var(--card); padding: 10px 14px; }
+.be-main { display: flex; align-items: center; gap: 8px; }
+.be-name { font-weight: 700; font-size: 14px; }
+.be-val { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.be-note { font-size: 12.5px; color: var(--ink); font-style: italic; margin-top: 5px; }
+.be-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.be-time { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+.be-remove {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.be-remove:hover { color: var(--bad); }
+@media (max-width: 640px) { .block-post-wrap { padding: 0 12px; } }
+
 /* row flash after jumping from a strip chip */
 @keyframes flashrow {
   0%, 40% { background: #fbedb7; }

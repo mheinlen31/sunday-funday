@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunday Funday — On the Block</title>
+<meta name="theme-color" content="#0d5c3f">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="css/styles.css?v=202608161605">
+</head>
+<body data-page="block">
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="kicker">Fantasy Football · Offseason</p>
+    <h1>Sunday Funday</h1>
+    <p class="deck"><span id="season"></span> Keeper Values</p>
+    <p class="updated">Values update daily from ESPN · last refresh <span id="updated"></span></p>
+    <nav class="pagetabs">
+      <a href="./">Teams</a>
+      <a href="positions.html">By Position</a>
+      <a href="adp.html">ESPN ADP</a>
+      <a href="moves.html">Price Moves</a>
+      <a href="trades.html">Trades</a>
+      <a href="block.html" class="active">On the Block</a>
+      <a href="rosters.html">Past Rosters</a>
+    </nav>
+    <div class="deadline" id="deadline"></div>
+  </div>
+</header>
+
+<section class="block-post-wrap">
+  <div class="block-postbar">
+    <div class="block-fields">
+      <select id="block-team" class="block-input"></select>
+      <select id="block-player" class="block-input"><option value="">Pick your team first…</option></select>
+      <input id="block-note" class="block-input block-note-input" type="text" maxlength="120"
+             placeholder="Note — e.g. &quot;want WR help&quot; or &quot;open to offers&quot;">
+      <button id="block-post" class="block-btn" type="button">Put on the block</button>
+    </div>
+    <span id="block-status" class="block-status">connecting…</span>
+  </div>
+</section>
+
+<main class="team-grid board" id="block-board"></main>
+
+<footer class="legend">
+  <p class="boardnote">A live shopping board — pick your team, flag a guy you're
+  open to moving, add a note about what you want back. Everyone in the league
+  sees it instantly. Remove a listing with the ✕ once a player's no longer
+  available. This board is shared and open to the league; keep it friendly.</p>
+</footer>
+
+<script src="js/data.js?v=202608161605"></script>
+<script src="js/block.js?v=202608161605"></script>
+<script src="js/deadline.js?v=202608161605"></script>
+</body>
+</html>
