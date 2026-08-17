@@ -4,17 +4,8 @@
    Local-safe: if Firebase can't be reached the page shows an offline notice. */
 (function () {
   const D = window.LEAGUE_DATA;
-  if (!D) return;
-
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyBG2oR-YOOfi_IiHBErv-rKoqJ8zfhg3Xo",
-    authDomain: "pandy-open-2026.firebaseapp.com",
-    databaseURL: "https://pandy-open-2026-default-rtdb.firebaseio.com",
-    projectId: "pandy-open-2026",
-    appId: "1:658330035817:web:1ec09298fecf05222ee4f8",
-  };
-  const ROOM = "sunday-funday-block-2026";
-  const SDK = "https://www.gstatic.com/firebasejs/10.12.2";
+  const BLOCK = window.SundayBlock;
+  if (!D || !BLOCK) return;
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -54,13 +45,17 @@
 
   teamSel.innerHTML = '<option value="">Your team…</option>' +
     D.teams.map((t, ti) => `<option value="${ti}">${esc(t.name)}</option>`).join("");
-  teamSel.addEventListener("change", () => {
+  function fillPlayers() {
     const ti = teamSel.value;
     if (ti === "") { playerSel.innerHTML = '<option value="">Pick your team first…</option>'; return; }
     playerSel.innerHTML = '<option value="">Player you\'re shopping…</option>' +
       D.teams[+ti].players.map((p) =>
         `<option value="${esc(p.name)}">${esc(p.name)} · ${esc(p.pos)}</option>`).join("");
-  });
+  }
+  teamSel.addEventListener("change", fillPlayers);
+  // pre-fill "your team" from the my-team star set on the Teams page
+  const fav = localStorage.getItem("sf-fav-" + D.season);
+  if (fav !== null && D.teams[+fav]) { teamSel.value = fav; fillPlayers(); }
 
   const relTime = (ts) => {
     if (!ts) return "";
@@ -121,29 +116,14 @@
 
   render({}); // initial empty state until Firebase connects
 
-  // ---- Firebase ----
-  let dbMod, db, entriesRef, myUid = "anon";
-
-  async function connect() {
-    const [{ initializeApp }, _db, _auth] = await Promise.all([
-      import(`${SDK}/firebase-app.js`),
-      import(`${SDK}/firebase-database.js`),
-      import(`${SDK}/firebase-auth.js`),
-    ]);
-    dbMod = _db;
-    const app = initializeApp(FIREBASE_CONFIG);
-    try {
-      const cred = await _auth.signInAnonymously(_auth.getAuth(app));
-      myUid = cred.user.uid;
-    } catch (e) { /* open rules work without it */ }
-    db = dbMod.getDatabase(app);
-    entriesRef = dbMod.ref(db, `trips/${ROOM}/entries`);
-    dbMod.onValue(entriesRef, (snap) => render(snap.val() || {}));
+  // ---- live board via the shared module ----
+  let current = {};
+  BLOCK.subscribe((entries) => {
+    current = entries;
     statusEl.className = "block-status live";
     statusEl.textContent = "● Live";
-  }
-
-  connect().catch((e) => {
+    render(Object.fromEntries(entries.map((e) => [e.id, e])));
+  }).catch((e) => {
     statusEl.className = "block-status off";
     statusEl.textContent = "○ Offline";
     board.innerHTML = `<article class="team-card board-card"><div class="empty-note">
@@ -158,13 +138,17 @@
       (ti === "" ? teamSel : playerSel).focus();
       return;
     }
-    if (!entriesRef) { statusEl.textContent = "○ Not connected"; return; }
+    const team = D.teams[+ti].name;
+    if (current.some((e) => e.team === team && e.player === player)) {
+      postBtn.textContent = "Already listed";
+      setTimeout(() => { postBtn.textContent = "Put on the block"; }, 1400);
+      return;
+    }
     const p = D.teams[+ti].players.find((x) => x.name === player) || {};
-    dbMod.push(entriesRef, {
-      team: D.teams[+ti].name,
-      player, pos: p.pos || "",
+    BLOCK.post({
+      team, player, pos: p.pos || "",
       note: noteInput.value.trim().slice(0, 120),
-      ts: Date.now(), uid: myUid,
+      ts: Date.now(), uid: BLOCK.uid(),
     });
     noteInput.value = "";
     playerSel.value = "";
@@ -174,8 +158,8 @@
 
   board.addEventListener("click", (e) => {
     const btn = e.target.closest(".be-remove");
-    if (!btn || !db) return;
+    if (!btn) return;
     if (!confirm("Remove this listing?")) return;
-    dbMod.remove(dbMod.ref(db, `trips/${ROOM}/entries/${btn.dataset.id}`));
+    BLOCK.remove(btn.dataset.id);
   });
 })();

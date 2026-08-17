@@ -31,6 +31,10 @@
   const pid = (t, p) => t.name + '|' + p.name;
   const save = () => localStorage.setItem(STORE_KEY, JSON.stringify([...kept]));
 
+  // players other owners have flagged "on the block" (live from Firebase)
+  let blocked = new Map(); // "team|player" -> note
+  const isBlocked = (t, p) => blocked.has(pid(t, p));
+
   // under-contract players are committed, not chosen — they live outside the
   // clickable plan entirely (also scrub any stale ids from older versions)
   const isContract = (p) => p.status === 'contract-yr2';
@@ -84,6 +88,7 @@
           <span class="pos ${posClass}">${esc(p.pos)}</span>
           ${p.nfl ? `<span class="nfl">${esc(p.nfl)}</span>` : ''}
           <span class="badge acq">${esc(p.acquired)}</span>
+          ${isBlocked(t, p) ? `<span class="badge onblock" title="${esc(blocked.get(pid(t, p)) || 'On the block')}">🏷 block</span>` : ''}
         </div>
         <div class="pmath">
           '${py} cost ${money(p.draftCost)} · ESPN ADP ${money(p.market)} · value ${deltaHtml(p)}
@@ -482,4 +487,26 @@
     if (card) jumpTo(+card.dataset.ti, card.dataset.player);
   });
   if (!bargains.length) document.getElementById('bargains-strip').style.display = 'none';
+
+  // ---- On the Block: live badges on rosters + home strip ----
+  if (window.SundayBlock) {
+    const blockStrip = document.getElementById('block-strip');
+    const blockChips = document.getElementById('block-chips');
+    window.SundayBlock.subscribe((entries) => {
+      blocked = new Map(entries.map((e) => [e.team + '|' + e.player, e.note]));
+      D.teams.forEach((_, ti) => refreshTeam(ti)); // re-render so badges update
+      if (entries.length) {
+        blockChips.innerHTML = entries
+          .slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))
+          .map((e) => `<a class="block-chip" href="block.html">
+            <span class="bc-player">${esc(e.player)}</span>
+            <span class="bc-team">${esc(e.team)}</span>
+            ${e.note ? `<span class="bc-note">"${esc(e.note)}"</span>` : ''}
+          </a>`).join('');
+        blockStrip.hidden = false;
+      } else {
+        blockStrip.hidden = true;
+      }
+    }).catch(() => { /* offline: no badges/strip, page works fine */ });
+  }
 })();
