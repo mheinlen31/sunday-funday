@@ -438,6 +438,8 @@
       const items = (got.players || []).map(assetLine);
       if (got.dollars) items.push(`<div class="got-item">
         <span class="got-dollars">$${got.dollars}</span> in ${D.season} draft budget</div>`);
+      if (got.dollars2027) items.push(`<div class="got-item">
+        <span class="got-dollars">$${got.dollars2027}</span> in ${D.season + 1} draft budget</div>`);
       if (!items.length) items.push('<div class="got-item muted">nothing</div>');
       const g = tr.sides[name].grade || '';
       return `<div class="trade-side">

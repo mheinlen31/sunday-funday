@@ -82,6 +82,22 @@ TRADES = [
                             "in pure value, but $2 is nothing if they wanted the body."},
         },
     },
+    {
+        "date": "2026-08-17",
+        "summary": "Loser traded the rights to Ashton Jeanty to the Magic Rats for $3 in 2026 and $1 in 2027.",
+        "sides": {
+            "Loser": {"players": ["Ashton Jeanty"], "dollars": 0, "dollars2027": 0, "grade": "A-",
+                    "note": "Moves his priciest RB — Jeanty's keeper price sits above his ESPN "
+                            "market — while keeping a deep, cheaper core in Cook, Chase Brown and "
+                            "Judkins, all returning surplus. Turns a negative-value keeper into $4 "
+                            "of draft capital. Clean cap-and-value win."},
+            "Magic Rats": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C+",
+                    "note": "A 'get my guy' swing. Their backfield was an overpriced Kyren plus a "
+                            "stack of $1 fliers, so a 21-year-old bellcow fills a real need. But "
+                            "they pay $4 in picks to take on a keeper priced above his ESPN market "
+                            "— a bet on Jeanty's upside beating that price, not a value grab."},
+        },
+    },
 ]
 # NFL team name -> ESPN logo abbreviation (for D/ST images)
 NFL_ABBR = {
