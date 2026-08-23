@@ -1,12 +1,15 @@
-/* Two-stage keeper countdown, shown in every page's masthead.
-   Stage 1 — values lock:  Sept 2, 2026, 12:00 PM Central (CDT) = 2026-09-02T17:00Z
-   Stage 2 — keeper submit: Sept 4, 2026, 7:00 PM Central (CDT) = 2026-09-05T00:00Z
-   After the values lock, also rewrites the masthead line to say values are FINAL. */
+/* Three-stage offseason countdown, shown in every page's masthead.
+   Stage 1 — values lock:   Sept 2, 2026, 12:00 PM Central = 2026-09-02T17:00Z
+   Stage 2 — keeper submit: Sept 4, 2026,  7:00 PM Central = 2026-09-05T00:00Z
+   Stage 3 — the draft:     Labor Day, Mon Sept 7, 2026 (a few days' lag after
+                            keepers are in), so the board points at draft day
+                            instead of dead-ending once keepers are submitted. */
 (function () {
   var el = document.getElementById('deadline');
   var upd = document.querySelector('.updated');
   var LOCK = new Date('2026-09-02T17:00:00Z');
   var SUBMIT = new Date('2026-09-05T00:00:00Z');
+  var DRAFT = new Date('2026-09-07T17:00:00Z');   // Labor Day, Mon Sept 7 (noon CT placeholder)
 
   function fmt(ms) {
     var d = Math.floor(ms / 86400000);
@@ -33,9 +36,14 @@
         fmt(SUBMIT - now) + ' left</span>';
       if (upd) upd.innerHTML = 'Keeper values are <strong>FINAL</strong> as of Sept 2 · ' +
         'rosters update for trades through Sept 4';
+    } else if (now < DRAFT) {
+      el.className = 'deadline' + (DRAFT - now < 86400000 ? ' urgent' : '');
+      el.innerHTML = 'Keepers are in · <strong>Draft Labor Day, Sept 7</strong> · ' +
+        '<span class="dl-count">' + fmt(DRAFT - now) + ' to go</span>';
+      if (upd) upd.innerHTML = 'Keeper values final · keepers submitted · draft Monday, Sept 7';
     } else {
       el.className = 'deadline passed';
-      el.innerHTML = 'Keepers are locked in — good luck this season';
+      el.innerHTML = 'Draft day — good luck';
       if (upd) upd.innerHTML = 'Keeper values final · keepers submitted';
     }
   }
