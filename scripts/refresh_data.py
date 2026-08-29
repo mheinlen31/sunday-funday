@@ -394,7 +394,14 @@ def apply_trades(teams):
                 moving = [p for p in src["players"]
                           if norm_name(p["name"]) == norm_name(player)]
                 if not moving:
-                    print(f"trade warning: {player} not on {name}")
+                    # Half-applying is worse than failing: the dollars would
+                    # still move (read_purses works off the same TRADES list)
+                    # and the league would silently go out of balance.
+                    raise SystemExit(
+                        f"\nTRADE ERROR: '{player}' is not on {name}.\n"
+                        f"  Trade: {tr.get('summary')}\n"
+                        f"  Nothing was written. Fix the team name or player "
+                        f"spelling in TRADES and re-run.\n")
                 for p in moving:
                     src["players"].remove(p)
                     dst["players"].append(p)
