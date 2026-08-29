@@ -83,6 +83,22 @@ TRADES = [
         },
     },
     {
+        "date": "2026-08-25",
+        "summary": "Paw traded Christian Watson to the Chovies for $3 in 2026 and $1 in 2027.",
+        "sides": {
+            "Paw": {"players": ["Christian Watson"], "dollars": 0, "dollars2027": 0, "grade": "B+",
+                    "note": "Sells depth they'd never keep. Watson is a $5 keeper at exactly his "
+                            "market — zero surplus — and he's buried behind Chase and St. Brown on "
+                            "a roster already carrying four other $5-and-under WRs. Turning that "
+                            "into $4 of draft capital is free money."},
+            "The Chovies": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "B-",
+                    "note": "A defensible upside swing on a receiver who's a WR1 when healthy. "
+                            "Their WR room is a pile of $1 fliers behind Odunze, so the ceiling is "
+                            "worth chasing — but they pay $4 in picks for a keeper with no surplus, "
+                            "betting on health from a player who's rarely had it."},
+        },
+    },
+    {
         "date": "2026-08-17",
         "summary": "Loser traded the rights to Ashton Jeanty to the Magic Rats for $3 in 2026 and $1 in 2027.",
         "sides": {
