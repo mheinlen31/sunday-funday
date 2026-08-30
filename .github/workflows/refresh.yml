@@ -1,11 +1,18 @@
 name: Daily ESPN refresh
 
 on:
+  # GitHub runs scheduled jobs on a best-effort basis and delays them heavily
+  # under load — observed 1-8 HOURS late, worst at the top of the hour. So:
+  # off-peak minutes, and several spread through the day, meaning a delayed run
+  # is covered by the next one instead of leaving the league a day stale.
+  # (data.js only commits when values actually change, so extras are free.)
+  # All of these no-op after the Sept 2 values lock.
   schedule:
-    - cron: '0 12 * * *'    # 7am Central (12:00 UTC) daily
-    - cron: '50 16 * * *'   # 11:50am Central (16:50 UTC) — captures a near-noon
-                            # snapshot on the Sept 2 values-lock day; harmless
-                            # midday refresh otherwise. Both no-op after the lock.
+    - cron: '7 11 * * *'    #  6:07am Central
+    - cron: '23 13 * * *'   #  8:23am Central
+    - cron: '41 15 * * *'   # 10:41am Central
+    - cron: '37 18 * * *'   #  1:37pm Central
+    - cron: '19 22 * * *'   #  5:19pm Central
   workflow_dispatch:        # manual "Run workflow" button
 
 permissions:
