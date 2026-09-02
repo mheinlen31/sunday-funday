@@ -115,11 +115,31 @@ def build_pool(market, owned_ids, limit=300):
         if e["id"] in owned_ids or e["aav"] < 0.5:
             continue
         pool.append({"name": e["name"], "pos": pos,
-                     "market": max(1, round(e["aav"])),
+                     "market": adp_round(e["aav"]),
                      "nfl": e.get("nfl") if pos != "D/ST" else None,
                      "img": player_img(e["name"], pos, e["id"])})
     pool.sort(key=lambda p: -p["market"])
     return pool[:limit]
+
+
+def adp_round(raw):
+    """ESPN's raw auctionValueAverage -> the whole-dollar ADP the league uses.
+
+    Two steps, and the order matters. ESPN's site shows one decimal, and the
+    league has always rounded the number on the screen -- so round to ESPN's
+    displayed precision FIRST, then apply standard half-up rounding (0-4 down,
+    5-9 up). Bijan at a raw 68.47 shows as 68.5 on ESPN and is a $69 ADP to
+    us; rounding the full-precision value straight to a dollar would say $68.
+
+    Note this is NOT the round-down rule -- that one applies later, to the
+    keeper-price average, which lands on .0 or .5 precisely because this
+    function hands it a whole dollar.
+
+    Python's built-in round() is no good here twice over: it rounds half to
+    EVEN (round(16.5) == 16, round(17.5) == 18), and it would be working off
+    full precision rather than what ESPN displays.
+    """
+    return max(1, int(math.floor(round(raw, 1) + 0.5)))
 
 
 def keeper_price(draft_cost, market_val):
@@ -167,7 +187,7 @@ def main():
                 mval = p["market"]
             else:
                 owned_ids.add(entry["id"])
-                mval = max(1, round(entry["aav"]))
+                mval = adp_round(entry["aav"])
                 if p["pos"] != "D/ST" and entry.get("nfl"):
                     p["nfl"] = entry["nfl"]
             p["market"] = fmt_money(mval)
