@@ -171,11 +171,18 @@ def fetch_espn():
     return market
 
 
-def build_pool(market, owned_ids, limit=300):
-    """Unowned ESPN players worth showing on the ADP board."""
+def build_pool(market, owned_ids, owned_names, limit=300):
+    """Unowned ESPN players worth showing on the ADP board.
+
+    Ownership is checked by name as well as ESPN id: a frozen market rebuilt
+    from data.js has no id for D/ST (team-logo URLs carry none), so an
+    id-only check would put None in owned_ids and hide every free defense.
+    """
     pool = []
-    for (_, pos), e in market.items():
-        if e["id"] in owned_ids or e["aav"] < 0.5:
+    for (key, pos), e in market.items():
+        if key in owned_names or e["aav"] < 0.5:
+            continue
+        if e["id"] is not None and e["id"] in owned_ids:
             continue
         pool.append({"name": e["name"], "pos": pos,
                      "market": max(1, round(e["aav"])),
@@ -440,6 +447,7 @@ def main():
     else:
         market = fetch_espn()
     owned_ids = set()
+    owned_names = set()
     for team in teams:
         team["purse"] = purses.get(team["name"])
         if team["purse"] is None:
@@ -449,6 +457,8 @@ def main():
     for team in teams:
         for p in team["players"]:
             entry, espn_pos = lookup(market, p["name"], p["pos"])
+            n = norm_name(p["name"])
+            owned_names.add(ALIASES.get(n, n))
             if entry is None:
                 unmatched.append(f'{p["name"]} ({p["pos"]}, {team["name"]})')
                 mval = float(p["sheetMarket"] or 1)
@@ -495,7 +505,7 @@ def main():
         "locked": locked,
         "changeLog": changelog,
         "teams": teams,
-        "pool": build_pool(market, owned_ids),
+        "pool": build_pool(market, owned_ids, owned_names),
         "trades": TRADES,
     }
     (ROOT / "data").mkdir(exist_ok=True)
