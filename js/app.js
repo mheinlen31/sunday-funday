@@ -492,7 +492,15 @@
   if (window.SundayBlock) {
     const blockStrip = document.getElementById('block-strip');
     const blockChips = document.getElementById('block-chips');
-    window.SundayBlock.subscribe((entries) => {
+    // A player who's been traded away is no longer that team's to shop, so his
+    // listing is stale. The block page deletes them for the league; here we
+    // just don't show them, guarding against pruning on a bad data load.
+    const rostered = new Set();
+    D.teams.forEach((t) => t.players.forEach((p) => rostered.add(pid(t, p))));
+    const fresh = (entries) => (rostered.size < 50 ? entries
+      : entries.filter((e) => rostered.has(e.team + '|' + e.player)));
+    window.SundayBlock.subscribe((all) => {
+      const entries = fresh(all);
       blocked = new Map(entries.map((e) => [e.team + '|' + e.player, e.note]));
       D.teams.forEach((_, ti) => refreshTeam(ti)); // re-render so badges update
       if (entries.length) {

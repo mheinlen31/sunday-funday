@@ -995,3 +995,86 @@ body[data-page="rosters"] .board-toolbar { justify-content: space-between; }
 }
 .legend ul { list-style: none; }
 .legend li { margin-bottom: 5px; font-size: 13px; }
+
+/* ---------- Budgets page: league ledger ---------- */
+.ledger-top { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+.ledger-table {
+  width: 100%; border-collapse: collapse; background: var(--card);
+  border: 1px solid var(--rule); border-radius: 6px; overflow: hidden;
+  font-family: var(--sans);
+}
+.ledger-table th {
+  font: 600 11px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-faint); text-align: left; padding: 12px 14px;
+  border-bottom: 2px solid var(--rule-dark);
+}
+.ledger-table td { padding: 11px 14px; border-bottom: 1px solid var(--rule); font-size: 14px; }
+.ledger-table tbody tr:last-child td { border-bottom: 1px solid var(--rule-dark); }
+.ledger-table .num { text-align: right; white-space: nowrap; }
+.ledger-table .num.big { font: 700 18px/1 var(--sans); }
+.ledger-table tfoot td {
+  font-weight: 700; color: var(--ink-soft); background: #fbfaf8; border-bottom: none;
+}
+.ledger-table .bar-col { width: 34%; padding-left: 6px; padding-right: 6px; }
+
+/* diverging bar centred on the $200 start */
+.bbar { position: relative; display: block; height: 16px; }
+.bbar-mid {
+  position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px;
+  background: var(--rule-dark); opacity: .35;
+}
+.bbar-fill { position: absolute; top: 3px; height: 10px; border-radius: 2px; }
+.bbar-fill.up { background: var(--good); }
+.bbar-fill.dn { background: var(--bad); }
+
+.ledger-card { padding: 0; overflow: hidden; }
+.ledger-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; border-left: 5px solid var(--accent);
+  border-bottom: 1px solid var(--rule); background: #fbfaf8;
+}
+.ledger-team {
+  font: 700 17px/1.2 var(--serif); color: var(--ink); text-decoration: none;
+}
+.ledger-team:hover { color: var(--accent); }
+.ledger-final { font: 700 22px/1 var(--sans); color: var(--ink); text-align: right; }
+.ledger-final small {
+  display: block; font: 600 10px/1.4 var(--sans); letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.ledger-rows { width: 100%; border-collapse: collapse; }
+.ledger-rows td { padding: 9px 12px; border-bottom: 1px solid var(--rule); font-size: 13px; vertical-align: top; }
+.ledger-rows tr:last-child td { border-bottom: none; }
+.ledger-rows .num { text-align: right; white-space: nowrap; }
+.lg-start td { background: #fdfcfa; color: var(--ink-soft); font-style: italic; }
+.lg-date { color: var(--ink-faint); white-space: nowrap; width: 1%; font-variant-numeric: tabular-nums; }
+.lg-why { color: var(--ink); }
+.lg-with { display: block; font-size: 11.5px; color: var(--ink-faint); }
+.lg-note { display: block; font-size: 11.5px; color: var(--ink-faint); font-style: italic; }
+.lg-bal { font-weight: 700; font-variant-numeric: tabular-nums; width: 1%; }
+.lg-delta { width: 1%; }
+.ledger-foot {
+  padding: 10px 16px; border-top: 1px solid var(--rule-dark); background: #fbfaf8;
+  font: 600 12px/1 var(--sans); color: var(--ink-soft);
+}
+
+@media (max-width: 700px) {
+  .ledger-top { padding: 0 12px; }
+  .ledger-table .bar-col { display: none; }
+  .ledger-table th, .ledger-table td { padding: 9px 8px; font-size: 13px; }
+  .ledger-table .num.big { font-size: 16px; }
+  .ledger-rows td { padding: 8px 10px; font-size: 12.5px; }
+}
+.lg-next { color: var(--ink-faint); font-weight: 600; }
+
+@media (max-width: 700px) {
+  /* the caption already says everyone starts at $200 — drop the column so the
+     budget figure isn't clipped on a phone */
+  .ledger-table .start-col { display: none; }
+  .ledger-table { table-layout: fixed; width: 100%; }
+  .ledger-table th, .ledger-table td { padding: 9px 6px; }
+  .ledger-table th:first-child, .ledger-table td:first-child { width: 52%; }
+  .ledger-table .teamtag { font-size: 13px; }
+}
+@media (max-width: 700px) { .hide-sm { display: none; } }

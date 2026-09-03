@@ -114,15 +114,33 @@
     }).join("");
   }
 
+  // A listing dies the moment its player changes hands: the board advertises
+  // who's available FROM a team, so once he's been traded the post is stale.
+  // Removed from Firebase rather than just hidden, so it clears for everyone.
+  // Nothing happens until the trade actually lands in data.js — while the site
+  // still shows him on the old roster the listing matches and survives.
+  function reconcile(entries) {
+    // never prune against an empty or failed data load, or one bad refresh
+    // would wipe the whole board
+    if (Object.keys(pIndex).length < 50) return entries;
+    const live = [], stale = [];
+    entries.forEach((e) => {
+      const p = pIndex[norm(e.player)];
+      (p && p.team === e.team ? live : stale).push(e);
+    });
+    stale.forEach((e) => BLOCK.remove(e.id));
+    return live;
+  }
+
   render({}); // initial empty state until Firebase connects
 
   // ---- live board via the shared module ----
   let current = {};
   BLOCK.subscribe((entries) => {
-    current = entries;
+    current = reconcile(entries);
     statusEl.className = "block-status live";
     statusEl.textContent = "● Live";
-    render(Object.fromEntries(entries.map((e) => [e.id, e])));
+    render(Object.fromEntries(current.map((e) => [e.id, e])));
   }).catch((e) => {
     statusEl.className = "block-status off";
     statusEl.textContent = "○ Offline";

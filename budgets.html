@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sunday Funday — Keepers by Position</title>
+<title>Sunday Funday — Draft Budgets</title>
 <meta name="theme-color" content="#0d5c3f">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/styles.css?v=202609031720">
 </head>
-<body data-page="positions">
+<body data-page="budgets">
 <header class="masthead">
   <div class="masthead-inner">
     <p class="kicker">Fantasy Football · Offseason</p>
@@ -18,11 +18,11 @@
     <p class="updated">Values update daily from ESPN · last refresh <span id="updated"></span></p>
     <nav class="pagetabs">
       <a href="./">Teams</a>
-      <a href="positions.html" class="active">By Position</a>
+      <a href="positions.html">By Position</a>
       <a href="adp.html">ESPN ADP</a>
       <a href="moves.html">Price Moves</a>
       <a href="trades.html">Trades</a>
-      <a href="budgets.html">Budgets</a>
+      <a href="budgets.html" class="active">Budgets</a>
       <a href="block.html">On the Block</a>
       <a href="rosters.html">Past Rosters</a>
     </nav>
@@ -30,11 +30,24 @@
   </div>
 </header>
 
+<div class="board-toolbar">
+  <span class="board-caption">every team starts at $200 · only trades move draft dollars · keeper spend comes out at the deadline</span>
+</div>
+
+<section class="ledger-top" id="overview"></section>
+
+<div class="section-head"><h2 class="section-title">How Each Budget Got There</h2></div>
+
 <main class="team-grid board" id="board"></main>
 
 <footer class="legend">
-  <p class="boardnote">Every owned player, grouped by position and ordered by
-  what he'd cost to keep. Tap a team name to jump to that roster.</p>
+  <p class="boardnote">Everyone opens at <strong>$200</strong>. The only thing
+  that changes it before draft night is trading draft dollars — every one of
+  those is itemised below, including deals from 2024 and 2025 that assigned
+  money to this season. The running balance shows the arithmetic. What is
+  <em>not</em> in here yet is keeper spend: at the deadline each team's keeper
+  total (plus a $2-per-$1 luxury tax on anything over the $100 keeper cap)
+  comes out of these figures to set the money you actually bid with.</p>
 </footer>
 
 <script src="js/data.js?v=202609031720"></script>

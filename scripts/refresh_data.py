@@ -63,6 +63,65 @@ BASE_PURSES = {
     "Chance": 202, "Juice": 200, "Loser": 196, "Magic Rats": 208,
     "Paw": 196, "Silent Pugios": 200,
 }
+START_PURSE = 200      # every team's 2026 auction budget before any trade
+
+# Draft dollars from earlier seasons that land on the 2026 purse, transcribed
+# from the workbook's trade history. "pays" loses the dollars, "gets" receives
+# them; "player" is the asset that moved from gets -> pays. Checked against
+# BASE_PURSES at import time (below), so the itemised ledger and the confirmed
+# purses can never silently disagree.
+#
+# "The Fighting Mamdanis" is the 2025 name of the franchise that also went by
+# Gorlock the Destroyer and now by Loser -- Josh Allen sits on Gorlock's
+# end-of-2025 roster, which is the 08/15 trade here. Those two Mamdanis lines
+# net to zero for that team, so every team's TOTAL is right either way; only
+# the itemisation depends on the identification.
+PRIOR_2026_MOVES = [
+    {"date": "2024-12-02", "amount": 1, "pays": "Paw", "gets": "Loser",
+     "player": "Baker Mayfield"},
+    {"date": "2025-08-13", "amount": 2, "pays": "Paw", "gets": "Bom Bers",
+     "player": "Ja'Marr Chase"},
+    {"date": "2025-08-15", "amount": 1, "pays": "Magic Rats", "gets": "Pep",
+     "player": "James Cook"},
+    {"date": "2025-08-15", "amount": 1, "pays": "Loser", "gets": "Bom Bers",
+     "player": "Josh Allen"},
+    {"date": "2025-08-16", "amount": 1, "pays": "The Chovies", "gets": "Centersup",
+     "player": "Saquon Barkley", "extra": "James Conner went back the other way"},
+    {"date": "2025-08-19", "amount": 1, "pays": "Paw", "gets": "Loser",
+     "player": "Travis Etienne"},
+    {"date": "2025-08-22", "amount": 2, "pays": "The Chovies", "gets": "Chance",
+     "player": "Ricky Pearsall"},
+    {"date": "2025-11-24", "amount": 4, "pays": "Bom Bers", "gets": "Loser",
+     "player": "Wan'Dale Robinson"},
+    {"date": "2025-12-16", "amount": 9, "pays": "Loser", "gets": "Magic Rats",
+     "player": "James Cook"},
+]
+
+
+def _check_prior_moves():
+    """$200 + the prior-season moves must reproduce every confirmed purse."""
+    tally = {n: float(START_PURSE) for n in BASE_PURSES}
+    for m in PRIOR_2026_MOVES:
+        for side in ("pays", "gets"):
+            if m[side] not in tally:
+                raise SystemExit(f"\nBUDGET ERROR: unknown team {m[side]!r} in "
+                                 f"PRIOR_2026_MOVES ({m['date']}).\n")
+        tally[m["pays"]] -= m["amount"]
+        tally[m["gets"]] += m["amount"]
+    bad = {n: (tally[n], BASE_PURSES[n]) for n in BASE_PURSES
+           if tally[n] != BASE_PURSES[n]}
+    if bad:
+        lines = "\n".join(f"  {n}: ledger ${a:g} vs confirmed purse ${b}"
+                           for n, (a, b) in sorted(bad.items()))
+        raise SystemExit(
+            "\nBUDGET ERROR: PRIOR_2026_MOVES no longer reconciles with "
+            f"BASE_PURSES.\n{lines}\n  Nothing was written. Fix one or the "
+            "other and re-run.\n")
+
+
+_check_prior_moves()
+
+
 # Offseason 2026 trades. Each side's "players"/"dollars" is what it GIVES UP;
 # in a two-team trade those go to the other side. Roster moves are applied to
 # the rosters read from the workbook (a keeper's status/cost follows him) and
@@ -453,6 +512,77 @@ def read_purses():
     return purses
 
 
+def build_budgets(purses):
+    """Per-team ledger: $200 -> today's auction budget, one row per movement.
+
+    Rows carry a running balance so the page can show the arithmetic rather
+    than just the endpoints. Prior-season rows come from PRIOR_2026_MOVES;
+    2026 rows are derived from TRADES, so a new trade shows up here for free.
+    """
+    rows = {n: [] for n in BASE_PURSES}
+    next_yr = {n: 0 for n in BASE_PURSES}   # dollars already committed for 2027
+
+    def add(team, other, date, delta, why, note=None, season=None):
+        rows[team].append({"date": date, "delta": fmt_money(delta), "with": other,
+                           "why": why, "note": note, "season": season})
+
+    for m in PRIOR_2026_MOVES:
+        yr = int(m["date"][:4])
+        add(m["pays"], m["gets"], m["date"], -m["amount"],
+            f'Paid for {m["player"]}', m.get("extra"), yr)
+        add(m["gets"], m["pays"], m["date"], m["amount"],
+            f'Sold {m["player"]}', m.get("extra"), yr)
+
+    for tr in TRADES:
+        names = list(tr["sides"])
+        if len(names) != 2:
+            continue
+        for i, name in enumerate(names):
+            other = names[1 - i]
+            d = tr["sides"][name].get("dollars", 0)
+            if not d:
+                continue
+            # what this side received is what the other side gave up
+            got = tr["sides"][other].get("players") or []
+            label = ", ".join(got)
+            add(name, other, tr["date"], -d,
+                f"Paid for {label}" if label else f"Cash to {other}", None, SEASON)
+            add(other, name, tr["date"], d,
+                f"Sold {label}" if label else f"Cash from {name}", None, SEASON)
+
+    # 2027 draft dollars traded away now -- not part of this year's purse, but
+    # they are already spent, so the page flags them rather than hiding them
+    for tr in TRADES:
+        names = list(tr["sides"])
+        if len(names) != 2:
+            continue
+        for i, name in enumerate(names):
+            other = names[1 - i]
+            d2 = tr["sides"][name].get("dollars2027", 0)
+            if not d2:
+                continue
+            next_yr[name] -= d2
+            next_yr[other] += d2
+
+    out = []
+    for name in BASE_PURSES:
+        r = sorted(rows[name], key=lambda x: (x["date"], -abs(x["delta"])))
+        bal = float(START_PURSE)
+        for x in r:
+            bal += x["delta"]
+            x["balance"] = fmt_money(bal)
+        final = purses[name]
+        if fmt_money(bal) != fmt_money(final):
+            raise SystemExit(
+                f"\nBUDGET ERROR: {name} ledger ends at ${bal:g} but the purse "
+                f"is ${final:g}. Nothing was written.\n")
+        out.append({"team": name, "start": START_PURSE, "rows": r,
+                    "final": fmt_money(final),
+                    "net": fmt_money(final - START_PURSE),
+                    "next": fmt_money(next_yr[name])})
+    return out
+
+
 def apply_trades(teams):
     """Move traded players to the other side (keeper status/cost follows them)."""
     by_name = {t["name"]: t for t in teams}
@@ -575,6 +705,7 @@ def main():
         "changeLog": changelog,
         "teams": teams,
         "pool": build_pool(market, owned_ids, owned_names),
+        "budgets": build_budgets(purses),
         "trades": TRADES,
     }
     (ROOT / "data").mkdir(exist_ok=True)

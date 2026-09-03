@@ -7,3 +7,6 @@ data/
 firebase-debug.log
 node_modules/
 __pycache__/
+
+# local dev only
+.claude/
