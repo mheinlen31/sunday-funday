@@ -114,6 +114,55 @@ TRADES = [
                             "— a bet on Jeanty's upside beating that price, not a value grab."},
         },
     },
+    {
+        "date": "2026-09-02",
+        "summary": "The Chovies traded Dylan Sampson, $1 in 2026 and $1 in 2027 "
+                   "to Chance for Quentin Johnston.",
+        "sides": {
+            "The Chovies": {"players": ["Dylan Sampson"], "dollars": 1, "dollars2027": 1,
+                    "grade": "C+",
+                    "note": "A lateral swap they paid to make. Both players are $1-2 keepers "
+                            "sitting exactly at their ESPN price, so no surplus changes hands "
+                            "— the Chovies just pay $2 across two years for the version they "
+                            "prefer. Johnston is their tenth WR behind a pile of identical "
+                            "$1-6 lottery tickets (Hunter, Watson, Pearsall, Boutte, Dike, "
+                            "Horton), while Sampson was a cheap dart in a backfield they "
+                            "hardly need with Barkley and Henry. Harmless, but they bought "
+                            "the redundancy they already had."},
+            "Chance": {"players": ["Quentin Johnston"], "dollars": 0, "dollars2027": 0,
+                    "grade": "B",
+                    "note": "Sells from a genuine surplus and gets paid for it. Johnston was "
+                            "WR5 behind A.J. Brown, Jameson Williams, Brian Thomas and Diggs, "
+                            "and Sampson lands in an RB room that badly needs young legs — "
+                            "Kamara ($11 keeper, $1 ESPN) and Aaron Jones ($6 for a $2 player) "
+                            "are their two worst contracts. A $1 flier on the Cleveland "
+                            "backfield has real standalone value if Judkins misses time, and "
+                            "they pocket $1 now plus $1 in 2027."},
+        },
+    },
+    {
+        "date": "2026-09-02",
+        "summary": "Pep traded Omarion Hampton to Juice for $4 in 2026.",
+        "sides": {
+            "Pep": {"players": ["Omarion Hampton"], "dollars": 0, "grade": "B",
+                    "note": "Forced by the cap, executed cleanly. Achane is locked in at $40 "
+                            "on his year-two contract whether they like it or not, which "
+                            "leaves $60 of keeper room — not enough for both Hampton ($39) "
+                            "and Kenneth Walker ($34). The two are nearly identical values "
+                            "(+$4 and +$3 on ESPN), so this was always going to be an "
+                            "either/or, and turning the redundant one into $4 of auction "
+                            "money is the right resolution. Only knock: a +$4 back with LAC "
+                            "workhorse upside probably had a bigger market than $4."},
+            "Juice": {"players": [], "dollars": 4, "grade": "B+",
+                    "note": "A cheap upgrade to the top of their keeper board. Juice were "
+                            "carrying two ugly contracts in Josh Jacobs ($31 for a $16 player) "
+                            "and Nico Collins ($36 for $33); Hampton at $39 against a $43 "
+                            "ESPN price is better than either, and slots beside their two "
+                            "real bargains in Javonte Williams (+$17) and Bowers (+$9). "
+                            "Hampton plus Javonte plus Bowers is $75 of a $100 cap for three "
+                            "starters. $4 is a light toll for that."},
+        },
+    },
 ]
 # NFL team name -> ESPN logo abbreviation (for D/ST images)
 NFL_ABBR = {
