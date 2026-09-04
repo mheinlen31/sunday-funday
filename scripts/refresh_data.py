@@ -64,11 +64,12 @@ TEAM_RENAMES = {
     "Bom Bers": "House Bom",
     "Loser": "Ben Fong Torres",
     "The Chovies": "The Pu Pu Platters",
+    "Pep": "AFRESHAYPEPPER ASAYWHEN",
 }
 # 2026 base auction purses confirmed by Matt 2026-07-10 (pre-trade); win over
 # the Budgets sheet. Draft-dollar trades adjust these via TRADES below.
 BASE_PURSES = {
-    "The Pu Pu Platters": 197, "Pep": 201, "House Bom": 199, "Centersup": 201,
+    "The Pu Pu Platters": 197, "AFRESHAYPEPPER ASAYWHEN": 201, "House Bom": 199, "Centersup": 201,
     "Chance": 202, "Juice": 200, "Ben Fong Torres": 196, "Magic Rats": 208,
     "Paw": 196, "Silent Pugios": 200,
 }
@@ -90,7 +91,7 @@ PRIOR_2026_MOVES = [
      "player": "Baker Mayfield"},
     {"date": "2025-08-13", "amount": 2, "pays": "Paw", "gets": "House Bom",
      "player": "Ja'Marr Chase"},
-    {"date": "2025-08-15", "amount": 1, "pays": "Magic Rats", "gets": "Pep",
+    {"date": "2025-08-15", "amount": 1, "pays": "Magic Rats", "gets": "AFRESHAYPEPPER ASAYWHEN",
      "player": "James Cook"},
     {"date": "2025-08-15", "amount": 1, "pays": "Ben Fong Torres", "gets": "House Bom",
      "player": "Josh Allen"},
@@ -209,11 +210,11 @@ TRADES = [
     },
     {
         "date": "2026-09-02",
-        "summary": "Pep traded Omarion Hampton to Juice for $4 in 2026.",
+        "summary": "AFRESHAYPEPPER ASAYWHEN traded Omarion Hampton to Juice for $4 in 2026.",
         "sides": {
-            "Pep": {"players": ["Omarion Hampton"], "dollars": 0, "grade": "B+",
+            "AFRESHAYPEPPER ASAYWHEN": {"players": ["Omarion Hampton"], "dollars": 0, "grade": "B+",
                     "note": "Sold into a forced choice and got paid for it. Achane's "
-                            "year-two contract makes the top of Pep's backfield crowded and "
+                            "year-two contract makes the top of AFRESHAYPEPPER's backfield crowded and "
                             "expensive, and Hampton and Walker were never both comfortable "
                             "underneath it. Turning the surplus one into $4 of auction cash "
                             "is a clear gain."},
