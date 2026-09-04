@@ -222,6 +222,61 @@ TRADES = [
                             "starters. $4 is a light toll for that."},
         },
     },
+    {
+        "date": "2026-09-04",
+        "summary": "Paw traded Travis Etienne Jr. to Centersup for $2 in 2026 "
+                   "and $2 in 2027.",
+        "sides": {
+            "Paw": {"players": ["Travis Etienne Jr."], "dollars": 0, "dollars2027": 0,
+                    "grade": "B+",
+                    "note": "Selling an asset they were never allowed to use. Chase ($60) "
+                            "and St. Brown ($35) are both year-two contracts, mandatory, "
+                            "and together they eat $95 of the $100 keeper cap — Paw has $5 "
+                            "of room. Keeping Etienne at $12 would have put them $7 over "
+                            "and triggered $14 of luxury tax, so a +$9 surplus that reads "
+                            "great on the board was worth nothing to this roster. Turning "
+                            "it into draft money is the only sensible move. The knock is "
+                            "price: $4 total for a back at $9 under market is light, though "
+                            "everyone in the league could see Paw was capped out and had no "
+                            "leverage."},
+            "Centersup": {"players": [], "dollars": 2, "dollars2027": 2, "grade": "A-",
+                    "note": "The rare deal where the buyer has the cap room the seller "
+                            "lacks. Centersup carry no mandatory contracts, so their $100 "
+                            "is fully discretionary, and Etienne at $12 slots straight into "
+                            "the plan: Gibbs $66 + Etienne $12 + Pickens $17 is $95 for "
+                            "three starters worth +$27 of combined surplus. He also fixes a "
+                            "real hole — behind Gibbs they were running Gainwell, Warren, "
+                            "Hunt and Vidal, all $1-4 flyers. $4 across two years for a "
+                            "genuine RB2 who fits the budget is excellent business."},
+        },
+    },
+    {
+        "date": "2026-09-04",
+        "summary": "Silent Pugios traded Drake London to the Magic Rats for $7 in "
+                   "2026 and $2 in 2027.",
+        "sides": {
+            "Silent Pugios": {"players": ["Drake London"], "dollars": 0, "dollars2027": 0,
+                    "grade": "C+",
+                    "note": "They sold the wrong man. Smith-Njigba's $19 is locked in and "
+                            "is the best keeper in the league at +$41, which leaves $81 of "
+                            "cap. The question was Jonathan Taylor ($58, +$1) or London "
+                            "($30, +$8) — both together is $107 and a tax bill. London "
+                            "returns eight times the surplus for barely half the money, so "
+                            "the efficient cut was Taylor, and moving him would also have "
+                            "brought back far more than $9. Cashing the cheaper, younger, "
+                            "better-value asset to protect a $58 back who beats his market "
+                            "by a single dollar is backwards."},
+            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "A-",
+                    "note": "Exactly the buy this roster needed. Their expensive keepers "
+                            "were both underwater — Jeanty at $45 for a $38 player and "
+                            "Kyren at $37 for $26 — so the top of their board was money "
+                            "badly spent. London at $30 against a $38 market pairs with "
+                            "Lamb ($41, +$10) for $71, and adding Tee Higgins still lands "
+                            "under the cap at $87 with +$19 of surplus across three "
+                            "starters. That is a far better use of $100 than the two RBs, "
+                            "and $9 over two drafts is a fair toll to fix it."},
+        },
+    },
 ]
 # NFL team name -> ESPN logo abbreviation (for D/ST images)
 NFL_ABBR = {
