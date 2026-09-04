@@ -256,30 +256,32 @@ TRADES = [
                    "2026 and $2 in 2027.",
         "sides": {
             "Silent Pugios": {"players": ["Drake London"], "dollars": 0, "dollars2027": 0,
-                    "grade": "B",
-                    "note": "Reads worse on surplus than it plays. The two were never both "
-                            "keepable — Smith-Njigba's $19 is mandatory, so Taylor ($58) "
-                            "plus London ($30) is $107 and a tax bill — and the tiebreak "
-                            "isn't the +$8. London is a contract renewal: keeping him signs "
-                            "a NEW two-year deal at $35 in 2027, on a roster already "
-                            "carrying Smith-Njigba locked. Taylor is market status, a clean "
-                            "one-year hold with no tail. Taking the flexible asset and $9 "
-                            "over a player who mortgages another 2027 slot is a real "
-                            "argument, and ADP can't see it. The risk is that they're "
-                            "paying $58 for a $59 back, so it rests on RB inflating at "
-                            "auction — and with McCaffrey, Barkley, Henry, Jeanty and Kyren "
-                            "all priced above their own market on other rosters, the "
-                            "released-RB pool may be deeper than that bet assumes."},
-            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "B+",
-                    "note": "The right fix for a badly-spent top of the board — Jeanty at "
-                            "$45 for a $38 player and Kyren at $37 for $26 were both dead "
-                            "money. London at $30 against a $38 market pairs with Lamb "
-                            "($41, +$10) for $71, and Tee Higgins still fits under the cap "
-                            "at $87 with +$19 across three starters. The catch is 2027: "
-                            "Lamb and London are both contract renewals, so keeping the "
-                            "pair locks $81 of next year's $100 cap in two receivers before "
-                            "they choose anything. Good value now, bought with real "
-                            "flexibility later."},
+                    "grade": "B+",
+                    "note": "Sold at par and pocketed the structure. Run the actual cap "
+                            "choice: their best keeper set with London is Smith-Njigba, "
+                            "Swift, Flowers, Loveland and London — worth about +$66 in real "
+                            "auction dollars. Without him it is Smith-Njigba, Taylor, "
+                            "Flowers and Harrison at about +$57. So London was worth ~$8 of "
+                            "surplus to this roster and they were paid $9 for him. Dead "
+                            "even on value, and they also dodged a second locked receiver: "
+                            "London is a contract renewal at $35 in 2027 on a team already "
+                            "carrying Smith-Njigba. Getting full price for an asset you "
+                            "were going to squeeze out anyway, while keeping 2027 clean, is "
+                            "good business. Taylor at $58 also reads better than his +$1 "
+                            "suggests, since a $59 ADP player costs about $63 once keeper "
+                            "surplus inflates the auction."},
+            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "B-",
+                    "note": "A lateral move bought with real money, saved by a 2027 angle. "
+                            "Jeanty came by trade, so he is effectively pre-committed at "
+                            "$45, and Jeanty plus London plus Lamb is $116 and $32 of tax — "
+                            "London cannot join Lamb, he can only replace him. The two sets "
+                            "are near identical: Jeanty and Lamb is +$9 in auction dollars, "
+                            "Jeanty, London and Tee Higgins is +$8. So $9 bought no surplus "
+                            "at all this year. What it did buy is next year — London renews "
+                            "at $35 where Lamb renews at $46, and London is three years "
+                            "younger. Paying a year ahead is a real strategy, but it means "
+                            "CeeDee Lamb, a $51 ADP receiver, now likely hits the auction "
+                            "floor."},
         },
     },
 ]
