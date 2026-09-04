@@ -333,11 +333,14 @@ body {
   margin: 0 auto;
   padding: 16px 24px 40px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(520px, 100%), 1fr));
   gap: 22px;
 }
 @media (max-width: 600px) {
-  .team-grid { grid-template-columns: 1fr; padding: 16px 10px 40px; }
+  /* minmax(0, ...) not plain 1fr: a 1fr track floors at min-content, so a
+     single long team name ("AFRESHAYPEPPER ASAYWHEN") widens every column and
+     scrolls the whole page sideways on a phone. */
+  .team-grid { grid-template-columns: minmax(0, 1fr); padding: 16px 10px 40px; }
 }
 
 .team-card {
@@ -346,6 +349,7 @@ body {
   border-top: 4px solid var(--tc, var(--rule-dark));
 }
 .team-head {
+  min-width: 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -407,6 +411,8 @@ body {
   font-family: var(--serif);
   font-size: 24px;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;   /* long names break instead of stretching the card */
 }
 .team-meta {
   font-size: 11px;
