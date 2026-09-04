@@ -392,89 +392,115 @@
     const B = D.budgets || [];
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    // prior-season rows span years, so show the year on anything not this season
+    const YEARS = Object.keys((B[0] || {}).years || {}).sort();
+    const STORE = 'sf-budget-year';
+    let year = localStorage.getItem(STORE);
+    if (!YEARS.includes(year)) year = String(D.season);
+
+    // prior-season rows span years, so show the year on anything not current
     const fmtDate = (d) => {
       const [y, m, day] = String(d).split('-');
       return MONTHS[+m - 1] + ' ' + +day + (+y === D.season ? '' : ' ' + String(y).slice(2));
     };
-    const start = B.length ? B[0].start : 200;
-    const byFinal = B.slice().sort((a, b) => b.final - a.final || a.team.localeCompare(b.team));
-    const span = Math.max(1, ...B.map((x) => Math.abs(x.net)));
-
     const netHtml = (n) => (n > 0 ? `<span class="delta pos">+$${n}</span>`
       : n < 0 ? `<span class="delta neg">−$${Math.abs(n)}</span>`
         : '<span class="delta zero">even</span>');
 
-    // diverging bar: centred on $200, width proportional to the biggest swing
-    function bar(n) {
-      const pct = (Math.abs(n) / span) * 50;
-      const side = n >= 0
-        ? `left:50%;width:${pct}%`
-        : `right:50%;width:${pct}%`;
-      return `<span class="bbar"><i class="bbar-mid"></i>
-        ${n ? `<i class="bbar-fill ${n > 0 ? 'up' : 'dn'}" style="${side}"></i>` : ''}</span>`;
+    const sel = document.getElementById('year-select');
+    sel.innerHTML = YEARS.map((y) =>
+      `<option value="${y}"${y === year ? ' selected' : ''}>${y} draft</option>`).join('');
+    sel.addEventListener('change', () => {
+      year = sel.value;
+      try { localStorage.setItem(STORE, year); } catch (e) { /* private mode */ }
+      draw();
+    });
+
+    function draw() {
+      const rowsFor = (x) => (x.years ? x.years[year] : x);
+      const start = B.length ? B[0].start : 200;
+      const list = B.slice().sort((a, b) =>
+        rowsFor(b).final - rowsFor(a).final || a.team.localeCompare(b.team));
+      const span = Math.max(1, ...B.map((x) => Math.abs(rowsFor(x).net)));
+
+      // diverging bar: centred on $200, width proportional to the biggest swing
+      const bar = (n) => {
+        const pct = (Math.abs(n) / span) * 50;
+        const side = n >= 0 ? `left:50%;width:${pct}%` : `right:50%;width:${pct}%`;
+        return `<span class="bbar"><i class="bbar-mid"></i>
+          ${n ? `<i class="bbar-fill ${n > 0 ? 'up' : 'dn'}" style="${side}"></i>` : ''}</span>`;
+      };
+
+      document.getElementById('overview').innerHTML = `
+        <table class="ledger-table">
+          <thead><tr>
+            <th>Team</th><th class="num start-col">Start</th>
+            <th class="bar-col">Net change</th>
+            <th class="num">Change</th>
+            <th class="num"><span class="hide-sm">Draft </span>Budget</th>
+          </tr></thead>
+          <tbody>${list.map((x) => {
+            const y = rowsFor(x);
+            const ti = D.teams.findIndex((t) => t.name === x.team);
+            return `<tr>
+              <td><a class="teamtag" href="./#team-${ti}">
+                <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(x.team)}</a></td>
+              <td class="num muted start-col">$${x.start}</td>
+              <td class="bar-col">${bar(y.net)}</td>
+              <td class="num">${netHtml(y.net)}</td>
+              <td class="num big">$${y.final}</td>
+            </tr>`;
+          }).join('')}</tbody>
+          <tfoot><tr>
+            <td>League total</td><td class="num muted start-col">$${start * B.length}</td>
+            <td class="bar-col"></td><td class="num muted">even</td>
+            <td class="num big">$${B.reduce((a, x) => a + rowsFor(x).final, 0)}</td>
+          </tr></tfoot>
+        </table>`;
+
+      const card = (x) => {
+        const y = rowsFor(x);
+        const ti = D.teams.findIndex((t) => t.name === x.team);
+        const rows = y.rows.length ? y.rows.map((r) => `
+          <tr>
+            <td class="lg-date">${fmtDate(r.date)}</td>
+            <td class="lg-why">${esc(r.why)}
+              <span class="lg-with">with ${esc(r['with'])}</span>
+              ${r.note ? `<span class="lg-note">${esc(r.note)}</span>` : ''}</td>
+            <td class="num lg-delta">${r.delta > 0
+              ? `<span class="delta pos">+$${r.delta}</span>`
+              : `<span class="delta neg">−$${Math.abs(r.delta)}</span>`}</td>
+            <td class="num lg-bal">$${r.balance}</td>
+          </tr>`).join('')
+          : `<tr><td colspan="4" class="empty-note">No draft-dollar trades${
+              year === String(D.season) ? '' : ' for ' + year} — still sitting on the full
+              $${x.start}.</td></tr>`;
+        return `<article class="team-card board-card ledger-card" id="budget-${ti}">
+          <div class="ledger-head" style="border-left-color:${TEAM_COLORS[ti % 10]}">
+            <a class="ledger-team" href="./#team-${ti}">${esc(x.team)}</a>
+            <span class="ledger-final">$${y.final}<small>${year} budget</small></span>
+          </div>
+          <table class="ledger-rows">
+            <tbody>
+              <tr class="lg-start">
+                <td class="lg-date">—</td><td class="lg-why">Starting budget</td>
+                <td class="num lg-delta"></td><td class="num lg-bal">$${x.start}</td>
+              </tr>
+              ${rows}
+            </tbody>
+          </table>
+          <div class="ledger-foot">Net ${netHtml(y.net)} from the $${x.start} start</div>
+        </article>`;
+      };
+
+      document.getElementById('board').innerHTML = list.map(card).join('');
+      const cap = document.getElementById('year-caption');
+      if (cap) {
+        cap.textContent = year === String(D.season)
+          ? 'every team starts at $200 · only trades move draft dollars · keeper spend comes out at the deadline'
+          : 'forward dollars traded so far — ' + year + ' trades will keep changing this all season';
+      }
     }
-
-    document.getElementById('overview').innerHTML = `
-      <table class="ledger-table">
-        <thead><tr>
-          <th>Team</th><th class="num start-col">Start</th><th class="bar-col">Net change</th>
-          <th class="num">Change</th><th class="num"><span class="hide-sm">Draft </span>Budget</th>
-        </tr></thead>
-        <tbody>${byFinal.map((x) => {
-          const ti = D.teams.findIndex((t) => t.name === x.team);
-          return `<tr>
-            <td><a class="teamtag" href="./#team-${ti}">
-              <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(x.team)}</a></td>
-            <td class="num muted start-col">$${x.start}</td>
-            <td class="bar-col">${bar(x.net)}</td>
-            <td class="num">${netHtml(x.net)}</td>
-            <td class="num big">$${x.final}</td>
-          </tr>`;
-        }).join('')}</tbody>
-        <tfoot><tr>
-          <td>League total</td><td class="num muted start-col">$${start * B.length}</td>
-          <td class="bar-col"></td><td class="num muted">even</td>
-          <td class="num big">$${B.reduce((a, x) => a + x.final, 0)}</td>
-        </tr></tfoot>
-      </table>`;
-
-    const card = (x) => {
-      const ti = D.teams.findIndex((t) => t.name === x.team);
-      const rows = x.rows.length ? x.rows.map((r) => `
-        <tr>
-          <td class="lg-date">${fmtDate(r.date)}</td>
-          <td class="lg-why">${esc(r.why)}
-            <span class="lg-with">with ${esc(r['with'])}</span>
-            ${r.note ? `<span class="lg-note">${esc(r.note)}</span>` : ''}</td>
-          <td class="num lg-delta">${r.delta > 0
-            ? `<span class="delta pos">+$${r.delta}</span>`
-            : `<span class="delta neg">−$${Math.abs(r.delta)}</span>`}</td>
-          <td class="num lg-bal">$${r.balance}</td>
-        </tr>`).join('')
-        : `<tr><td colspan="4" class="empty-note">No draft-dollar trades — still
-             sitting on the full $${x.start}.</td></tr>`;
-      return `<article class="team-card board-card ledger-card" id="budget-${ti}">
-        <div class="ledger-head" style="border-left-color:${TEAM_COLORS[ti % 10]}">
-          <a class="ledger-team" href="./#team-${ti}">${esc(x.team)}</a>
-          <span class="ledger-final">$${x.final}<small>draft budget</small></span>
-        </div>
-        <table class="ledger-rows">
-          <tbody>
-            <tr class="lg-start">
-              <td class="lg-date">—</td><td class="lg-why">Starting budget</td>
-              <td class="num lg-delta"></td><td class="num lg-bal">$${x.start}</td>
-            </tr>
-            ${rows}
-          </tbody>
-        </table>
-        <div class="ledger-foot">Net ${netHtml(x.net)} from the $${x.start} start${
-          x.next ? ` · <span class="lg-next">${x.next > 0 ? '+' : '−'}$${Math.abs(x.next)} already
-            ${x.next > 0 ? 'owed to them' : 'committed'} in ${D.season + 1}</span>` : ''}</div>
-      </article>`;
-    };
-
-    document.getElementById('board').innerHTML = byFinal.map(card).join('');
+    draw();
   }
 
   if (page === 'trades') {

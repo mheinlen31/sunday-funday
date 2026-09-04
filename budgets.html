@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0d5c3f">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="css/styles.css?v=202609041542">
+<link rel="stylesheet" href="css/styles.css?v=202609041549">
 </head>
 <body data-page="budgets">
 <header class="masthead">
@@ -31,7 +31,10 @@
 </header>
 
 <div class="board-toolbar">
-  <span class="board-caption">every team starts at $200 · only trades move draft dollars · keeper spend comes out at the deadline</span>
+  <label class="year-picker">Draft year
+    <select id="year-select"></select>
+  </label>
+  <span class="board-caption" id="year-caption"></span>
 </div>
 
 <section class="ledger-top" id="overview"></section>
@@ -41,7 +44,10 @@
 <main class="team-grid board" id="board"></main>
 
 <footer class="legend">
-  <p class="boardnote">Everyone opens at <strong>$200</strong>. The only thing
+  <p class="boardnote">Use the picker above to switch between the
+  <strong>2026</strong> and <strong>2027</strong> drafts. 2027 shows only the
+  forward dollars committed so far — trades all next season will keep moving
+  it. Everyone opens at <strong>$200</strong>. The only thing
   that changes it before draft night is trading draft dollars — every one of
   those is itemised below, including deals from 2024 and 2025 that assigned
   money to this season. The running balance shows the arithmetic. What is
@@ -50,8 +56,8 @@
   comes out of these figures to set the money you actually bid with.</p>
 </footer>
 
-<script src="js/data.js?v=202609041542"></script>
-<script src="js/players.js?v=202609041542"></script>
-<script src="js/deadline.js?v=202609041542"></script>
+<script src="js/data.js?v=202609041549"></script>
+<script src="js/players.js?v=202609041549"></script>
+<script src="js/deadline.js?v=202609041549"></script>
 </body>
 </html>

@@ -134,43 +134,55 @@ TRADES = [
         "summary": "Paw traded Kenneth Gainwell to Centersup for $2 in 2026 draft budget.",
         "sides": {
             "Paw": {"players": ["Kenneth Gainwell"], "dollars": 0, "grade": "B+",
-                    "note": "Converts a fringe committee back with no keeper surplus "
-                            "into flexible draft cash. Low-risk, tidy little win."},
+                    "note": "A $3 body who was never making a $100 keeper board — Chase and "
+                            "St. Brown lock $95 of Paw's cap before they choose anything. "
+                            "Gainwell was worth nothing to this roster, so $2 is free, if "
+                            "only barely worth the paperwork."},
             "Centersup": {"players": [], "dollars": 2, "grade": "B-",
-                    "note": "Buys cheap RB depth / a $2 keeper flier. A slight overpay "
-                            "in pure value, but $2 is nothing if they wanted the body."},
+                    "note": "Two dollars for depth that doesn't crack their keeper set. "
+                            "Gainwell adds nothing to the best $100 build Centersup can "
+                            "make, so this is money spent on a player headed for the "
+                            "auction pool anyway. Harmless at the price."},
         },
     },
     {
         "date": "2026-08-25",
         "summary": "Paw traded Christian Watson to the Chovies for $3 in 2026 and $1 in 2027.",
         "sides": {
-            "Paw": {"players": ["Christian Watson"], "dollars": 0, "dollars2027": 0, "grade": "B+",
-                    "note": "Sells depth they'd never keep. Watson is a $5 keeper at exactly his "
-                            "market — zero surplus — and he's buried behind Chase and St. Brown on "
-                            "a roster already carrying four other $5-and-under WRs. Turning that "
-                            "into $4 of draft capital is free money."},
-            "The Chovies": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "B-",
-                    "note": "A defensible upside swing on a receiver who's a WR1 when healthy. "
-                            "Their WR room is a pile of $1 fliers behind Odunze, so the ceiling is "
-                            "worth chasing — but they pay $4 in picks for a keeper with no surplus, "
-                            "betting on health from a player who's rarely had it."},
+            "Paw": {"players": ["Christian Watson"], "dollars": 0, "dollars2027": 0,
+                    "grade": "A-",
+                    "note": "Another asset Paw could never use. With $95 of the cap "
+                            "mandatory in Chase and St. Brown, Watson's $6 keeper price was "
+                            "surplus they had no room to bank — his marginal worth to this "
+                            "roster is zero. Four dollars across two drafts for nothing is "
+                            "clean profit."},
+            "The Chovies": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C+",
+                    "note": "Paid $4 for about $0.40 of keeper value. Watson joins a "
+                            "receiver room already deep in interchangeable $1-6 fliers — "
+                            "Hunter, Pearsall, Boutte, Dike, Horton — and doesn't improve "
+                            "the best set the Chovies can build. Cheap, but money for "
+                            "nothing."},
         },
     },
     {
         "date": "2026-08-17",
         "summary": "Loser traded the rights to Ashton Jeanty to the Magic Rats for $3 in 2026 and $1 in 2027.",
         "sides": {
-            "Loser": {"players": ["Ashton Jeanty"], "dollars": 0, "dollars2027": 0, "grade": "A-",
-                    "note": "Moves his priciest RB — Jeanty's keeper price sits above his ESPN "
-                            "market — while keeping a deep, cheaper core in Cook, Chase Brown and "
-                            "Judkins, all returning surplus. Turns a negative-value keeper into $4 "
-                            "of draft capital. Clean cap-and-value win."},
-            "Magic Rats": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C+",
-                    "note": "A 'get my guy' swing. Their backfield was an overpriced Kyren plus a "
-                            "stack of $1 fliers, so a 21-year-old bellcow fills a real need. But "
-                            "they pay $4 in picks to take on a keeper priced above his ESPN market "
-                            "— a bet on Jeanty's upside beating that price, not a value grab."},
+            "Loser": {"players": ["Ashton Jeanty"], "dollars": 0, "dollars2027": 0,
+                    "grade": "A-",
+                    "note": "The best kind of sale — an asset worth zero to the seller. "
+                            "Loser's optimal board is Chase Brown ($17), Cook ($29), "
+                            "Judkins, McConkey, Waddle and Maye: six keepers, $99, roughly "
+                            "+$70 of surplus. Jeanty at $45 never came close to making it. "
+                            "They turned a player they were always releasing into $4."},
+            "Magic Rats": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C-",
+                    "note": "The purchase that constrained everything after it. Jeanty is "
+                            "priced $7 above his own ADP, so he carries negative surplus — "
+                            "and because he came by trade he is effectively committed at "
+                            "$45, which is precisely what later made the London buy "
+                            "redundant. Paying $4 for the right to spend $45 on a "
+                            "below-market keeper is a bet on the player alone, with the cap "
+                            "math running against it."},
         },
     },
     {
@@ -180,46 +192,35 @@ TRADES = [
         "sides": {
             "The Chovies": {"players": ["Dylan Sampson"], "dollars": 1, "dollars2027": 1,
                     "grade": "C+",
-                    "note": "A lateral swap they paid to make. Both players are $1-2 keepers "
-                            "sitting exactly at their ESPN price, so no surplus changes hands "
-                            "— the Chovies just pay $2 across two years for the version they "
-                            "prefer. Johnston is their tenth WR behind a pile of identical "
-                            "$1-6 lottery tickets (Hunter, Watson, Pearsall, Boutte, Dike, "
-                            "Horton), while Sampson was a cheap dart in a backfield they "
-                            "hardly need with Barkley and Henry. Harmless, but they bought "
-                            "the redundancy they already had."},
+                    "note": "Two dollars for a lateral. Both men are $1-2 keepers sitting "
+                            "exactly at market and neither touches the Chovies' best "
+                            "build, so the cash is the only thing that genuinely moves. "
+                            "Paying for a preference."},
             "Chance": {"players": ["Quentin Johnston"], "dollars": 0, "dollars2027": 0,
-                    "grade": "B",
-                    "note": "Sells from a genuine surplus and gets paid for it. Johnston was "
-                            "WR5 behind A.J. Brown, Jameson Williams, Brian Thomas and Diggs, "
-                            "and Sampson lands in an RB room that badly needs young legs — "
-                            "Kamara ($11 keeper, $1 ESPN) and Aaron Jones ($6 for a $2 player) "
-                            "are their two worst contracts. A $1 flier on the Cleveland "
-                            "backfield has real standalone value if Judkins misses time, and "
-                            "they pocket $1 now plus $1 in 2027."},
+                    "grade": "B+",
+                    "note": "Took the money on a swap of equivalents. Neither player makes "
+                            "any keeper board, so being paid $2 to exchange one fringe body "
+                            "for another is the right side of a nothing trade — and Sampson "
+                            "lands in a backfield whose two worst contracts are Kamara ($11 "
+                            "for a $1 player) and Aaron Jones."},
         },
     },
     {
         "date": "2026-09-02",
         "summary": "Pep traded Omarion Hampton to Juice for $4 in 2026.",
         "sides": {
-            "Pep": {"players": ["Omarion Hampton"], "dollars": 0, "grade": "B",
-                    "note": "Forced by the cap, executed cleanly. Achane is locked in at $40 "
-                            "on his year-two contract whether they like it or not, which "
-                            "leaves $60 of keeper room — not enough for both Hampton ($39) "
-                            "and Kenneth Walker ($34). The two are nearly identical values "
-                            "(+$4 and +$3 on ESPN), so this was always going to be an "
-                            "either/or, and turning the redundant one into $4 of auction "
-                            "money is the right resolution. Only knock: a +$4 back with LAC "
-                            "workhorse upside probably had a bigger market than $4."},
-            "Juice": {"players": [], "dollars": 4, "grade": "B+",
-                    "note": "A cheap upgrade to the top of their keeper board. Juice were "
-                            "carrying two ugly contracts in Josh Jacobs ($31 for a $16 player) "
-                            "and Nico Collins ($36 for $33); Hampton at $39 against a $43 "
-                            "ESPN price is better than either, and slots beside their two "
-                            "real bargains in Javonte Williams (+$17) and Bowers (+$9). "
-                            "Hampton plus Javonte plus Bowers is $75 of a $100 cap for three "
-                            "starters. $4 is a light toll for that."},
+            "Pep": {"players": ["Omarion Hampton"], "dollars": 0, "grade": "B+",
+                    "note": "Sold into a forced choice and got paid for it. Achane's $40 is "
+                            "a mandatory year-two, and Hampton ($39) and Walker ($34) were "
+                            "never both affordable underneath it — Hampton was worth only "
+                            "about $1 more to Pep than the next-best use of that money. "
+                            "Converting him into $4 of auction cash is a clear gain."},
+            "Juice": {"players": [], "dollars": 4, "grade": "C+",
+                    "note": "A fair player at a slightly rich price. Hampton does make "
+                            "their best set — Hampton, Javonte, McMillan and Bowers for "
+                            "$92 — but only about $1.50 better than the alternative build, "
+                            "so $4 is a couple of dollars of overpay. Not damaging, just "
+                            "not the bargain that +$4 on ADP implies."},
         },
     },
     {
@@ -228,26 +229,20 @@ TRADES = [
                    "and $2 in 2027.",
         "sides": {
             "Paw": {"players": ["Travis Etienne Jr."], "dollars": 0, "dollars2027": 0,
-                    "grade": "B+",
-                    "note": "Selling an asset they were never allowed to use. Chase ($60) "
-                            "and St. Brown ($35) are both year-two contracts, mandatory, "
-                            "and together they eat $95 of the $100 keeper cap — Paw has $5 "
-                            "of room. Keeping Etienne at $12 would have put them $7 over "
-                            "and triggered $14 of luxury tax, so a +$9 surplus that reads "
-                            "great on the board was worth nothing to this roster. Turning "
-                            "it into draft money is the only sensible move. The knock is "
-                            "price: $4 total for a back at $9 under market is light, though "
-                            "everyone in the league could see Paw was capped out and had no "
-                            "leverage."},
+                    "grade": "A-",
+                    "note": "The cleanest sale of the offseason. Chase and St. Brown lock "
+                            "$95 of Paw's $100 before any choice, so Etienne's +$9 was "
+                            "unusable — keeping him meant $7 over the cap and $14 of "
+                            "luxury tax. He was worth literally nothing to this roster and "
+                            "returned $4. The only ding is that a capped-out seller has no "
+                            "leverage, and the league knew it."},
             "Centersup": {"players": [], "dollars": 2, "dollars2027": 2, "grade": "A-",
-                    "note": "The rare deal where the buyer has the cap room the seller "
-                            "lacks. Centersup carry no mandatory contracts, so their $100 "
-                            "is fully discretionary, and Etienne at $12 slots straight into "
-                            "the plan: Gibbs $66 + Etienne $12 + Pickens $17 is $95 for "
-                            "three starters worth +$27 of combined surplus. He also fixes a "
-                            "real hole — behind Gibbs they were running Gainwell, Warren, "
-                            "Hunt and Vidal, all $1-4 flyers. $4 across two years for a "
-                            "genuine RB2 who fits the budget is excellent business."},
+                    "note": "The buyer with the room the seller lacked. Etienne is worth "
+                            "about +$9 to Centersup's best build — Gibbs, Jefferson, "
+                            "Pickens, Etienne, Warren and Gainwell — for a $4 outlay. That "
+                            "is the largest genuine value gain in any trade this offseason, "
+                            "and he fills the one real hole: behind Gibbs they were running "
+                            "Hunt, Vidal and Croskey-Merritt."},
         },
     },
     {
@@ -257,31 +252,24 @@ TRADES = [
         "sides": {
             "Silent Pugios": {"players": ["Drake London"], "dollars": 0, "dollars2027": 0,
                     "grade": "B+",
-                    "note": "Sold at par and pocketed the structure. Run the actual cap "
-                            "choice: their best keeper set with London is Smith-Njigba, "
-                            "Swift, Flowers, Loveland and London — worth about +$66 in real "
-                            "auction dollars. Without him it is Smith-Njigba, Taylor, "
-                            "Flowers and Harrison at about +$57. So London was worth ~$8 of "
-                            "surplus to this roster and they were paid $9 for him. Dead "
-                            "even on value, and they also dodged a second locked receiver: "
-                            "London is a contract renewal at $35 in 2027 on a team already "
-                            "carrying Smith-Njigba. Getting full price for an asset you "
-                            "were going to squeeze out anyway, while keeping 2027 clean, is "
-                            "good business. Taylor at $58 also reads better than his +$1 "
-                            "suggests, since a $59 ADP player costs about $63 once keeper "
-                            "surplus inflates the auction."},
-            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "B-",
-                    "note": "A lateral move bought with real money, saved by a 2027 angle. "
-                            "Jeanty came by trade, so he is effectively pre-committed at "
-                            "$45, and Jeanty plus London plus Lamb is $116 and $32 of tax — "
-                            "London cannot join Lamb, he can only replace him. The two sets "
-                            "are near identical: Jeanty and Lamb is +$9 in auction dollars, "
-                            "Jeanty, London and Tee Higgins is +$8. So $9 bought no surplus "
-                            "at all this year. What it did buy is next year — London renews "
-                            "at $35 where Lamb renews at $46, and London is three years "
-                            "younger. Paying a year ahead is a real strategy, but it means "
-                            "CeeDee Lamb, a $51 ADP receiver, now likely hits the auction "
-                            "floor."},
+                    "note": "Sold at par and pocketed the structure. Their best set with "
+                            "London — Smith-Njigba, Swift, Flowers, Loveland, London — is "
+                            "worth about +$66 in real auction dollars; without him, "
+                            "Smith-Njigba, Taylor, Flowers and Harrison is about +$57. So "
+                            "London was worth roughly $8 here and they were paid $9. Even "
+                            "on value, and they kept 2027 clear of a second locked receiver "
+                            "(London renews at $35 on a roster already carrying "
+                            "Smith-Njigba). Taylor at $58 also reads better than +$1, since "
+                            "a $59 ADP player costs about $63 once keeper surplus inflates "
+                            "the auction."},
+            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "C",
+                    "note": "Nine dollars for nothing this year. With Jeanty committed at "
+                            "$45, Jeanty plus London plus Lamb is $116 and $32 of tax — "
+                            "London can't join Lamb, only replace him, and the two builds "
+                            "are worth the same. The entire return is 2027: London renews "
+                            "at $35 where Lamb renews at $46, and he's three years younger. "
+                            "A real plan, but an expensive way to reach it, and it likely "
+                            "sends a $51 ADP receiver to the auction."},
         },
     },
 ]
@@ -575,24 +563,26 @@ def read_purses():
 
 
 def build_budgets(purses):
-    """Per-team ledger: $200 -> today's auction budget, one row per movement.
+    """Per-team ledgers for both draft years, $200 -> today's budget.
 
-    Rows carry a running balance so the page can show the arithmetic rather
-    than just the endpoints. Prior-season rows come from PRIOR_2026_MOVES;
-    2026 rows are derived from TRADES, so a new trade shows up here for free.
+    2026 rows come from PRIOR_2026_MOVES plus this offseason's cash; 2027 rows
+    are the forward dollars traded so far. Rows carry a running balance so the
+    page can show the arithmetic rather than just the endpoints, and both years
+    fall out of TRADES, so a new trade appears in the right one for free.
     """
-    rows = {n: [] for n in BASE_PURSES}
-    next_yr = {n: 0 for n in BASE_PURSES}   # dollars already committed for 2027
+    rows = {SEASON: {n: [] for n in BASE_PURSES},
+            SEASON + 1: {n: [] for n in BASE_PURSES}}
 
-    def add(team, other, date, delta, why, note=None, season=None):
-        rows[team].append({"date": date, "delta": fmt_money(delta), "with": other,
-                           "why": why, "note": note, "season": season})
+    def add(year, team, other, date, delta, why, note=None, season=None):
+        rows[year][team].append({"date": date, "delta": fmt_money(delta),
+                                 "with": other, "why": why, "note": note,
+                                 "season": season})
 
     for m in PRIOR_2026_MOVES:
         yr = int(m["date"][:4])
-        add(m["pays"], m["gets"], m["date"], -m["amount"],
+        add(SEASON, m["pays"], m["gets"], m["date"], -m["amount"],
             f'Paid for {m["player"]}', m.get("extra"), yr)
-        add(m["gets"], m["pays"], m["date"], m["amount"],
+        add(SEASON, m["gets"], m["pays"], m["date"], m["amount"],
             f'Sold {m["player"]}', m.get("extra"), yr)
 
     for tr in TRADES:
@@ -601,47 +591,42 @@ def build_budgets(purses):
             continue
         for i, name in enumerate(names):
             other = names[1 - i]
-            d = tr["sides"][name].get("dollars", 0)
-            if not d:
-                continue
             # what this side received is what the other side gave up
             got = tr["sides"][other].get("players") or []
             label = ", ".join(got)
-            add(name, other, tr["date"], -d,
-                f"Paid for {label}" if label else f"Cash to {other}", None, SEASON)
-            add(other, name, tr["date"], d,
-                f"Sold {label}" if label else f"Cash from {name}", None, SEASON)
-
-    # 2027 draft dollars traded away now -- not part of this year's purse, but
-    # they are already spent, so the page flags them rather than hiding them
-    for tr in TRADES:
-        names = list(tr["sides"])
-        if len(names) != 2:
-            continue
-        for i, name in enumerate(names):
-            other = names[1 - i]
-            d2 = tr["sides"][name].get("dollars2027", 0)
-            if not d2:
-                continue
-            next_yr[name] -= d2
-            next_yr[other] += d2
+            for year, key in ((SEASON, "dollars"), (SEASON + 1, "dollars2027")):
+                d = tr["sides"][name].get(key, 0)
+                if not d:
+                    continue
+                add(year, name, other, tr["date"], -d,
+                    f"Paid for {label}" if label else f"Cash to {other}", None, SEASON)
+                add(year, other, name, tr["date"], d,
+                    f"Sold {label}" if label else f"Cash from {name}", None, SEASON)
 
     out = []
     for name in BASE_PURSES:
-        r = sorted(rows[name], key=lambda x: (x["date"], -abs(x["delta"])))
-        bal = float(START_PURSE)
-        for x in r:
-            bal += x["delta"]
-            x["balance"] = fmt_money(bal)
-        final = purses[name]
-        if fmt_money(bal) != fmt_money(final):
+        years = {}
+        for year in (SEASON, SEASON + 1):
+            r = sorted(rows[year][name], key=lambda x: (x["date"], -abs(x["delta"])))
+            bal = float(START_PURSE)
+            for x in r:
+                bal += x["delta"]
+                x["balance"] = fmt_money(bal)
+            years[str(year)] = {"rows": r, "final": fmt_money(bal),
+                                "net": fmt_money(bal - START_PURSE)}
+        # the confirmed purse is the authority for this season; the ledger must
+        # land on it or the itemisation is lying about where the money went
+        if years[str(SEASON)]["final"] != fmt_money(purses[name]):
             raise SystemExit(
-                f"\nBUDGET ERROR: {name} ledger ends at ${bal:g} but the purse "
-                f"is ${final:g}. Nothing was written.\n")
-        out.append({"team": name, "start": START_PURSE, "rows": r,
-                    "final": fmt_money(final),
-                    "net": fmt_money(final - START_PURSE),
-                    "next": fmt_money(next_yr[name])})
+                f"\nBUDGET ERROR: {name} {SEASON} ledger ends at "
+                f'${years[str(SEASON)]["final"]} but the purse is ${purses[name]:g}. '
+                "Nothing was written.\n")
+        out.append({"team": name, "start": START_PURSE, "years": years,
+                    # kept flat for the current season so existing views work
+                    "rows": years[str(SEASON)]["rows"],
+                    "final": years[str(SEASON)]["final"],
+                    "net": years[str(SEASON)]["net"],
+                    "next": years[str(SEASON + 1)]["net"]})
     return out
 
 
