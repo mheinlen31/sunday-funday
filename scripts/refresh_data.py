@@ -256,25 +256,30 @@ TRADES = [
                    "2026 and $2 in 2027.",
         "sides": {
             "Silent Pugios": {"players": ["Drake London"], "dollars": 0, "dollars2027": 0,
-                    "grade": "C+",
-                    "note": "They sold the wrong man. Smith-Njigba's $19 is locked in and "
-                            "is the best keeper in the league at +$41, which leaves $81 of "
-                            "cap. The question was Jonathan Taylor ($58, +$1) or London "
-                            "($30, +$8) — both together is $107 and a tax bill. London "
-                            "returns eight times the surplus for barely half the money, so "
-                            "the efficient cut was Taylor, and moving him would also have "
-                            "brought back far more than $9. Cashing the cheaper, younger, "
-                            "better-value asset to protect a $58 back who beats his market "
-                            "by a single dollar is backwards."},
-            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "A-",
-                    "note": "Exactly the buy this roster needed. Their expensive keepers "
-                            "were both underwater — Jeanty at $45 for a $38 player and "
-                            "Kyren at $37 for $26 — so the top of their board was money "
-                            "badly spent. London at $30 against a $38 market pairs with "
-                            "Lamb ($41, +$10) for $71, and adding Tee Higgins still lands "
-                            "under the cap at $87 with +$19 of surplus across three "
-                            "starters. That is a far better use of $100 than the two RBs, "
-                            "and $9 over two drafts is a fair toll to fix it."},
+                    "grade": "B",
+                    "note": "Reads worse on surplus than it plays. The two were never both "
+                            "keepable — Smith-Njigba's $19 is mandatory, so Taylor ($58) "
+                            "plus London ($30) is $107 and a tax bill — and the tiebreak "
+                            "isn't the +$8. London is a contract renewal: keeping him signs "
+                            "a NEW two-year deal at $35 in 2027, on a roster already "
+                            "carrying Smith-Njigba locked. Taylor is market status, a clean "
+                            "one-year hold with no tail. Taking the flexible asset and $9 "
+                            "over a player who mortgages another 2027 slot is a real "
+                            "argument, and ADP can't see it. The risk is that they're "
+                            "paying $58 for a $59 back, so it rests on RB inflating at "
+                            "auction — and with McCaffrey, Barkley, Henry, Jeanty and Kyren "
+                            "all priced above their own market on other rosters, the "
+                            "released-RB pool may be deeper than that bet assumes."},
+            "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "B+",
+                    "note": "The right fix for a badly-spent top of the board — Jeanty at "
+                            "$45 for a $38 player and Kyren at $37 for $26 were both dead "
+                            "money. London at $30 against a $38 market pairs with Lamb "
+                            "($41, +$10) for $71, and Tee Higgins still fits under the cap "
+                            "at $87 with +$19 across three starters. The catch is 2027: "
+                            "Lamb and London are both contract renewals, so keeping the "
+                            "pair locks $81 of next year's $100 cap in two receivers before "
+                            "they choose anything. Good value now, bought with real "
+                            "flexibility later."},
         },
     },
 ]
