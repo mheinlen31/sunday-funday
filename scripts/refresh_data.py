@@ -53,14 +53,23 @@ ALIASES = {
     "kenneth gainwell": "kenny gainwell",
     "jason meyers": "jason myers",
 }
-# Budgets-sheet team name -> Keeper Values sheet team name
-TEAM_ALIASES = {"Chovies": "The Chovies", "HopefulChovies": "The Chovies",
-                "AFRESHAYPEPPER ASAYWHEN": "Pep", "Gorlock": "Loser"}
+# Owners rename their teams constantly. The workbook keeps whatever a team was
+# called when the sheet was built, so map sheet name -> current name here
+# rather than editing the xlsx, which is read-only to this pipeline. Everything
+# downstream (purses, TRADES, the budget ledger) is keyed on the CURRENT name.
+# Past-season rosters deliberately keep their historical names; that page maps
+# them to the current franchise by roster slot, so renames flow through on
+# their own.
+TEAM_RENAMES = {
+    "Bom Bers": "House Bom",
+    "Loser": "Ben Fong Torres",
+    "The Chovies": "The Pu Pu Platters",
+}
 # 2026 base auction purses confirmed by Matt 2026-07-10 (pre-trade); win over
 # the Budgets sheet. Draft-dollar trades adjust these via TRADES below.
 BASE_PURSES = {
-    "The Chovies": 197, "Pep": 201, "Bom Bers": 199, "Centersup": 201,
-    "Chance": 202, "Juice": 200, "Loser": 196, "Magic Rats": 208,
+    "The Pu Pu Platters": 197, "Pep": 201, "House Bom": 199, "Centersup": 201,
+    "Chance": 202, "Juice": 200, "Ben Fong Torres": 196, "Magic Rats": 208,
     "Paw": 196, "Silent Pugios": 200,
 }
 START_PURSE = 200      # every team's 2026 auction budget before any trade
@@ -72,28 +81,28 @@ START_PURSE = 200      # every team's 2026 auction budget before any trade
 # purses can never silently disagree.
 #
 # "The Fighting Mamdanis" is the 2025 name of the franchise that also went by
-# Gorlock the Destroyer and now by Loser -- Josh Allen sits on Gorlock's
+# Gorlock the Destroyer and now by Ben Fong Torres -- Josh Allen sits on Gorlock's
 # end-of-2025 roster, which is the 08/15 trade here. Those two Mamdanis lines
 # net to zero for that team, so every team's TOTAL is right either way; only
 # the itemisation depends on the identification.
 PRIOR_2026_MOVES = [
-    {"date": "2024-12-02", "amount": 1, "pays": "Paw", "gets": "Loser",
+    {"date": "2024-12-02", "amount": 1, "pays": "Paw", "gets": "Ben Fong Torres",
      "player": "Baker Mayfield"},
-    {"date": "2025-08-13", "amount": 2, "pays": "Paw", "gets": "Bom Bers",
+    {"date": "2025-08-13", "amount": 2, "pays": "Paw", "gets": "House Bom",
      "player": "Ja'Marr Chase"},
     {"date": "2025-08-15", "amount": 1, "pays": "Magic Rats", "gets": "Pep",
      "player": "James Cook"},
-    {"date": "2025-08-15", "amount": 1, "pays": "Loser", "gets": "Bom Bers",
+    {"date": "2025-08-15", "amount": 1, "pays": "Ben Fong Torres", "gets": "House Bom",
      "player": "Josh Allen"},
-    {"date": "2025-08-16", "amount": 1, "pays": "The Chovies", "gets": "Centersup",
+    {"date": "2025-08-16", "amount": 1, "pays": "The Pu Pu Platters", "gets": "Centersup",
      "player": "Saquon Barkley", "extra": "James Conner went back the other way"},
-    {"date": "2025-08-19", "amount": 1, "pays": "Paw", "gets": "Loser",
+    {"date": "2025-08-19", "amount": 1, "pays": "Paw", "gets": "Ben Fong Torres",
      "player": "Travis Etienne"},
-    {"date": "2025-08-22", "amount": 2, "pays": "The Chovies", "gets": "Chance",
+    {"date": "2025-08-22", "amount": 2, "pays": "The Pu Pu Platters", "gets": "Chance",
      "player": "Ricky Pearsall"},
-    {"date": "2025-11-24", "amount": 4, "pays": "Bom Bers", "gets": "Loser",
+    {"date": "2025-11-24", "amount": 4, "pays": "House Bom", "gets": "Ben Fong Torres",
      "player": "Wan'Dale Robinson"},
-    {"date": "2025-12-16", "amount": 9, "pays": "Loser", "gets": "Magic Rats",
+    {"date": "2025-12-16", "amount": 9, "pays": "Ben Fong Torres", "gets": "Magic Rats",
      "player": "James Cook"},
 ]
 
@@ -145,7 +154,7 @@ TRADES = [
     },
     {
         "date": "2026-08-25",
-        "summary": "Paw traded Christian Watson to the Chovies for $3 in 2026 and $1 in 2027.",
+        "summary": "Paw traded Christian Watson to the Pu Pu Platters for $3 in 2026 and $1 in 2027.",
         "sides": {
             "Paw": {"players": ["Christian Watson"], "dollars": 0, "dollars2027": 0,
                     "grade": "A-",
@@ -154,7 +163,7 @@ TRADES = [
                             "was surplus with no room to bank it. Four dollars across two "
                             "drafts for a player this roster was never keeping is clean "
                             "profit."},
-            "The Chovies": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C+",
+            "The Pu Pu Platters": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C+",
                     "note": "Four dollars for a sixth interchangeable cheap receiver. "
                             "Watson lands in the same price band as Hunter, Pearsall, "
                             "Boutte, Dike and Horton and doesn't change what the Chovies "
@@ -163,13 +172,13 @@ TRADES = [
     },
     {
         "date": "2026-08-17",
-        "summary": "Loser traded the rights to Ashton Jeanty to the Magic Rats for $3 in 2026 and $1 in 2027.",
+        "summary": "Ben Fong Torres traded the rights to Ashton Jeanty to the Magic Rats for $3 in 2026 and $1 in 2027.",
         "sides": {
-            "Loser": {"players": ["Ashton Jeanty"], "dollars": 0, "dollars2027": 0,
+            "Ben Fong Torres": {"players": ["Ashton Jeanty"], "dollars": 0, "dollars2027": 0,
                     "grade": "A-",
                     "note": "The best kind of sale — an asset worth nothing to the "
                             "seller. A $45 back was never going to fit what "
-                            "Loser wanted to do with their cap, so he was "
+                            "Ben Fong Torres wanted to do with their cap, so he was "
                             "always being released. Turning that into $4 is "
                             "free money."},
             "Magic Rats": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C-",
@@ -183,10 +192,10 @@ TRADES = [
     },
     {
         "date": "2026-09-02",
-        "summary": "The Chovies traded Dylan Sampson, $1 in 2026 and $1 in 2027 "
+        "summary": "The Pu Pu Platters traded Dylan Sampson, $1 in 2026 and $1 in 2027 "
                    "to Chance for Quentin Johnston.",
         "sides": {
-            "The Chovies": {"players": ["Dylan Sampson"], "dollars": 1, "dollars2027": 1,
+            "The Pu Pu Platters": {"players": ["Dylan Sampson"], "dollars": 1, "dollars2027": 1,
                     "grade": "C+",
                     "note": "Two dollars for a lateral. Both are $1-2 keepers sitting "
                             "exactly at their market, so the cash is the only thing that "
@@ -413,7 +422,9 @@ def read_rosters():
                     "priceLocked": not (isinstance(price_cell, str) and price_cell.startswith("=")),
                     "contractCell": wsv.cell(r, col + 6).value,
                 })
-            teams.append({"name": str(name).strip(), "players": players})
+            tname = str(name).strip()
+            teams.append({"name": TEAM_RENAMES.get(tname, tname),
+                          "players": players})
     return teams
 
 
