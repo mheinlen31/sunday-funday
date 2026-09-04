@@ -134,15 +134,13 @@ TRADES = [
         "summary": "Paw traded Kenneth Gainwell to Centersup for $2 in 2026 draft budget.",
         "sides": {
             "Paw": {"players": ["Kenneth Gainwell"], "dollars": 0, "grade": "B+",
-                    "note": "A $3 body who was never making a $100 keeper board — Chase and "
-                            "St. Brown lock $95 of Paw's cap before they choose anything. "
-                            "Gainwell was worth nothing to this roster, so $2 is free, if "
-                            "only barely worth the paperwork."},
+                    "note": "A $3 body on a roster with almost no keeper room to spare. He "
+                            "was never going to be kept here, so $2 is free money — just "
+                            "not very much of it."},
             "Centersup": {"players": [], "dollars": 2, "grade": "B-",
-                    "note": "Two dollars for depth that doesn't crack their keeper set. "
-                            "Gainwell adds nothing to the best $100 build Centersup can "
-                            "make, so this is money spent on a player headed for the "
-                            "auction pool anyway. Harmless at the price."},
+                    "note": "Two dollars for depth that doesn't change their keeper "
+                            "picture. Harmless at the price, but it is money spent on a "
+                            "player likely bound for the auction pool anyway."},
         },
     },
     {
@@ -151,17 +149,16 @@ TRADES = [
         "sides": {
             "Paw": {"players": ["Christian Watson"], "dollars": 0, "dollars2027": 0,
                     "grade": "A-",
-                    "note": "Another asset Paw could never use. With $95 of the cap "
-                            "mandatory in Chase and St. Brown, Watson's $6 keeper price was "
-                            "surplus they had no room to bank — his marginal worth to this "
-                            "roster is zero. Four dollars across two drafts for nothing is "
-                            "clean profit."},
+                    "note": "Another asset Paw could never use. Their two year-two "
+                            "contracts eat almost the whole keeper cap, so Watson's price "
+                            "was surplus with no room to bank it. Four dollars across two "
+                            "drafts for a player this roster was never keeping is clean "
+                            "profit."},
             "The Chovies": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C+",
-                    "note": "Paid $4 for about $0.40 of keeper value. Watson joins a "
-                            "receiver room already deep in interchangeable $1-6 fliers — "
-                            "Hunter, Pearsall, Boutte, Dike, Horton — and doesn't improve "
-                            "the best set the Chovies can build. Cheap, but money for "
-                            "nothing."},
+                    "note": "Four dollars for a sixth interchangeable cheap receiver. "
+                            "Watson lands in the same price band as Hunter, Pearsall, "
+                            "Boutte, Dike and Horton and doesn't change what the Chovies "
+                            "can realistically keep."},
         },
     },
     {
@@ -170,19 +167,18 @@ TRADES = [
         "sides": {
             "Loser": {"players": ["Ashton Jeanty"], "dollars": 0, "dollars2027": 0,
                     "grade": "A-",
-                    "note": "The best kind of sale — an asset worth zero to the seller. "
-                            "Loser's optimal board is Chase Brown ($17), Cook ($29), "
-                            "Judkins, McConkey, Waddle and Maye: six keepers, $99, roughly "
-                            "+$70 of surplus. Jeanty at $45 never came close to making it. "
-                            "They turned a player they were always releasing into $4."},
+                    "note": "The best kind of sale — an asset worth nothing to the "
+                            "seller. A $45 back was never going to fit what "
+                            "Loser wanted to do with their cap, so he was "
+                            "always being released. Turning that into $4 is "
+                            "free money."},
             "Magic Rats": {"players": [], "dollars": 3, "dollars2027": 1, "grade": "C-",
                     "note": "The purchase that constrained everything after it. Jeanty is "
-                            "priced $7 above his own ADP, so he carries negative surplus — "
-                            "and because he came by trade he is effectively committed at "
-                            "$45, which is precisely what later made the London buy "
-                            "redundant. Paying $4 for the right to spend $45 on a "
-                            "below-market keeper is a bet on the player alone, with the cap "
-                            "math running against it."},
+                            "priced $7 above his own ADP, so he costs more than he returns, "
+                            "and acquiring him by trade effectively commits them to that "
+                            "price. Paying $4 for the right to spend $45 on a below-market "
+                            "keeper is a bet on the player outrunning the number — and it "
+                            "narrowed what they could do later."},
         },
     },
     {
@@ -192,17 +188,14 @@ TRADES = [
         "sides": {
             "The Chovies": {"players": ["Dylan Sampson"], "dollars": 1, "dollars2027": 1,
                     "grade": "C+",
-                    "note": "Two dollars for a lateral. Both men are $1-2 keepers sitting "
-                            "exactly at market and neither touches the Chovies' best "
-                            "build, so the cash is the only thing that genuinely moves. "
-                            "Paying for a preference."},
+                    "note": "Two dollars for a lateral. Both are $1-2 keepers sitting "
+                            "exactly at their market, so the cash is the only thing that "
+                            "genuinely moves here."},
             "Chance": {"players": ["Quentin Johnston"], "dollars": 0, "dollars2027": 0,
                     "grade": "B+",
-                    "note": "Took the money on a swap of equivalents. Neither player makes "
-                            "any keeper board, so being paid $2 to exchange one fringe body "
-                            "for another is the right side of a nothing trade — and Sampson "
-                            "lands in a backfield whose two worst contracts are Kamara ($11 "
-                            "for a $1 player) and Aaron Jones."},
+                    "note": "Took the money on a swap of equivalents. Neither man changes a "
+                            "keeper board, and Sampson lands in a backfield that needed "
+                            "young legs more than Chance needed a sixth receiver."},
         },
     },
     {
@@ -210,17 +203,16 @@ TRADES = [
         "summary": "Pep traded Omarion Hampton to Juice for $4 in 2026.",
         "sides": {
             "Pep": {"players": ["Omarion Hampton"], "dollars": 0, "grade": "B+",
-                    "note": "Sold into a forced choice and got paid for it. Achane's $40 is "
-                            "a mandatory year-two, and Hampton ($39) and Walker ($34) were "
-                            "never both affordable underneath it — Hampton was worth only "
-                            "about $1 more to Pep than the next-best use of that money. "
-                            "Converting him into $4 of auction cash is a clear gain."},
+                    "note": "Sold into a forced choice and got paid for it. Achane's "
+                            "year-two contract makes the top of Pep's backfield crowded and "
+                            "expensive, and Hampton and Walker were never both comfortable "
+                            "underneath it. Turning the surplus one into $4 of auction cash "
+                            "is a clear gain."},
             "Juice": {"players": [], "dollars": 4, "grade": "C+",
-                    "note": "A fair player at a slightly rich price. Hampton does make "
-                            "their best set — Hampton, Javonte, McMillan and Bowers for "
-                            "$92 — but only about $1.50 better than the alternative build, "
-                            "so $4 is a couple of dollars of overpay. Not damaging, just "
-                            "not the bargain that +$4 on ADP implies."},
+                    "note": "A fair player at a slightly rich price. Hampton is a useful "
+                            "keeper, but he displaces nearly as much value as he adds, so "
+                            "$4 is a couple of dollars more than the upgrade is actually "
+                            "worth."},
         },
     },
     {
@@ -230,19 +222,18 @@ TRADES = [
         "sides": {
             "Paw": {"players": ["Travis Etienne Jr."], "dollars": 0, "dollars2027": 0,
                     "grade": "A-",
-                    "note": "The cleanest sale of the offseason. Chase and St. Brown lock "
-                            "$95 of Paw's $100 before any choice, so Etienne's +$9 was "
-                            "unusable — keeping him meant $7 over the cap and $14 of "
-                            "luxury tax. He was worth literally nothing to this roster and "
-                            "returned $4. The only ding is that a capped-out seller has no "
-                            "leverage, and the league knew it."},
+                    "note": "The cleanest sale of the offseason. With two mandatory "
+                            "contracts consuming nearly the entire cap, Etienne's surplus "
+                            "was unusable — keeping him would have meant going over and "
+                            "paying luxury tax on top. He returned $4 for a player Paw had "
+                            "no way to keep. The only ding is that a capped-out seller has "
+                            "no leverage, and the league knew it."},
             "Centersup": {"players": [], "dollars": 2, "dollars2027": 2, "grade": "A-",
-                    "note": "The buyer with the room the seller lacked. Etienne is worth "
-                            "about +$9 to Centersup's best build — Gibbs, Jefferson, "
-                            "Pickens, Etienne, Warren and Gainwell — for a $4 outlay. That "
-                            "is the largest genuine value gain in any trade this offseason, "
-                            "and he fills the one real hole: behind Gibbs they were running "
-                            "Hunt, Vidal and Croskey-Merritt."},
+                    "note": "The buyer with the room the seller lacked. Centersup carry no "
+                            "mandatory contracts, so their cap is entirely discretionary, "
+                            "and Etienne is genuinely cheap against his market — the best "
+                            "value any buyer got this offseason. He also fills the one real "
+                            "hole: behind Gibbs they were running $1-3 flyers."},
         },
     },
     {
@@ -252,24 +243,18 @@ TRADES = [
         "sides": {
             "Silent Pugios": {"players": ["Drake London"], "dollars": 0, "dollars2027": 0,
                     "grade": "B+",
-                    "note": "Sold at par and pocketed the structure. Their best set with "
-                            "London — Smith-Njigba, Swift, Flowers, Loveland, London — is "
-                            "worth about +$66 in real auction dollars; without him, "
-                            "Smith-Njigba, Taylor, Flowers and Harrison is about +$57. So "
-                            "London was worth roughly $8 here and they were paid $9. Even "
-                            "on value, and they kept 2027 clear of a second locked receiver "
-                            "(London renews at $35 on a roster already carrying "
-                            "Smith-Njigba). Taylor at $58 also reads better than +$1, since "
-                            "a $59 ADP player costs about $63 once keeper surplus inflates "
-                            "the auction."},
+                    "note": "Sold at close to full value and kept next year clean. London "
+                            "is a contract renewal, so keeping him signs a new two-year "
+                            "deal on a roster already carrying a locked receiver. Getting "
+                            "roughly what he was worth, without taking on that 2027 "
+                            "commitment, is good business."},
             "Magic Rats": {"players": [], "dollars": 7, "dollars2027": 2, "grade": "C",
-                    "note": "Nine dollars for nothing this year. With Jeanty committed at "
-                            "$45, Jeanty plus London plus Lamb is $116 and $32 of tax — "
-                            "London can't join Lamb, only replace him, and the two builds "
-                            "are worth the same. The entire return is 2027: London renews "
-                            "at $35 where Lamb renews at $46, and he's three years younger. "
-                            "A real plan, but an expensive way to reach it, and it likely "
-                            "sends a $51 ADP receiver to the auction."},
+                    "note": "Nine dollars that buys little this year. Their earlier Jeanty "
+                            "commitment is what makes it awkward — two big keeper prices "
+                            "don't sit comfortably under one cap alongside what they "
+                            "already had, so London mostly substitutes rather than adds. "
+                            "The real return is 2027, where he renews meaningfully cheaper "
+                            "and is three years younger. Sound plan, expensive route to it."},
         },
     },
 ]
