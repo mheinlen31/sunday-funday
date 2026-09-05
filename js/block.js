@@ -132,6 +132,18 @@
     return live;
   }
 
+  // Keepers are in, so nothing can be traded: the board is closed and cleared.
+  if (D.keepersLocked) {
+    document.querySelector(".block-post-wrap").hidden = true;
+    statusEl.className = "block-status off";
+    statusEl.textContent = "Trading closed";
+    board.innerHTML = `<article class="team-card board-card"><div class="empty-note">
+      Trading is closed for ${D.season} — keepers are in and rosters are final. The board
+      has been cleared. See the <a href="pool.html">Draft Pool</a> for who's up at the
+      auction on Monday.</div></article>`;
+    return;
+  }
+
   render({}); // initial empty state until Firebase connects
 
   // ---- live board via the shared module ----

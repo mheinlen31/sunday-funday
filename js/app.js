@@ -4,6 +4,7 @@
 
   const CAP = 100;
   const STORE_KEY = 'sf-keepers-' + D.season;
+  const LOGO = (n, px) => (window.TEAM_LOGOS ? window.TEAM_LOGOS.html(n, px) : '');
   const py = String(D.priorSeason).slice(2);
   const ny = String(D.season + 1).slice(2);
   const FALLBACK_IMG = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nophoto.png&w=120&h=88';
@@ -216,7 +217,7 @@
     return `<article class="team-card${openTeams.has(ti) ? '' : ' collapsed'}${isFav ? ' fav' : ''}"
         id="team-${ti}" data-ti="${ti}" style="--tc:${TEAM_COLORS[ti % 10]}">
       <div class="team-head">
-        <h2 class="team-name"><span class="caret"></span>${esc(t.name)}
+        <h2 class="team-name"><span class="caret"></span>${LOGO(t.name, 26)}${esc(t.name)}
           <button class="favstar" type="button"
             title="Pin as my team">${isFav ? '★' : '☆'}</button></h2>
         ${mugRowHtml(t)}
@@ -270,7 +271,7 @@
   navEl.innerHTML = D.teams.map((t, ti) => {
     const committed = t.players.reduce((s, p) => s + (isContract(p) ? p.price : 0), 0);
     return `<a class="navchip" href="#team-${ti}" data-ti="${ti}">
-      <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(t.name)}${
+      ${LOGO(t.name, 16) || `<i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>`}${esc(t.name)}${
       committed ? `<b>$${committed}</b>` : ''}</a>`;
   }).join('') + '<a class="navchip navchip-all" href="#" id="toggle-all"></a>';
 
@@ -524,7 +525,7 @@
   }
 
   // ---- On the Block: live badges on rosters + home strip ----
-  if (window.SundayBlock) {
+  if (window.SundayBlock && !D.keepersLocked) {   // trading closes with the keeper deadline
     const blockStrip = document.getElementById('block-strip');
     const blockChips = document.getElementById('block-chips');
     // A player who's been traded away is no longer that team's to shop, so his

@@ -5,6 +5,7 @@
   if (!D) return;
 
   const page = document.body.dataset.page;
+  const LOGO = (n, px) => (window.TEAM_LOGOS ? window.TEAM_LOGOS.html(n, px) : '');
   const ny = String(D.season + 1).slice(2);
   const FALLBACK_IMG = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nophoto.png&w=120&h=88';
   // keep in sync with TEAM_COLORS in app.js
@@ -47,7 +48,7 @@
     const posClass = 'pos-' + p.pos.replace('/', '');
     const whose = p.team
       ? `<a class="teamtag" href="./#team-${p.ti}">
-           <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(p.team)}</a>
+           ${LOGO(p.team, 16) || `<i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>`}${esc(p.team)}</a>
          <span class="badge acq">${esc(p.acquired)}</span>`
       : '<span class="badge avail">Available</span>';
     // no keeper badges on the ADP or Draft Pool boards, and none for anyone
@@ -208,7 +209,7 @@
           <div class="psub">
             <span class="pos ${posClass}">${esc(a.pos)}</span>
             ${ti != null ? `<a class="teamtag" href="./#team-${ti}">
-              <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(a.team)}</a>`
+              ${LOGO(a.team, 16) || `<i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>`}${esc(a.team)}</a>`
               : `<span class="teamtag">${esc(a.team)}</span>`}
           </div>
           <div class="trail" title="${esc(trailOf(a))}">${span}</div>
@@ -234,7 +235,7 @@
           <div class="psub">
             <span class="pos ${posClass}">${esc(pos)}</span>
             ${p.ti != null ? `<a class="teamtag" href="./#team-${p.ti}">
-              <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(e.team)}</a>`
+              ${LOGO(e.team, 16) || `<i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>`}${esc(e.team)}</a>`
               : `<span class="teamtag">${esc(e.team)}</span>`}
           </div>
         </div>
@@ -301,7 +302,7 @@
 
     const adpRow = (p, i) => rowHtml(p, i + 1, p.market,
       p.owned ? (LOCKED ? `kept for ${money(p.price)}` : `keep for ${money(p.price)} · ${deltaHtml(p)}`)
-        : p.releasedBy ? `released by ${esc(p.releasedBy)}` : '');
+        : p.releasedBy ? `released by ${LOGO(p.releasedBy, 13)}${esc(p.releasedBy)}` : '');
 
     function cardHtml(title, list) {
       return `<article class="team-card board-card">
@@ -344,7 +345,7 @@
     let group = localStorage.getItem('sf-pool-group') === 'overall' ? 'overall' : 'position';
     const list = available().sort((a, b) => (b.market - a.market) || a.name.localeCompare(b.name));
     const row = (p, i) => rowHtml(p, i + 1, p.market,
-      p.releasedBy ? `released by ${esc(p.releasedBy)}` : 'free agent');
+      p.releasedBy ? `released by ${LOGO(p.releasedBy, 13)}${esc(p.releasedBy)}` : 'free agent');
     const card = (title, l) => `<article class="team-card board-card">
         <div class="team-head static"><h2 class="team-name">${esc(title)}</h2>
           <div class="team-meta">${l.length} available · by ESPN ADP</div></div>
@@ -480,7 +481,7 @@
             const ti = D.teams.findIndex((t) => t.name === x.team);
             return `<tr>
               <td><a class="teamtag" href="./#team-${ti}">
-                <i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>${esc(x.team)}</a></td>
+                ${LOGO(x.team, 16) || `<i class="teamdot" style="background:${TEAM_COLORS[ti % 10]}"></i>`}${esc(x.team)}</a></td>
               <td class="num muted start-col">$${x.start}</td>
               <td class="bar-col">${bar(y.net)}</td>
               <td class="num">${netHtml(y.net)}</td>
@@ -597,7 +598,7 @@
       return `<div class="trade-side">
         <div class="trade-side-head">
           <a class="teamtag"${teamHref(name) ? ` href="${teamHref(name)}"` : ''}>
-            <i class="teamdot" style="background:${teamColor(name)}"></i>${esc(name)}</a>
+            ${LOGO(name, 16) || `<i class="teamdot" style="background:${teamColor(name)}"></i>`}${esc(name)}</a>
           ${g ? `<span class="grade ${gradeClass(g)}">${esc(g)}</span>` : ''}
         </div>
         <div class="got-label">received</div>
