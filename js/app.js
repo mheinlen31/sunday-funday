@@ -31,12 +31,13 @@
   let kept;
   try { kept = new Set(JSON.parse(localStorage.getItem(STORE_KEY) || '[]')); }
   catch { kept = new Set(); }
+  const pid = (t, p) => t.name + '|' + p.name;
+  const save = () => { if (!LOCKED) localStorage.setItem(STORE_KEY, JSON.stringify([...kept])); };
+  // (after pid/save exist -- referencing pid above them is a TDZ error)
   if (LOCKED) {
     kept = new Set();
     D.teams.forEach((t) => t.players.forEach((p) => { if (p.kept) kept.add(pid(t, p)); }));
   }
-  const pid = (t, p) => t.name + '|' + p.name;
-  const save = () => { if (!LOCKED) localStorage.setItem(STORE_KEY, JSON.stringify([...kept])); };
 
   // players other owners have flagged "on the block" (live from Firebase)
   let blocked = new Map(); // "team|player" -> note

@@ -50,7 +50,9 @@
            <i class="teamdot" style="background:${TEAM_COLORS[p.ti % 10]}"></i>${esc(p.team)}</a>
          <span class="badge acq">${esc(p.acquired)}</span>`
       : '<span class="badge avail">Available</span>';
-    const side = page === 'adp' ? '' : contractHtml(p);
+    // no keeper badges on the ADP or Draft Pool boards, and none for anyone
+    // released once keepers are in -- a contract 'if kept' is moot for him
+    const side = (page === 'adp' || page === 'pool' || (D.keepersLocked && !p.kept)) ? '' : contractHtml(p);
     return `<div class="prow static${p.team ? '' : ' unowned'}">
       <span class="rank">${rank}</span>
       <img class="mug" src="${esc(p.img || FALLBACK_IMG)}" alt="" loading="lazy"
