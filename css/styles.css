@@ -1084,3 +1084,8 @@ body[data-page="rosters"] .board-toolbar { justify-content: space-between; }
   .ledger-table .teamtag { font-size: 13px; }
 }
 @media (max-width: 700px) { .hide-sm { display: none; } }
+
+/* keepers locked: settled line under each team's Kept group */
+.settled { font-size: 12px; color: var(--ink-soft); padding: 4px 16px 8px; border-bottom: 1px solid var(--rule); }
+.settled b { color: var(--ink); } .settled b.over { color: var(--bad); }
+.bargain-sub.muted { color: var(--ink-faint); }

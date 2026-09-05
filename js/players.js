@@ -281,17 +281,25 @@
     render();
   }
 
+  // Once keepers are in, "owned" means kept; everyone else on a roster is
+  // released and shows up as available alongside the free agents.
+  const LOCKED = !!D.keepersLocked;
+  const available = () => [
+    ...players.filter((p) => !LOCKED || !p.kept).map((p) => ({ ...p, owned: !LOCKED, releasedBy: LOCKED ? p.team : null })),
+    ...(D.pool || []).map((p) => ({ ...p, owned: false, releasedBy: null })),
+  ];
+
   if (page === 'adp') {
-    const universe = [
-      ...players.map((p) => ({ ...p, owned: true })),
-      ...(D.pool || []).map((p) => ({ ...p, owned: false })),
-    ];
+    const universe = LOCKED
+      ? [...players.filter((p) => p.kept).map((p) => ({ ...p, owned: true })), ...available()]
+      : [...players.map((p) => ({ ...p, owned: true })), ...(D.pool || []).map((p) => ({ ...p, owned: false }))];
     let group = localStorage.getItem('sf-adp-group') === 'position' ? 'position' : 'overall';
     let show = localStorage.getItem('sf-adp-show') || 'everyone';
     if (!['everyone', 'owned', 'available'].includes(show)) show = 'everyone';
 
     const adpRow = (p, i) => rowHtml(p, i + 1, p.market,
-      p.owned ? `keep for ${money(p.price)} · ${deltaHtml(p)}` : '');
+      p.owned ? (LOCKED ? `kept for ${money(p.price)}` : `keep for ${money(p.price)} · ${deltaHtml(p)}`)
+        : p.releasedBy ? `released by ${esc(p.releasedBy)}` : '');
 
     function cardHtml(title, list) {
       return `<article class="team-card board-card">
@@ -326,6 +334,33 @@
       show = show === 'everyone' ? 'owned' : show === 'owned' ? 'available' : 'everyone';
       localStorage.setItem('sf-adp-show', show);
       render();
+    });
+    render();
+  }
+
+  if (page === 'pool') {
+    let group = localStorage.getItem('sf-pool-group') === 'overall' ? 'overall' : 'position';
+    const list = available().sort((a, b) => (b.market - a.market) || a.name.localeCompare(b.name));
+    const row = (p, i) => rowHtml(p, i + 1, p.market,
+      p.releasedBy ? `released by ${esc(p.releasedBy)}` : 'free agent');
+    const card = (title, l) => `<article class="team-card board-card">
+        <div class="team-head static"><h2 class="team-name">${esc(title)}</h2>
+          <div class="team-meta">${l.length} available · by ESPN ADP</div></div>
+        <div class="roster">${l.map(row).join('')}</div>
+      </article>`;
+    function render() {
+      main.innerHTML = group === 'overall'
+        ? card('Everyone headed to the auction', list)
+        : POS_ORDER.map((pos) => { const g = list.filter((p) => p.pos === pos); return g.length ? card(pos, g) : ''; }).join('');
+      document.getElementById('group-toggle').textContent = 'Group: ' + group;
+      const rel = list.filter((p) => p.releasedBy).length;
+      document.getElementById('pool-caption').textContent = LOCKED
+        ? `${list.length} players in the pool · ${rel} released by their teams · ${list.length - rel} free agents`
+        : 'Keepers aren\'t in yet — this is the free-agent pool only.';
+    }
+    document.getElementById('group-toggle').addEventListener('click', () => {
+      group = group === 'overall' ? 'position' : 'overall';
+      localStorage.setItem('sf-pool-group', group); render();
     });
     render();
   }

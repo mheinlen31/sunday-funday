@@ -25,11 +25,18 @@
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ---- keeper selections (persisted) ----
+  // Keepers are in. Plans freeze to what each team actually submitted; the
+  // rest of every roster is released to the auction. Nothing toggles.
+  const LOCKED = !!D.keepersLocked;
   let kept;
   try { kept = new Set(JSON.parse(localStorage.getItem(STORE_KEY) || '[]')); }
   catch { kept = new Set(); }
+  if (LOCKED) {
+    kept = new Set();
+    D.teams.forEach((t) => t.players.forEach((p) => { if (p.kept) kept.add(pid(t, p)); }));
+  }
   const pid = (t, p) => t.name + '|' + p.name;
-  const save = () => localStorage.setItem(STORE_KEY, JSON.stringify([...kept]));
+  const save = () => { if (!LOCKED) localStorage.setItem(STORE_KEY, JSON.stringify([...kept])); };
 
   // players other owners have flagged "on the block" (live from Firebase)
   let blocked = new Map(); // "team|player" -> note
@@ -117,8 +124,8 @@
       <span class="stat"><strong class="${spend > CAP ? 'over' : ''}">$${spendR}</strong> / $${CAP} cap</span>
       ${tax ? `<span class="stat tax">tax <strong class="over">$${tax}</strong></span>` : ''}
       ${left != null ? `<span class="stat">draft budget <strong>$${left}</strong> of $${purse}</span>` : ''}
-      <a class="copy" href="#">share plan</a>
-      <a class="reset" href="#">clear</a>`;
+      ${LOCKED ? '' : `<a class="copy" href="#">share plan</a>
+      <a class="reset" href="#">clear</a>`}`;
   }
 
   function planUrl(t, ti) {
@@ -173,10 +180,11 @@
     });
     plan.push(...selected);
     const planBlock = plan.length ? `
-      <div class="group-label contract-label">Keeper plan</div>
+      <div class="group-label contract-label">${LOCKED ? 'Kept' : 'Keeper plan'}</div>
+      ${LOCKED ? `<div class="settled">Kept <b>$${t.keeperSpend}</b>${t.keeperTax ? ` · luxury tax <b class="over">$${t.keeperTax}</b>` : ''} · draft budget <b>$${t.draftBudget}</b> of $${t.purse}</div>` : ''}
       ${plan.join('')}` : '';
     return `${planBlock}
-      <div class="group-label">Keeper options</div>
+      <div class="group-label">${LOCKED ? 'Released to the auction' : 'Keeper options'}</div>
       ${options.join('') || '<div class="empty-note">Everyone\'s in the plan.</div>'}`;
   }
 
@@ -303,6 +311,7 @@
     const t = D.teams[ti];
     if (t) {
       const picks = (picksStr || '').split('-').filter((x) => x !== '').map(Number);
+      if (LOCKED) return;
       t.players.forEach((p) => kept.delete(pid(t, p)));
       picks.forEach((i) => {
         if (t.players[i] && !isContract(t.players[i])) kept.add(pid(t, t.players[i]));
@@ -401,6 +410,7 @@
       e.preventDefault();
       const ti = +reset.closest('.team-card').dataset.ti;
       const t = D.teams[ti];
+      if (LOCKED) return;
       t.players.forEach((p) => kept.delete(pid(t, p)));
       save();
       refreshTeam(ti);
@@ -412,6 +422,7 @@
     const t = D.teams[ti];
     const p = t.players[+row.dataset.pi];
     const id = pid(t, p);
+    if (LOCKED) return;                       // submitted keepers can't be edited here
     kept.has(id) ? kept.delete(id) : kept.add(id);
     save();
     refreshTeam(ti);
@@ -487,6 +498,25 @@
     if (card) jumpTo(+card.dataset.ti, card.dataset.player);
   });
   if (!bargains.length) document.getElementById('bargains-strip').style.display = 'none';
+
+  // keepers are in: the strip becomes the top of the draft pool instead
+  if (LOCKED) {
+    const pool = [
+      ...D.teams.flatMap((t, ti) => t.players.filter((p) => !p.kept).map((p) => ({ ...p, ti, from: t.name }))),
+      ...(D.pool || []).map((p) => ({ ...p, from: null })),
+    ].sort((a, b) => b.market - a.market).slice(0, 14);
+    document.querySelector('#bargains-strip .strip-title').textContent = 'Headed to the Auction';
+    document.getElementById('bargains-strip').style.display = '';
+    bargainsEl.innerHTML = pool.map((p) => `
+      <a class="bargain-card" href="pool.html">
+        <img class="mug" src="${p.img || ''}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div class="bargain-body">
+          <div class="bargain-name">${esc(p.name)}</div>
+          <div class="bargain-sub">${esc(p.pos)}${p.nfl ? ' · ' + esc(p.nfl) : ''} · ESPN ADP <b>$${p.market}</b></div>
+          <div class="bargain-sub muted">${p.from ? 'released by ' + esc(p.from) : 'free agent'}</div>
+        </div>
+      </a>`).join('');
+  }
 
   // ---- On the Block: live badges on rosters + home strip ----
   if (window.SundayBlock) {

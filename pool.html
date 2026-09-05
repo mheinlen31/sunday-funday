@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sunday Funday — Keepers by Position</title>
+<title>Sunday Funday — Draft Pool</title>
 <meta name="theme-color" content="#0d5c3f">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="css/styles.css?v=202609050746">
 </head>
-<body data-page="positions">
+<body data-page="pool">
 <header class="masthead">
   <div class="masthead-inner">
     <p class="kicker">Fantasy Football · Offseason</p>
@@ -18,12 +18,12 @@
     <p class="updated">Values update daily from ESPN · last refresh <span id="updated"></span></p>
     <nav class="pagetabs">
       <a href="./">Teams</a>
-      <a href="positions.html" class="active">By Position</a>
+      <a href="positions.html">By Position</a>
       <a href="adp.html">ESPN ADP</a>
       <a href="moves.html">Price Moves</a>
       <a href="trades.html">Trades</a>
       <a href="budgets.html">Budgets</a>
-      <a href="pool.html">Draft Pool</a>
+      <a href="pool.html" class="active">Draft Pool</a>
       <a href="block.html">On the Block</a>
       <a href="rosters.html">Past Rosters</a>
     </nav>
@@ -31,11 +31,18 @@
   </div>
 </header>
 
+<div class="board-toolbar">
+  <button id="group-toggle" class="math-toggle" type="button">Group: position</button>
+  <span class="board-caption" id="pool-caption"></span>
+</div>
+
 <main class="team-grid board" id="board"></main>
 
 <footer class="legend">
-  <p class="boardnote">Every owned player, grouped by position and ordered by
-  what he'd cost to keep. Tap a team name to jump to that roster.</p>
+  <p class="boardnote">Everyone who will be up for auction on draft night: players
+  their teams chose not to keep (tagged with who released them) plus the free-agent
+  pool, ordered by ESPN ADP. Keeper prices no longer apply to anyone here — they go
+  for whatever the room bids.</p>
 </footer>
 
 <script src="js/data.js?v=202609050746"></script>

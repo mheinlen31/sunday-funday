@@ -545,6 +545,56 @@ def update_changelog(prev, teams):
     return log[-500:]
 
 
+# ---------------------------------------------------------------------------
+# FINAL KEEPERS -- submitted by the Sept 4, 7pm CT deadline and entered on the
+# draft board; pulled from the board's live room (rev 56) on Sept 5 and
+# verified name-for-name and price-for-price against the locked values here.
+# Once this is non-empty the site is in keeper-locked mode: plans are frozen
+# to these, everyone else on a roster is released to the auction, and the
+# Draft Pool page lists who's available. Empty dict = deadline not yet passed.
+KEEPER_CAP = 100          # keeper budget; $2 luxury tax per $1 over
+FINAL_KEEPERS = {
+    "Silent Pugios": ["Jonathan Taylor", "Jaxon Smith-Njigba", "Colston Loveland"],
+    "Magic Rats": ["Kaleb Johnson", "Emeka Egbuka", "Ashton Jeanty", "Drake London"],
+    "Ben Fong Torres": ["Drake Maye", "James Cook III", "Chase Brown", "Quinshon Judkins", "Ladd McConkey", "Jaylen Waddle"],
+    "The Pu Pu Platters": ["Derrick Henry", "Rico Dowdle", "Cam Skattebo", "Kayshon Boutte", "Chimere Dike", "Seahawks", "Ka'imi Fairbairn", "Christian Watson", "Quentin Johnston"],
+    "Paw": ["Ja'Marr Chase", "Amon-Ra St. Brown", "Parker Washington"],
+    "AFRESHAYPEPPER ASAYWHEN": ["Caleb Williams", "De'Von Achane", "Kenneth Walker III", "Kyle Monangai", "Luther Burden III", "Tyler Warren"],
+    "Centersup": ["Tyler Shough", "Jahmyr Gibbs", "George Pickens", "Kenneth Gainwell", "Travis Etienne Jr."],
+    "Juice": ["Javonte Williams", "Bhayshul Tuten", "Brock Bowers", "Omarion Hampton"],
+    "Chance": ["Bucky Irving", "A.J. Brown", "Brian Thomas Jr.", "Jameson Williams", "Trey McBride", "Dylan Sampson"],
+    "House Bom": ["Christian McCaffrey", "Breece Hall", "Rashee Rice", "Wan'Dale Robinson", "Tre Tucker", "Kyle Pitts Sr."],
+}
+
+
+def apply_final_keepers(teams, purses):
+    """Flag kept players, release the rest, and settle each team's draft budget.
+
+    Loud failure over quiet drift: a keeper name that isn't on the roster
+    stops the build, because a silently-missing keeper would put a kept
+    player into the auction pool on the public site.
+    """
+    if not FINAL_KEEPERS:
+        return False
+    for t in teams:
+        names = FINAL_KEEPERS.get(t["name"])
+        if names is None:
+            raise SystemExit(f"\nKEEPER ERROR: no FINAL_KEEPERS entry for {t['name']!r}.\n")
+        want = {norm_name(n) for n in names}
+        have = {norm_name(p["name"]) for p in t["players"]}
+        missing = want - have
+        if missing:
+            raise SystemExit(f"\nKEEPER ERROR: {t['name']}: {sorted(missing)} not on roster. "
+                             "Nothing was written.\n")
+        for p in t["players"]:
+            p["kept"] = norm_name(p["name"]) in want
+        spend = sum(p["price"] for p in t["players"] if p["kept"])
+        tax = max(0, spend - KEEPER_CAP) * 2
+        t["keeperSpend"] = fmt_money(spend)
+        t["keeperTax"] = fmt_money(tax)
+        t["draftBudget"] = fmt_money(purses[t["name"]] - spend - tax)
+    return True
+
 def read_purses():
     """Auction purse per team: confirmed base purses, then draft-dollar trades."""
     purses = {name: float(v) for name, v in BASE_PURSES.items()}
@@ -741,11 +791,13 @@ def main():
                 p.pop(k)
 
     changelog = update_changelog(prev, teams)
+    keepers_locked = apply_final_keepers(teams, purses)
     out = {
         "season": SEASON,
         "priorSeason": SEASON - 1,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "locked": locked,
+        "keepersLocked": keepers_locked,
         "changeLog": changelog,
         "teams": teams,
         "pool": build_pool(market, owned_ids, owned_names),
