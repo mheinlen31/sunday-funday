@@ -514,7 +514,7 @@
               $${x.start}.</td></tr>`;
         return `<article class="team-card board-card ledger-card" id="budget-${ti}">
           <div class="ledger-head" style="border-left-color:${TEAM_COLORS[ti % 10]}">
-            <a class="ledger-team" href="./#team-${ti}">${LOGO(x.team, 22)}${esc(x.team)}</a>
+            <a class="ledger-team" href="./#team-${ti}">${esc(x.team)}</a>
             <span class="ledger-final">$${y.final}<small>${year} budget</small></span>
           </div>
           <table class="ledger-rows">
