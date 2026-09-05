@@ -1095,10 +1095,3 @@ body[data-page="rosters"] .board-toolbar { justify-content: space-between; }
 .prow.released:hover { background: transparent; }
 .prow.released .amount.adp { color: var(--ink-soft); }
 .prow.released .pname { color: var(--ink-soft); }
-
-/* team logos */
-.tlogo { display: inline-block; vertical-align: -.22em; margin-right: .38em; flex: 0 0 auto; }
-.team-name .tlogo { vertical-align: -.14em; margin-right: .32em; }
-.navchip .tlogo { vertical-align: -.25em; margin-right: 6px; }
-.teamtag .tlogo { vertical-align: -.3em; }
-.psub .tlogo, .got-sub .tlogo { vertical-align: -.25em; margin: 0 .25em 0 .1em; }
