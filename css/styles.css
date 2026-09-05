@@ -1089,3 +1089,9 @@ body[data-page="rosters"] .board-toolbar { justify-content: space-between; }
 .settled { font-size: 12px; color: var(--ink-soft); padding: 4px 16px 8px; border-bottom: 1px solid var(--rule); }
 .settled b { color: var(--ink); } .settled b.over { color: var(--bad); }
 .bargain-sub.muted { color: var(--ink-faint); }
+
+/* keepers in: released players read as auction stock, not keeper options */
+.prow.released { cursor: default; }
+.prow.released:hover { background: transparent; }
+.prow.released .amount.adp { color: var(--ink-soft); }
+.prow.released .pname { color: var(--ink-soft); }

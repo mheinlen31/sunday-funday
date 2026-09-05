@@ -84,10 +84,11 @@
     const isKept = kept.has(pid(t, p));
     const posClass = 'pos-' + p.pos.replace('/', '');
     const img = p.img || FALLBACK_IMG;
+    const released = LOCKED && !p.kept;     // keepers are in and he wasn't one
     const cls = contract ? 'prow contract' : 'prow choosable' +
-      (p.status !== 'market' ? ' locked' : '') + (isKept ? ' kept' : '');
+      (p.status !== 'market' ? ' locked' : '') + (isKept ? ' kept' : '') + (released ? ' released' : '');
     return `<div class="${cls}" data-ti="${ti}" data-pi="${pi}"
-        ${contract ? '' : 'title="Click to add/remove from keeper plan"'}>
+        ${contract || released ? '' : 'title="Click to add/remove from keeper plan"'}>
       <img class="mug" src="${esc(img)}" alt="" loading="lazy"
            onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
       <div class="pinfo">
@@ -102,13 +103,16 @@
           '${py} cost ${money(p.draftCost)} · ESPN ADP ${money(p.market)} · value ${deltaHtml(p)}
         </div>
       </div>
-      <div class="pcontract">${contractHtml(p)}</div>
+      <div class="pcontract">${released ? '' : contractHtml(p)}</div>
       <div class="pkeep">
-        <div class="pprice">
-          <span class="amount">${money(p.price)}</span>
-          ${contract ? '<span class="lockmark">✓</span>' : '<span class="tick"></span>'}
-        </div>
-        ${p.nextYear != null && !contract ? `<div class="pnext">then ${money(p.nextYear)} in '${ny}</div>` : ''}
+        ${released
+          ? `<div class="pprice"><span class="amount adp">${money(p.market)}</span></div>
+             <div class="pnext">ESPN ADP · keeper was ${money(p.price)}</div>`
+          : `<div class="pprice">
+              <span class="amount">${money(p.price)}</span>
+              ${contract ? '<span class="lockmark">✓</span>' : '<span class="tick"></span>'}
+            </div>
+            ${p.nextYear != null && !contract ? `<div class="pnext">then ${money(p.nextYear)} in '${ny}</div>` : ''}`}
       </div>
     </div>`;
   }
