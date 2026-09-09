@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunday Funday — Draft History</title>
+<meta name="description" content="Every Sunday Funday draft since 2011 — keepers, auction prices, and what each player actually returned.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sunday Funday">
+<meta property="og:title" content="Sunday Funday — Draft History">
+<meta property="og:description" content="Every draft since 2011: keepers, auction prices, and what each pick actually returned.">
+<meta property="og:url" content="https://mheinlen31.github.io/sunday-funday/drafts.html">
+<meta property="og:image" content="https://mheinlen31.github.io/sunday-funday/assets/og-image.png">
+<meta name="theme-color" content="#0d5c3f">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="assets/site.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sunday Funday">
+<link rel="stylesheet" href="css/styles.css?v=202609091200">
+</head>
+<body data-page="drafts">
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="kicker">Fantasy Football · The Record Book</p>
+    <h1>Sunday Funday</h1>
+    <p class="deck">Draft History</p>
+    <p class="updated">Every keeper and every auction dollar since 2011</p>
+    <nav class="pagetabs">
+      <a href="./">Teams</a>
+      <a href="positions.html">By Position</a>
+      <a href="adp.html">ESPN ADP</a>
+      <a href="moves.html">Price Moves</a>
+      <a href="trades.html">Trades</a>
+      <a href="budgets.html">Budgets</a>
+      <a href="pool.html">Draft Pool</a>
+      <a href="block.html">On the Block</a>
+      <a href="rosters.html">Past Rosters</a>
+      <a href="drafts.html" class="active">Draft History</a>
+    </nav>
+  </div>
+</header>
+
+<div class="dh-bar">
+  <div class="dh-bar-inner">
+    <label class="year-picker">Draft
+      <select id="dh-year"></select>
+    </label>
+    <nav class="dh-views" id="dh-views" role="tablist">
+      <button class="dh-view" data-view="overview" role="tab">Overview</button>
+      <button class="dh-view" data-view="keepers" role="tab">Keepers</button>
+      <button class="dh-view" data-view="drafted" role="tab">Drafted</button>
+      <button class="dh-view" data-view="all" role="tab">Everyone</button>
+    </nav>
+    <div class="dh-search">
+      <input id="dh-q" type="search" placeholder="Find a player…" autocomplete="off">
+    </div>
+  </div>
+  <div class="dh-bar-inner dh-controls" id="dh-controls">
+    <span class="dh-ctl"><span class="dh-ctl-label">Group</span><span class="dh-seg" id="dh-group"></span></span>
+    <span class="dh-ctl"><span class="dh-ctl-label">Sort</span><span class="dh-seg" id="dh-sort"></span></span>
+  </div>
+</div>
+
+<main id="dh-main" class="dh-main"></main>
+
+<footer class="legend">
+  <div id="dh-note"></div>
+</footer>
+
+<script src="js/draftdata.js?v=202609091200"></script>
+<script src="js/drafts.js?v=202609091200"></script>
+</body>
+</html>
