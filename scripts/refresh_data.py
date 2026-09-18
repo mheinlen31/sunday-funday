@@ -768,7 +768,12 @@ def main():
                 p["nfl"] = entry.get("nfl") if p["pos"] != "D/ST" else None
             p["market"] = fmt_money(mval)
 
-            is_repeat = str(p["acquired"] or "").startswith("Keeper")
+            acq = str(p["acquired"] or "").strip()
+            is_repeat = acq.startswith("Keeper")
+            times = re.match(r"Keeper (\d+)", acq)
+            # kept twice or more = on a contract (year two of the first deal, or
+            # a renewal) -- priced by rule, never by the market
+            on_contract = (times and int(times.group(1)) >= 2) or acq.upper().startswith("CONTRACT")
             locked_yr2 = str(p["contractCell"] or "").strip().upper() == "CONTRACT"
 
             # league convention: fractional prices round down
@@ -778,6 +783,21 @@ def main():
                 contract = p["contractCell"] if not locked_yr2 else None
                 if isinstance(contract, (int, float)):
                     contract = math.floor(float(contract))
+            elif on_contract and p["draftCost"] is not None:
+                # Every contract season is last year's price + $5 (Manifesto,
+                # Repeat Keeper Value and Contracts), however the sheet cell is
+                # entered. 2026: Kenneth Walker III's renewal was the formula
+                # =L44+5 rather than a typed 29, so the old "typed = contract"
+                # test re-priced him off ESPN like a first contract -- $34
+                # instead of $29, which put Pep over the keeper cap.
+                price = math.floor(p["draftCost"]) + 5
+                sheet = p["sheetPrice"]
+                if isinstance(sheet, (int, float)) and math.floor(sheet) != price:
+                    print(f'warning: {p["name"]} contract price ${price} but sheet shows ${sheet}')
+                p["status"] = "contract-yr2" if locked_yr2 else "contract-renewal"
+                cc = p["contractCell"]
+                contract = None if locked_yr2 else (
+                    math.floor(float(cc)) if isinstance(cc, (int, float)) else price + 5)
             else:
                 price = math.floor(keeper_price(p["draftCost"], mval))
                 p["status"] = "market"
