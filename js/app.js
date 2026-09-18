@@ -8,7 +8,8 @@
   const ny = String(D.season + 1).slice(2);
   const FALLBACK_IMG = 'https://a.espncdn.com/combiner/i?img=/i/headshots/nophoto.png&w=120&h=88';
 
-  document.getElementById('season').textContent = D.season;
+  var seasonEl = document.getElementById('season');
+  if (seasonEl) seasonEl.textContent = D.season;
   document.getElementById('updated').textContent =
     new Date(D.generated).toLocaleString(undefined, {
       month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',

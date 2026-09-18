@@ -35,7 +35,9 @@
     if (!ready) {
       ready = Promise.all([
         load('js/draftdata.js', function () { return !!window.DRAFT_HISTORY; }),
-        load('js/history.js', function () { return !!window.LEAGUE_HISTORY; })
+        load('js/history.js', function () { return !!window.LEAGUE_HISTORY; }),
+        // the in-season tracker is a bonus, not a requirement
+        load('js/tracker.js', function () { return !!window.ROSTER_TRACKER; }).catch(function () { return null; })
       ]).then(buildIndex);
       ready.catch(function () { ready = null; });
     }
@@ -319,9 +321,48 @@
       trades.map(function (t) { return '<li><span class="pc-dim">' + esc(t.when) + '</span> ' + esc(t.text) + '</li>'; }).join('') +
       '</ul></section>' : '';
 
+    var season = seasonHtml(p);
     var foot = '<p class="pc-foot">Points are Sunday Funday scoring; the finish is where he ranked at his position across the NFL.' +
       ' Draft-day rosters go back to 2011; season-end rosters (waiver pickups, in-season trades) to 2018.</p>';
-    shell(head + box + facts + tl + tr + foot);
+    shell(head + box + facts + season + tl + tr + foot);
+  }
+  /* what the roster tracker has seen this season: the day he was added, for
+     how much, who dropped him, where he sits today */
+  function seasonHtml(p) {
+    var T = window.ROSTER_TRACKER;
+    if (!T) return '';
+    var m = (p.img || '').match(/\/full\/(\d+)\.png/);
+    var pid = m ? +m[1] : null;
+    if (!pid) {
+      var k = key(p.name);
+      Object.keys(T.players || {}).some(function (id) { if (key(T.players[id].name) === k) { pid = +id; return true; } return false; });
+    }
+    if (!pid) return '';
+    var teams = {}; T.teams.forEach(function (t) { teams[t.id] = t; });
+    var own = function (tid) { return teams[tid] ? teams[tid].owner : '?'; };
+    var holder = null, row = null;
+    T.teams.forEach(function (t) { t.roster.forEach(function (r) { if (r.pid === pid) { holder = t; row = r; } }); });
+    var hist = (row && row.history) || [];
+    if (!hist.length) {
+      T.events.forEach(function (e) {
+        e.drops.forEach(function (d) { if (d.pid === pid) hist.push({ ts: e.ts, what: 'dropped', team: d.team, week: e.week }); });
+        e.adds.forEach(function (a) { if (a.pid === pid) hist.push({ ts: e.ts, what: 'added', team: a.team, bid: e.bid, via: e.kind, week: e.week }); });
+        e.trades.forEach(function (tr) { if (tr.pid === pid) hist.push({ ts: e.ts, what: 'traded', from: tr.from, to: tr.to, week: e.week }); });
+      });
+      hist.sort(function (a, b) { return a.ts - b.ts; });
+    }
+    var day = function (ts) { return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+    var lines = hist.slice().reverse().map(function (h) {
+      if (h.what === 'added') return '<li><span class="pc-dim">' + day(h.ts) + '</span> Added by <b>' + esc(own(h.team)) + '</b>' + (h.bid ? ' for ' + money(h.bid) : '') + (h.via ? ' <span class="pc-dim">' + esc(h.via) + '</span>' : '') + '</li>';
+      if (h.what === 'dropped') return '<li><span class="pc-dim">' + day(h.ts) + '</span> Dropped by <b>' + esc(own(h.team)) + '</b></li>';
+      return '<li><span class="pc-dim">' + day(h.ts) + '</span> Traded, <b>' + esc(own(h.from)) + '</b> to <b>' + esc(own(h.to)) + '</b></li>';
+    });
+    var now = holder ? 'On <b>' + esc(holder.owner) + '</b>\u2019s roster' + (row.ir ? ' (IR)' : '') : 'Not on a roster';
+    var next = row && row.outlook ? '<p class="pc-note">' + esc(row.outlook.text) + '</p>' : '';
+    if (!lines.length && !row) return '';
+    return '<section><div class="pc-label">This season <span class="pc-dim">week ' + T.week + '</span></div>' +
+      '<div class="pc-now">' + now + '</div>' + (lines.length ? '<ul class="pc-trades">' + lines.join('') + '</ul>' : '') + next +
+      '<p class="pc-foot"><a href="tracker.html">Roster Tracker \u2192</a></p></section>';
   }
   function span(years) {
     if (!years.length) return '';

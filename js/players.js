@@ -12,7 +12,8 @@
     '#0f7b8a', '#c05a17', '#3d6d1f', '#7d2f52', '#444a56'];
   const POS_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'D/ST'];
 
-  document.getElementById('season').textContent = D.season;
+  var seasonEl = document.getElementById('season');
+  if (seasonEl) seasonEl.textContent = D.season;
   document.getElementById('updated').textContent =
     new Date(D.generated).toLocaleString(undefined, {
       month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',

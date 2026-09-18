@@ -43,8 +43,9 @@
       if (upd) upd.innerHTML = 'Keeper values final · keepers submitted · draft Monday, Sept 7';
     } else {
       el.className = 'deadline passed';
-      el.innerHTML = 'Draft day — good luck';
-      if (upd) upd.innerHTML = 'Keeper values final · keepers submitted';
+      el.innerHTML = '2026 season underway · <a href="tracker.html">live rosters &amp; moves →</a>';
+      if (upd) upd.innerHTML = 'Keeper values for 2026 were final Sept 2; these are the rosters as drafted Sept 7. ' +
+        'In-season adds, drops and trades are on the <a href="tracker.html">Roster Tracker</a>.';
     }
   }
   tick();
