@@ -100,7 +100,7 @@
     var dead = (t.deadMoney || []).reduce(function (a, d) { return a + d.amount; }, 0);
     var rows = t.roster.map(function (r) {
       var m = meta(r.pid);
-      return '<div class="prow static rt-row' + (r.ir ? ' ir' : '') + '" data-pid="' + r.pid + '">' + mug(r.pid) +
+      return '<div class="prow static rt-row' + (r.ir ? ' ir' : '') + '" data-pid="' + r.pid + '" title="Tap for his history">' + mug(r.pid) +
         '<div class="pinfo"><div class="pname">' + esc(m.name) + injTag(r) + '</div>' +
         '<div class="psub">' + posChip(m.pos) + (m.nfl ? '<span class="nfl">' + esc(m.nfl) + '</span>' : '') + howHtml(r, t.id) + '</div></div>' +
         nextHtml(r.outlook) + '</div>';
@@ -251,5 +251,22 @@
     buildViews();
     if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else rosters();
   }
+
+  // tap a player for his card. The card wants the keeper-sheet record when
+  // there is one (matched on ESPN id, or by name for a D/ST); a pickup who was
+  // never on the sheet gets the tracker's own name, position and headshot.
+  main.addEventListener('click', function (e) {
+    var row = e.target.closest('.rt-row');
+    if (!row || !window.PlayerCard) return;
+    var pid = +row.dataset.pid, m = meta(pid), L = window.LEAGUE_DATA, found = null;
+    (L ? L.teams : []).forEach(function (t) {
+      t.players.forEach(function (p) {
+        if (found) return;
+        var im = (p.img || '').match(/\/full\/(\d+)\.png/);
+        if ((im && +im[1] === pid) || (!im && p.pos === 'D/ST' && p.name === m.name)) found = p;
+      });
+    });
+    window.PlayerCard.open(found || { name: m.name, pos: m.pos, nfl: m.nfl, img: m.img }, null);
+  });
   header(); note(); buildTeamPicker(); render();
 })();

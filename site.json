@@ -1,0 +1,5 @@
+{
+  "mode": "season",
+  "season": 2026,
+  "_": "The site's one switch. mode = season (Roster Tracker is the home page, the keeper tools sit under one Offseason tab) or offseason (the keeper planner is home). Change it, then run: python3 scripts/site_mode.py"
+}

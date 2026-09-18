@@ -3,6 +3,8 @@
 set -e
 cd "$(dirname "$0")/.."
 python3 scripts/refresh_data.py
+# tab bars + index.html follow site.json (season / offseason) -- see scripts/site_mode.py
+python3 scripts/site_mode.py
 # bump asset versions so league browsers never serve a stale mix of files
 STAMP=$(date +%Y%m%d%H%M)
 sed -i '' -E "s/\?v=[A-Za-z0-9]+/?v=$STAMP/g" ./*.html

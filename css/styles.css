@@ -1315,3 +1315,10 @@ body.pc-open { overflow: hidden; }
 }
 .deadline a, .updated a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .deadline a:hover, .updated a:hover { text-decoration: underline; }
+.subtabs { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; }
+.subtabs a { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; color: var(--ink-faint); padding-bottom: 3px; border-bottom: 2px solid transparent; }
+.subtabs a:hover { color: var(--ink); }
+.subtabs a.active { color: var(--ink); border-bottom-color: var(--gold); }
+.rt-row { cursor: pointer; }
+.rt-row:hover { background: #f5f3ef; }
+.rt-row.ir:hover { background: #efece6; }

@@ -179,6 +179,39 @@
     };
   }
 
+  /* ---------- the live tracker, when it has him ---------- */
+  function pidOf(p) {
+    var m = (p.img || '').match(/\/full\/(\d+)\.png/);
+    if (m) return +m[1];
+    var T = window.ROSTER_TRACKER;
+    if (!T) return null;
+    var k = key(p.name), hit = null;
+    Object.keys(T.players || {}).some(function (id) { if (key(T.players[id].name) === k) { hit = +id; return true; } return false; });
+    return hit;
+  }
+  function trackerRow(pid) {
+    var T = window.ROSTER_TRACKER;
+    if (!T || pid == null) return null;
+    var out = null;
+    T.teams.forEach(function (t) { t.roster.forEach(function (r) { if (r.pid === pid) out = { row: r, team: t }; }); });
+    return out;
+  }
+  /* contract box from the tracker: how he got here and what 2027 costs */
+  function contractLive(tk, S) {
+    var r = tk.row, h = r.how || {}, o = r.outlook || {}, ny = S + 1, ladder = [];
+    if (h.kind === 'kept' || h.kind === 'bought') ladder.push([S, h.price]);
+    if (o.type === 'locked') ladder.push([ny, o.price]);
+    if (o.type === 'resign') ladder.push([ny, o.price], [ny + 1, o.price2]);
+    var title = {
+      locked: 'Two-year deal through ' + ny + (h.cls === 'kept-renewal-yr1' ? ' (renewal)' : ''),
+      resign: 'Final year of a two-year deal',
+      formula: h.cls === 'kept-first' ? 'Kept once \u2014 no contract yet' : 'Bought at the ' + S + ' auction',
+      market: 'Free-agent pickup' + (h.ts ? ', ' + new Date(h.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + (h.bid ? ' for $' + h.bid : '') : ''),
+      reAdd: 'His own drafted player, back within the week'
+    }[o.type] || 'On a roster';
+    return { title: title, ladder: ladder, note: o.text || '' };
+  }
+
   /* ---------- the card ---------- */
   var overlay, lastFocus;
   function close() {
@@ -213,12 +246,19 @@
     var endMap = ends[k] || {};
     var byYear = {}; rows.forEach(function (r) { byYear[r.year] = r; });
     var cur = byYear[S] || null;
-    var c = contract(p, cur, S);
-
-    // header
-    var where = cur
-      ? esc(teamOfOwner[cur.owner] || cur.owner) + ' <span class="pc-own">' + esc(cur.owner) + '</span>'
-      : 'Free agent';
+    var T = window.ROSTER_TRACKER, pid = pidOf(p), tk = trackerRow(pid);
+    var c, where;
+    if (tk) {
+      c = contractLive(tk, S);
+      where = esc(tk.team.name) + ' <span class="pc-own">' + esc(tk.team.owner) + '</span>' + (tk.row.ir ? ' <span class="pc-dim">IR</span>' : '');
+    } else if (T && pid != null && cur) {
+      c = { title: 'Not on a roster', ladder: [[S, cur.price]],
+            note: 'Dropped during the ' + S + ' season. Whoever picks him up gets a free-agent pickup at market value; if he was on a two-year deal, the locked price stays with the team that signed him.' };
+      where = 'Not on a roster';
+    } else {
+      c = contract(p, cur, S);
+      where = cur ? esc(teamOfOwner[cur.owner] || cur.owner) + ' <span class="pc-own">' + esc(cur.owner) + '</span>' : 'Free agent';
+    }
     var head = '<header class="pc-head"><img class="pc-mug" src="' + esc(p.img || FALLBACK_IMG) + '" alt="" ' +
       'onerror="this.onerror=null;this.src=\'' + FALLBACK_IMG + '\'">' +
       '<div><h2 class="pc-name">' + esc(p.name) + '</h2>' +
@@ -322,7 +362,7 @@
       '</ul></section>' : '';
 
     var season = seasonHtml(p);
-    var foot = '<p class="pc-foot">Points are Sunday Funday scoring; the finish is where he ranked at his position across the NFL.' +
+    var foot = '<p class="pc-foot">' + (window.ROSTER_TRACKER ? '<a href="./">Roster Tracker \u2192</a> ' : '') + 'Points are Sunday Funday scoring; the finish is where he ranked at his position across the NFL.' +
       ' Draft-day rosters go back to 2011; season-end rosters (waiver pickups, in-season trades) to 2018.</p>';
     shell(head + box + facts + season + tl + tr + foot);
   }
@@ -357,12 +397,9 @@
       if (h.what === 'dropped') return '<li><span class="pc-dim">' + day(h.ts) + '</span> Dropped by <b>' + esc(own(h.team)) + '</b></li>';
       return '<li><span class="pc-dim">' + day(h.ts) + '</span> Traded, <b>' + esc(own(h.from)) + '</b> to <b>' + esc(own(h.to)) + '</b></li>';
     });
-    var now = holder ? 'On <b>' + esc(holder.owner) + '</b>\u2019s roster' + (row.ir ? ' (IR)' : '') : 'Not on a roster';
-    var next = row && row.outlook ? '<p class="pc-note">' + esc(row.outlook.text) + '</p>' : '';
-    if (!lines.length && !row) return '';
+    if (!lines.length) return '';
     return '<section><div class="pc-label">This season <span class="pc-dim">week ' + T.week + '</span></div>' +
-      '<div class="pc-now">' + now + '</div>' + (lines.length ? '<ul class="pc-trades">' + lines.join('') + '</ul>' : '') + next +
-      '<p class="pc-foot"><a href="tracker.html">Roster Tracker \u2192</a></p></section>';
+      '<ul class="pc-trades">' + lines.join('') + '</ul></section>';
   }
   function span(years) {
     if (!years.length) return '';
