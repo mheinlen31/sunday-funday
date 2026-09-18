@@ -88,7 +88,7 @@
     const cls = contract ? 'prow contract' : 'prow choosable' +
       (p.status !== 'market' ? ' locked' : '') + (isKept ? ' kept' : '') + (released ? ' released' : '');
     return `<div class="${cls}" data-ti="${ti}" data-pi="${pi}"
-        ${contract || released ? '' : 'title="Click to add/remove from keeper plan"'}>
+        title="${LOCKED || contract ? 'Tap for his history' : 'Click to add/remove from keeper plan \u00b7 tap his name or photo for his history'}">
       <img class="mug" src="${esc(img)}" alt="" loading="lazy"
            onerror="this.onerror=null;this.src='${FALLBACK_IMG}'">
       <div class="pinfo">
@@ -419,6 +419,16 @@
       t.players.forEach((p) => kept.delete(pid(t, p)));
       save();
       refreshTeam(ti);
+      return;
+    }
+    // player card: any tap once keepers are locked (nothing toggles then) or on
+    // a contract row; in planning season only the photo or name, because the
+    // rest of the row is the keeper-plan toggle
+    const prow = e.target.closest('.prow');
+    if (prow && window.PlayerCard &&
+        (LOCKED || prow.classList.contains('contract') || e.target.closest('.mug, .pname'))) {
+      const t = D.teams[+prow.dataset.ti];
+      window.PlayerCard.open(t.players[+prow.dataset.pi], t);
       return;
     }
     const row = e.target.closest('.prow.choosable');
