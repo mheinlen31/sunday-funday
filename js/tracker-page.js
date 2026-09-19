@@ -33,9 +33,32 @@
     return m.img ? '<img class="mug" src="' + esc(m.img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '<span class="mug rt-nomug"></span>';
   }
 
+  function S(pid) { var p = P[String(pid)]; return p && p.s ? p.s : null; }
+  function fmt1(n) { return n == null ? '\u2014' : (Math.round(n * 10) / 10).toFixed(1); }
+  function lineText(pid) {
+    var m = meta(pid), s = S(pid), l = s && s.line || {};
+    switch (m.pos) {
+      case 'QB': return l.py + ' pass yds, ' + l.ptd + ' TD, ' + l.int + ' INT \u00b7 ' + l.ry + ' rush yds, ' + l.rtd + ' TD';
+      case 'RB': return l.ra + ' car, ' + l.ry + ' yds, ' + l.rtd + ' TD \u00b7 ' + l.rec + ' rec, ' + l.recy + ' yds, ' + l.rectd + ' TD';
+      case 'WR': return l.rec + '/' + l.tgt + ' for ' + l.recy + ' yds, ' + l.rectd + ' TD' + (l.ry ? ' \u00b7 ' + l.ry + ' rush yds' + (l.rtd ? ', ' + l.rtd + ' TD' : '') : '');
+      case 'TE': return l.rec + '/' + l.tgt + ' for ' + l.recy + ' yds, ' + l.rectd + ' TD';
+      case 'K': return l.fgm + '/' + l.fga + ' FG, ' + l.xpm + ' XP';
+      case 'D/ST': return l.sack + ' sacks, ' + l.int + ' INT, ' + l.fr + ' FR, ' + l.td + ' TD, ' + l.pa + ' pts allowed';
+    }
+    return '';
+  }
+  var WHERE = {};
+  T.teams.forEach(function (t) { t.roster.forEach(function (r) { WHERE[r.pid] = { t: t, r: r }; }); });
+  function statHtml(pid) {
+    var s = S(pid);
+    if (!s) return '<div class="rt-stat none"></div>';
+    var sub = (s.rk ? esc(meta(pid).pos) + s.rk : '') + (s.gp ? (s.rk ? ' \u00b7 ' : '') + fmt1(s.ppg) + '/g' : '');
+    return '<div class="rt-stat" title="' + esc(lineText(pid)) + (s.gp ? ' (' + s.gp + (s.gp === 1 ? ' game' : ' games') + ')' : '') + '"><b>' + fmt1(s.pts) + '</b><span>' + sub + '</span></div>';
+  }
+
   /* ---------- state ---------- */
   var LS = 'sf-tracker';
-  var st = { view: 'rosters', team: 'all' };
+  var st = { view: 'rosters', team: 'all', pos: 'all', scope: 'rostered', ssort: 'pts' };
   try { Object.assign(st, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
   function save() { try { localStorage.setItem(LS, JSON.stringify(st)); } catch (e) {} }
 
@@ -89,6 +112,7 @@
       tile('Moves', (s.adds + s.drops + s.trades).toLocaleString(), s.adds + ' adds · ' + s.drops + ' drops · ' + s.trades + (s.trades === 1 ? ' trade' : ' trades')) +
       tile('FAAB spent', money(s.faabSpent), 'of ' + money(FAAB * T.teams.length) + ' league-wide') +
       tile('Biggest bid', bb ? money(bb[0]) : '—', bb ? esc(meta(bb[1]).name) + ' · ' + esc(owner(bb[2])) : '') +
+      (T.pool && T.pool.length ? tile('Top scorer', esc(meta(T.pool[0]).name), fmt1(S(T.pool[0]).pts) + ' pts \u00b7 ' + (WHERE[T.pool[0]] ? esc(WHERE[T.pool[0]].t.owner) : 'free agent')) : '') +
       tile('Locked for 2027', money(lockedOn + dead), (lockedOn + dead ? 'contract money already on the books' : '')) +
       tile('Dead money', money(dead), deadN ? deadN + (deadN === 1 ? ' dropped contract' : ' dropped contracts') : 'no dropped contracts') +
       '</div>';
@@ -103,7 +127,7 @@
       return '<div class="prow static rt-row' + (r.ir ? ' ir' : '') + '" data-pid="' + r.pid + '" title="Tap for his history">' + mug(r.pid) +
         '<div class="pinfo"><div class="pname">' + esc(m.name) + injTag(r) + '</div>' +
         '<div class="psub">' + posChip(m.pos) + (m.nfl ? '<span class="nfl">' + esc(m.nfl) + '</span>' : '') + howHtml(r, t.id) + '</div></div>' +
-        nextHtml(r.outlook) + '</div>';
+        statHtml(r.pid) + nextHtml(r.outlook) + '</div>';
     }).join('');
     var deadHtml = (t.deadMoney || []).length ? '<div class="rt-dead"><b>2027 dead money ' + money(dead) + '</b> — ' +
       t.deadMoney.map(function (d) {
@@ -113,6 +137,7 @@
       '<header class="team-head static"><div class="team-name">' + esc(t.owner) + ' <span class="rt-team">' + esc(t.name) + '</span></div>' +
       '<div class="team-meta">' +
       (rec.wins != null ? '<span class="stat"><strong>' + rec.wins + '–' + rec.losses + (rec.ties ? '–' + rec.ties : '') + '</strong></span>' : '') +
+      (rec.pointsFor != null ? '<span class="stat"><strong>' + fmt1(rec.pointsFor) + '</strong> pts</span>' : '') +
       '<span class="stat">FAAB <strong>' + money(t.faabLeft) + '</strong> left</span>' +
       '<span class="stat">' + t.moves.adds + ' added · ' + t.moves.drops + ' dropped</span></div></header>' +
       '<div class="roster">' + rows + '</div>' + deadHtml + '</article>';
@@ -178,6 +203,67 @@
     }).join('') + '</div>';
   }
 
+  /* ---------- stats ---------- */
+  var POSES = ['QB', 'RB', 'WR', 'TE', 'K', 'D/ST'];
+  function costOf(pid) {
+    var w = WHERE[pid];
+    if (!w) return { txt: '<span class="rt-fa">free agent</span>', n: 0 };
+    var h = w.r.how;
+    if (!h) return { txt: '', n: 0 };
+    if (h.kind === 'kept') return { txt: 'Kept ' + money(h.price), n: h.price };
+    if (h.kind === 'bought') return { txt: 'Bought ' + money(h.price), n: h.price };
+    return { txt: 'Added ' + money(h.bid), n: h.bid };
+  }
+  function chips(id, opts, cur, key) {
+    return '<span class="dh-ctl"><span class="dh-ctl-label">' + id + '</span><span class="dh-seg" data-key="' + key + '">' +
+      opts.map(function (o) { return '<button class="dh-chip' + (o[0] === cur ? ' on' : '') + '" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</span></span>';
+  }
+  function statsView() {
+    var wk = T.statsWeek || T.week;
+    var rows = (T.pool || []).filter(function (pid) {
+      var m = meta(pid);
+      if (st.pos !== 'all' && m.pos !== st.pos) return false;
+      if (st.scope === 'rostered' && !WHERE[pid]) return false;
+      if (st.team !== 'all' && (!WHERE[pid] || String(WHERE[pid].t.id) !== String(st.team))) return false;
+      return true;
+    });
+    rows.sort(function (a, b) {
+      var A = S(a), B = S(b);
+      if (st.ssort === 'ppg') return B.ppg - A.ppg || B.pts - A.pts;
+      if (st.ssort === 'wk') return (B.wk || 0) - (A.wk || 0) || B.pts - A.pts;
+      if (st.ssort === 'cost') return costOf(b).n - costOf(a).n || B.pts - A.pts;
+      if (st.ssort === 'prev') return (B.prev || 0) - (A.prev || 0);
+      return B.pts - A.pts;
+    });
+    var ctl = '<div class="rt-ctl">' +
+      chips('Position', [['all', 'All']].concat(POSES.map(function (p) { return [p, p]; })), st.pos, 'pos') +
+      chips('Show', [['rostered', 'Rostered'], ['all', 'Free agents too']], st.scope, 'scope') +
+      chips('Sort', [['pts', 'Points'], ['ppg', 'Per game'], ['wk', 'Week ' + wk], ['cost', 'Cost'], ['prev', '2025']], st.ssort, 'ssort') + '</div>';
+    var body = rows.slice(0, 400).map(function (pid) {
+      var m = meta(pid), s = S(pid), w = WHERE[pid], c = costOf(pid);
+      return '<tr data-pid="' + pid + '"><td class="dh-n">' + (s.rk ? esc(m.pos) + s.rk : '') + '</td>' +
+        '<td class="dh-name">' + esc(m.name) + (w && w.r.ir ? ' <span class="rt-tag ir">IR</span>' : '') + '<small>' + esc(lineText(pid)) + '</small></td>' +
+        '<td class="dh-p">' + posChip(m.pos) + '</td><td class="dh-own hide-m">' + (m.nfl ? esc(m.nfl) : '') + '</td>' +
+        '<td class="dh-own">' + (w ? esc(w.t.owner) : '<span class="rt-fa">FA</span>') + '</td>' +
+        '<td class="dh-own hide-m">' + c.txt + '</td>' +
+        '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '\u2014') + '</td>' +
+        '<td class="dh-pts">' + (s.wk == null ? '\u2014' : fmt1(s.wk)) + '</td><td class="dh-pts hide-m">' + (s.prev == null ? '\u2014' : fmt1(s.prev)) + '</td></tr>';
+    }).join('');
+    main.className = 'dh-main rt-stats';
+    main.innerHTML = tiles() + '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Season stats</h2>' +
+      '<span class="dh-sub">Sunday Funday scoring \u00b7 through week ' + wk + ' \u00b7 ' + rows.length + ' players</span></header>' +
+      '<div style="padding:8px 14px 0">' + ctl + '</div>' +
+      (rows.length ? '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">Rank</th><th>Player</th><th class="dh-p"></th><th class="hide-m">NFL</th><th>Owner</th><th class="hide-m">Cost</th>' +
+        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts">Wk ' + wk + '</th><th class="dh-pts hide-m">2025</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        : '<div class="empty-note">Nothing matches.</div>') + '</article>';
+    main.querySelectorAll('.rt-ctl .dh-seg').forEach(function (seg) {
+      seg.addEventListener('click', function (e) {
+        var b = e.target.closest('.dh-chip'); if (!b) return;
+        st[seg.dataset.key] = b.dataset.v; save(); render();
+      });
+    });
+  }
+
   /* ---------- 2027 contracts ---------- */
   function cap() {
     var list = T.teams.filter(function (t) { return st.team === 'all' || String(t.id) === String(st.team); });
@@ -241,6 +327,7 @@
     n.push('<li><span class="rt-next formula inline"><b>$35\u201379</b></span> <b>Range</b> \u2014 no contract yet, so the 2027 price is set next summer: the average of this year\u2019s cost and his ESPN value then, or cost + $10 if the market jumps by more than $10. Nothing today can say where in the range he lands \u2014 that is his season \u2014 but he cannot cost less than half this year\u2019s price or more than $10 above it. A player kept once who is kept again signs his first two-year deal on that number.</li>');
     n.push('<li><span class="rt-next market inline"><b>market</b></span> <b>Pickup</b> \u2014 added off waivers or as a free agent. Keepable at whatever his ESPN market value is next summer; there is no cap and no contract history. One exception from the Manifesto: your own drafted player, dropped and re-added within a week with nobody else touching him, costs the <em>greater</em> of the auction math and market.</li>');
     n.push('<li><b>Moves</b> lists every executed add, drop, waiver claim and trade with the winning bid — and who was outbid. Lineup changes are not moves. Offseason trades live on the <a href="trades.html">Trades</a> page.</li>');
+    n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
     if ((T.warnings || []).length) n.push('<li><b>To check:</b> ' + T.warnings.map(esc).join(' · ') + '</li>');
     n.push('</ul>');
@@ -249,14 +336,14 @@
 
   function render() {
     buildViews();
-    if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else rosters();
+    if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else if (st.view === 'stats') statsView(); else rosters();
   }
 
   // tap a player for his card. The card wants the keeper-sheet record when
   // there is one (matched on ESPN id, or by name for a D/ST); a pickup who was
   // never on the sheet gets the tracker's own name, position and headshot.
   main.addEventListener('click', function (e) {
-    var row = e.target.closest('.rt-row');
+    var row = e.target.closest('.rt-row, tr[data-pid]');
     if (!row || !window.PlayerCard) return;
     var pid = +row.dataset.pid, m = meta(pid), L = window.LEAGUE_DATA, found = null;
     (L ? L.teams : []).forEach(function (t) {

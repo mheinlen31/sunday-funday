@@ -399,9 +399,24 @@
       if (h.what === 'dropped') return '<li><span class="pc-dim">' + day(h.ts) + '</span> Dropped by <b>' + esc(own(h.team)) + '</b></li>';
       return '<li><span class="pc-dim">' + day(h.ts) + '</span> Traded, <b>' + esc(own(h.from)) + '</b> to <b>' + esc(own(h.to)) + '</b></li>';
     });
-    if (!lines.length) return '';
-    return '<section><div class="pc-label">This season <span class="pc-dim">week ' + T.week + '</span></div>' +
-      '<ul class="pc-trades">' + lines.join('') + '</ul></section>';
+    var rec = T.players[String(pid)], s = rec && rec.s, stat = '';
+    if (s) {
+      var l = s.line || {}, m = rec.pos, txt = '';
+      if (m === 'QB') txt = l.py + ' pass yds, ' + l.ptd + ' TD, ' + l.int + ' INT \u00b7 ' + l.ry + ' rush yds, ' + l.rtd + ' TD';
+      else if (m === 'RB') txt = l.ra + ' car, ' + l.ry + ' yds, ' + l.rtd + ' TD \u00b7 ' + l.rec + ' rec, ' + l.recy + ' yds, ' + l.rectd + ' TD';
+      else if (m === 'WR' || m === 'TE') txt = l.rec + '/' + l.tgt + ' for ' + l.recy + ' yds, ' + l.rectd + ' TD' + (l.ry ? ' \u00b7 ' + l.ry + ' rush yds' : '');
+      else if (m === 'K') txt = l.fgm + '/' + l.fga + ' FG, ' + l.xpm + ' XP';
+      else if (m === 'D/ST') txt = l.sack + ' sacks, ' + l.int + ' INT, ' + l.fr + ' FR, ' + l.td + ' TD, ' + l.pa + ' pts allowed';
+      var f1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1); };
+      stat = '<div class="pc-facts pc-facts-3">' +
+        '<div class="pc-fact"><b>' + f1(s.pts) + '</b><span>points' + (s.rk ? ' \u00b7 ' + esc(m) + s.rk : '') + '</span></div>' +
+        '<div class="pc-fact"><b>' + (s.gp ? f1(s.ppg) : '\u2014') + '</b><span>per game \u00b7 ' + s.gp + (s.gp === 1 ? ' game' : ' games') + '</span></div>' +
+        '<div class="pc-fact"><b>' + (s.wk == null ? '\u2014' : f1(s.wk)) + '</b><span>week ' + (T.statsWeek || T.week) + '</span></div></div>' +
+        (txt ? '<p class="pc-note">' + esc(txt) + (s.prev != null ? ' \u00b7 ' + f1(s.prev) + ' pts last season' : '') + '</p>' : '');
+    }
+    if (!lines.length && !stat) return '';
+    return '<section><div class="pc-label">This season <span class="pc-dim">week ' + (T.statsWeek || T.week) + '</span></div>' + stat +
+      (lines.length ? '<ul class="pc-trades">' + lines.join('') + '</ul>' : '') + '</section>';
   }
   function span(years) {
     if (!years.length) return '';

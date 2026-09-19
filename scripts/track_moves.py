@@ -34,6 +34,7 @@ TRACKER_DIR = ROOT / "tracker"
 BASELINE = TRACKER_DIR / f"baseline-{SEASON}.json"
 LEDGER = TRACKER_DIR / f"ledger-{SEASON}.json"
 PLAYERS = TRACKER_DIR / f"players-{SEASON}.json"
+STATS = TRACKER_DIR / f"stats-{SEASON}.json"
 OUT_JS = ROOT / "js" / "tracker.js"
 
 FAAB = 100                # free-agent budget per team, per season (Manifesto)
@@ -64,6 +65,23 @@ NFL_ABBR = {  # D/ST nickname -> logo abbreviation
     "titans": "ten", "commanders": "wsh",
 }
 SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+# ESPN stat ids for the readable stat line (checked against 2025 totals when the
+# War Room was built: Gibbs 1,223 rush yds = id 24, and so on). Fantasy points
+# themselves come from ESPN's appliedTotal, which the league endpoint scores
+# with THIS league's settings (6-point passing TDs and all).
+STAT_IDS = {
+    "QB":   {"py": 3, "ptd": 4, "int": 20, "ry": 24, "rtd": 25},
+    "RB":   {"ra": 23, "ry": 24, "rtd": 25, "rec": 53, "recy": 42, "rectd": 43},
+    "WR":   {"tgt": 58, "rec": 53, "recy": 42, "rectd": 43, "ry": 24, "rtd": 25},
+    "TE":   {"tgt": 58, "rec": 53, "recy": 42, "rectd": 43},
+    "K":    {"fgm": 83, "fga": 84, "xpm": 86},
+    "D/ST": {"sack": 99, "int": 95, "fr": 96, "pa": 120},
+}
+DST_TD_IDS = (101, 102, 103, 104)      # return / interception / fumble touchdowns
+STAT_SLOTS = [0, 2, 4, 6, 16, 17, 23]   # QB RB WR TE D/ST K FLEX
+STAT_LIMIT = 600                       # ESPN's top scorers to rank against
+POOL_TOP = 300                         # unrostered players carried onto the page
 
 
 # ---------------------------------------------------------------- helpers
@@ -141,6 +159,69 @@ def slim(tx):
     }
 
 
+# ---------------------------------------------------------------- stats
+def fetch_stats(latest, rostered):
+    """Season-to-date points (league scoring), weekly points, games, last
+    season, ESPN's season projection and a few raw stats -- for ESPN's top
+    scorers plus every rostered player who is not among them (yet)."""
+    periods = {"value": max(1, latest), "additionalValue": [f"00{SEASON}", f"10{SEASON}", f"00{SEASON - 1}"]}
+    filt = {"players": {"filterSlotIds": {"value": STAT_SLOTS}, "filterStatsForTopScoringPeriodIds": periods,
+                        "sortAppliedStatTotal": {"sortAsc": False, "sortPriority": 1, "value": f"00{SEASON}"},
+                        "limit": STAT_LIMIT, "offset": 0}}
+    d = get(API + f"?view=kona_player_info&scoringPeriodId={latest}", filt)
+    entries = list(d.get("players", []))
+    got = {e["id"] for e in entries}
+    rest = sorted(set(rostered) - got)
+    for i in range(0, len(rest), 50):
+        d2 = get(API + f"?view=kona_player_info&scoringPeriodId={latest}",
+                 {"players": {"filterIds": {"value": rest[i:i + 50]}, "filterStatsForTopScoringPeriodIds": periods}})
+        entries += d2.get("players", [])
+    out = {}
+    for e in entries:
+        p = e["player"]
+        pos = POS_IDS.get(p.get("defaultPositionId"))
+        if not pos:
+            continue
+        season = proj = prev = None
+        weeks = {}
+        for st in p.get("stats") or []:
+            sid, src, split, per = st.get("seasonId"), st.get("statSourceId"), st.get("statSplitTypeId"), st.get("scoringPeriodId")
+            if sid == SEASON and src == 0 and split == 0:
+                season = st
+            elif sid == SEASON and src == 1 and split == 0:
+                proj = st
+            elif sid == SEASON - 1 and src == 0 and split == 0:
+                prev = st
+            elif sid == SEASON and src == 0 and split == 1 and per and st.get("stats"):
+                weeks[per] = round(st.get("appliedTotal") or 0, 1)
+        raw = (season or {}).get("stats") or {}
+        g = lambda i: raw.get(str(i), 0) or 0
+        line = {k: round(g(i)) for k, i in STAT_IDS.get(pos, {}).items()}
+        if pos == "D/ST":
+            line["td"] = round(sum(g(i) for i in DST_TD_IDS))
+        out[str(p["id"])] = {
+            "meta": meta_from_espn(p), "team": e.get("onTeamId") or 0, "inj": p.get("injuryStatus"),
+            "pts": round((season or {}).get("appliedTotal") or 0, 1),
+            "proj": round(proj["appliedTotal"], 1) if proj and proj.get("appliedTotal") is not None else None,
+            "prev": round(prev["appliedTotal"], 1) if prev and prev.get("appliedTotal") is not None else None,
+            "w": [weeks.get(i) for i in range(1, latest + 1)],
+            "gp": len(weeks), "line": line,
+        }
+    # positional rank among ESPN's top scorers; a rostered player with no points
+    # yet sits below all of them and gets no number
+    by_pos = defaultdict(list)
+    for pid, r in out.items():
+        if r["pts"] > 0:
+            by_pos[r["meta"]["pos"]].append((r["pts"], pid))
+    for lst in by_pos.values():
+        lst.sort(key=lambda x: -x[0])
+        for i, (_, pid) in enumerate(lst):
+            out[pid]["rk"] = i + 1
+    if len(out) < 200:
+        sys.exit(f"ESPN stats feed returned only {len(out)} players -- not writing anything")
+    return {"week": latest, "players": out}
+
+
 # ---------------------------------------------------------------- fetch
 def fetch(ledger, baseline):
     league = get(API + "?view=mTeam&view=mRoster&view=mSettings")
@@ -182,12 +263,14 @@ def fetch(ledger, baseline):
             } for e in t["roster"]["entries"]],
         } for t in league["teams"]],
     }
-    print(f"ESPN: week {latest}, {entries} roster entries, {len(seen)} transactions on file ({new} new)")
-    return ledger, new
+    stats = fetch_stats(latest, [e["playerId"] for t in league["teams"] for e in t["roster"]["entries"]])
+    print(f"ESPN: week {latest}, {entries} roster entries, {len(seen)} transactions on file ({new} new), "
+          f"stats for {len(stats['players'])} players")
+    return ledger, new, stats
 
 
 # ---------------------------------------------------------------- model
-def build(baseline, ledger, players):
+def build(baseline, ledger, players, stats=None):
     snap = ledger.get("snapshot")
     if not snap:
         sys.exit("no roster snapshot yet -- run once online first")
@@ -369,6 +452,33 @@ def build(baseline, ledger, players):
             "roster": rows, "deadMoney": dead,
         })
 
+    # season stats: onto every player we know, plus ESPN's top scorers who are
+    # unowned (the free-agent pool the Stats view can show)
+    sp = (stats or {}).get("players") or {}
+    latest = snap["week"]
+    def stat_block(rec):
+        w = rec.get("w") or []
+        gp = rec.get("gp") or 0
+        return {"pts": rec["pts"], "gp": gp, "ppg": round(rec["pts"] / gp, 1) if gp else 0, "rk": rec.get("rk"),
+                "wk": w[latest - 1] if len(w) >= latest else None, "w": w, "prev": rec.get("prev"),
+                "proj": rec.get("proj"), "line": rec.get("line") or {}}
+    rostered = {str(e["pid"]) for t in snap["teams"] for e in t["roster"]}
+    pool = []
+    top = sorted(sp.items(), key=lambda kv: -kv[1]["pts"])
+    for pid, rec in top:
+        if pid in rostered or pid in players:
+            continue
+        if len(pool) >= POOL_TOP:
+            break
+        players[pid] = dict(rec["meta"], fa=True)
+        pool.append(pid)
+    for pid in list(players):
+        rec = sp.get(pid)
+        if rec:
+            players[pid]["s"] = stat_block(rec)
+        else:
+            players[pid].pop("s", None)
+
     # names for anyone in an event who is no longer on a roster
     missing = {str(pid) for ev in events for pid in
                [a["pid"] for a in ev["adds"]] + [d["pid"] for d in ev["drops"]] + [t["pid"] for t in ev["trades"]] +
@@ -379,6 +489,8 @@ def build(baseline, ledger, players):
         "teams": out_teams,
         "events": sorted(events, key=lambda e: (-e["ts"], e["id"])),
         "players": {k: players[k] for k in sorted(players, key=lambda k: players[k]["name"])},
+        "pool": sorted([k for k in players if players[k].get("s")], key=lambda k: -players[k]["s"]["pts"]),
+        "statsWeek": (stats or {}).get("week"),
         "stats": {
             "adds": sum(len(e["adds"]) for e in events), "drops": sum(len(e["drops"]) for e in events),
             "trades": sum(1 for e in events if e["trades"]),
@@ -399,13 +511,14 @@ def main():
     ledger = load_json(LEDGER, {"season": SEASON, "transactions": []})
     players = load_json(PLAYERS, {})
     new_tx = 0
+    stats = load_json(STATS, None)
     if not offline:
-        ledger, new_tx = fetch(ledger, baseline)
-    payload, missing = build(baseline, ledger, players)
+        ledger, new_tx, stats = fetch(ledger, baseline)
+    payload, missing = build(baseline, ledger, players, stats)
     if missing and not offline:
         for pid, p in kona_players([int(x) for x in missing]).items():
             players[str(pid)] = meta_from_espn(p)
-        payload, missing = build(baseline, ledger, players)
+        payload, missing = build(baseline, ledger, players, stats)
     if missing:
         payload["warnings"].append(f"no name on file for player ids {sorted(missing)}")
 
@@ -422,7 +535,13 @@ def main():
     same = prev is not None and json.dumps({k: v for k, v in prev.items() if k not in ("generated", "asOf")}, sort_keys=True) == \
         json.dumps({k: v for k, v in payload.items() if k != "asOf"}, sort_keys=True)
     TRACKER_DIR.mkdir(exist_ok=True)
-    players_txt = json.dumps(players, separators=(",", ":"), sort_keys=True)
+    if stats is not None:
+        stats_txt = json.dumps(stats, separators=(",", ":"))
+        if not STATS.exists() or STATS.read_text() != stats_txt:
+            STATS.write_text(stats_txt)
+    # the cache keeps identities only -- stats and the free-agent flag are per run
+    cache = {k: {f: v[f] for f in ("name", "pos", "nfl", "img") if f in v} for k, v in players.items() if not v.get("fa")}
+    players_txt = json.dumps(cache, separators=(",", ":"), sort_keys=True)
     if not PLAYERS.exists() or PLAYERS.read_text() != players_txt:
         PLAYERS.write_text(players_txt)
     if not LEDGER.exists() or new_tx or not same:
