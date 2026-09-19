@@ -202,6 +202,7 @@
     if (h.kind === 'kept' || h.kind === 'bought') ladder.push([S, h.price]);
     if (o.type === 'locked') ladder.push([ny, o.price]);
     if (o.type === 'resign') ladder.push([ny, o.price], [ny + 1, o.price2]);
+    if (o.est != null) ladder.push([ny, o.est, true]);           // an estimate, shown with \u2248
     var title = {
       locked: 'Two-year deal through ' + ny + (h.cls === 'kept-renewal-yr1' ? ' (renewal)' : ''),
       resign: 'Final year of a two-year deal',
@@ -269,7 +270,7 @@
     // contract
     var ladder = c.ladder.filter(function (x) { return x[1] != null; }).map(function (x, i) {
       return (i ? '<span class="pc-arrow">→</span>' : '') +
-        '<span class="pc-rung' + (x[0] === S ? ' now' : '') + '"><b>' + money(x[1]) + '</b><i>' + x[0] + '</i></span>';
+        '<span class="pc-rung' + (x[0] === S ? ' now' : '') + '"><b>' + (x[2] ? '\u2248' : '') + money(x[1]) + '</b><i>' + x[0] + (x[2] ? ' est.' : '') + '</i></span>';
     }).join('');
     var box = '<section class="pc-contract"><div class="pc-label">Contract</div>' +
       '<div class="pc-ctitle">' + esc(c.title) + '</div>' +

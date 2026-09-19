@@ -1278,7 +1278,7 @@ body.pc-open { overflow: hidden; }
 .rt-next span { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
 .rt-next.lock b { color: #7c6114; }
 .rt-next.resign b { color: var(--accent); }
-.rt-next.market b { color: var(--ink-soft); font-size: 14px; padding-top: 3px; }
+.rt-next.market b { color: var(--ink-soft); }
 .rt-next.inline { display: inline-block; min-width: 0; text-align: left; margin-right: 4px; vertical-align: middle; cursor: default; }
 .rt-next.inline b { display: inline; font-size: 14px; }
 .rt-dead { padding: 8px 14px 10px; font-size: 12px; color: var(--ink-soft); background: #fbf3f2; border-top: 1px solid var(--rule); }

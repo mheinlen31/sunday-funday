@@ -61,9 +61,9 @@
     switch (o.type) {
       case 'locked': big = money(o.price); small = '2027 · locked'; cls = 'lock'; break;
       case 'resign': big = money(o.price); small = '2027 if re-signed'; cls = 'resign'; break;
-      case 'formula': big = 'from ' + money(o.basis); small = '2027 · market math'; cls = 'formula'; break;
-      case 'reAdd': big = 'max'; small = 'auction math or market'; cls = 'formula'; break;
-      case 'market': big = 'market'; small = '2027 · pickup'; cls = 'market'; break;
+      case 'formula': big = '\u2248' + money(o.est); small = '2027 est.'; cls = 'formula'; break;
+      case 'reAdd': big = '\u2248' + money(o.est); small = '2027 est.'; cls = 'formula'; break;
+      case 'market': big = '\u2248' + money(o.est); small = '2027 est. \u00b7 pickup'; cls = 'market'; break;
       default: big = '?'; small = ''; cls = '';
     }
     return '<div class="rt-next ' + cls + '" title="' + esc(o.text) + '"><b>' + big + '</b><span>' + small + '</span></div>';
@@ -205,8 +205,8 @@
           return '<div class="rt-cl"><span class="rt-cl-name">' + esc(meta(d.pid).name) + ' <i>dropped ' + day(d.droppedOn) + (d.now ? ', now with ' + esc(owner(d.now)) : '') + '</i></span><span class="rt-cl-val">' + money(d.amount) + '</span></div>';
         })) +
         block('Deal ends after this season', 're-signing means two more years at +$5, +$10', resign.map(function (r) { return line(r, money(r.outlook.price) + ' <i>/ ' + money(r.outlook.price2) + '</i>'); })) +
-        block('Kept once', 'keeping him again signs his first two-year deal, priced off the market', first.map(function (r) { return line(r, 'vs ' + money(r.how.price)); })) +
-        block('Pickups', 'keepable at market value, no contract history', pickups.map(function (r) { return line(r, r.outlook.type === 'reAdd' ? 'max(auction, market)' : 'market'); })) +
+        block('Kept once', 'keeping him again signs his first two-year deal, priced off the market', first.map(function (r) { return line(r, '\u2248' + money(r.outlook.est) + ' <i>vs ' + money(r.how.price) + '</i>'); })) +
+        block('Pickups', 'keepable at market value, no contract history', pickups.map(function (r) { return line(r, '\u2248' + money(r.outlook.est)); })) +
         (locked.length + dead.length + resign.length + first.length + pickups.length ? '' : '<div class="empty-note">Everyone here was bought at the auction — all first-time keepers in 2027, priced off the market.</div>') +
         '</div></article>';
     }).join('') + '</div>';
@@ -238,8 +238,8 @@
     n.push('<li><b>Rosters</b> are today’s, straight from ESPN. Under each player: how he got here (kept or bought at the draft, or the day and bid he was added) and, on the right, what he would cost to keep for <b>2027</b>.</li>');
     n.push('<li><span class="rt-next lock inline"><b>$34</b></span> <b>Locked</b> — year two of a two-year deal. The price is set and counts against the $100 keeper cap whether he is kept, dropped or traded (a trade carries it to the new team; a drop leaves it with the team that signed him — that is <b>dead money</b>).</li>');
     n.push('<li><span class="rt-next resign inline"><b>$24</b></span> <b>Re-sign</b> — his deal ends after this season. Keeping him again is a new two-year deal at last price + $5, then + $10.</li>');
-    n.push('<li><span class="rt-next formula inline"><b>from $69</b></span> <b>Market math</b> — no contract yet. The 2027 price is the average of this year’s cost and his ESPN value next summer, or cost + $10 if the market jumps by more than $10. A player kept once who is kept again signs his first two-year deal on that number.</li>');
-    n.push('<li><span class="rt-next market inline"><b>market</b></span> <b>Pickup</b> — added off waivers or as a free agent. Keepable at market value; no contract history carries over. One exception from the Manifesto: your own drafted player, dropped and re-added within a week with nobody else touching him, costs the <em>greater</em> of the auction math and market.</li>');
+    n.push('<li><span class="rt-next formula inline"><b>\u2248$67</b></span> <b>Estimate</b> \u2014 no contract yet. The 2027 price will be the average of this year\u2019s cost and his ESPN value next summer, or cost + $10 if the market jumps by more than $10. The \u2248 number runs that rule on his ESPN value today; hover for the range it can land in. A player kept once who is kept again signs his first two-year deal on that number.</li>');
+    n.push('<li><span class="rt-next market inline"><b>\u2248$2</b></span> <b>Pickup</b> \u2014 added off waivers or as a free agent. Keepable at whatever his market value is next summer; the \u2248 is today\u2019s. No contract history carries over. One exception from the Manifesto: your own drafted player, dropped and re-added within a week with nobody else touching him, costs the <em>greater</em> of the auction math and market.</li>');
     n.push('<li><b>Moves</b> lists every executed add, drop, waiver claim and trade with the winning bid — and who was outbid. Lineup changes are not moves. Offseason trades live on the <a href="trades.html">Trades</a> page.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
     if ((T.warnings || []).length) n.push('<li><b>To check:</b> ' + T.warnings.map(esc).join(' · ') + '</li>');
