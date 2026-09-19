@@ -26,9 +26,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from refresh_cloud import adp_round, keeper_price   # noqa: E402  the keeper site's own pricing rules
-
 SEASON = 2026
 LEAGUE = 66294
 API = (f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}"
@@ -185,17 +182,7 @@ def fetch(ledger, baseline):
             } for e in t["roster"]["entries"]],
         } for t in league["teams"]],
     }
-    # ESPN's average auction value for everyone in play -- the market number the
-    # keeper sheet prices from -- so the page can estimate what 2027 will cost
-    ids = {p["id"] for p in baseline["players"]} | {e["playerId"] for t in league["teams"] for e in t["roster"]["entries"]}
-    aav = {}
-    for pid, pl in kona_players(ids).items():
-        raw = (pl.get("ownership") or {}).get("auctionValueAverage")
-        if raw is not None:
-            aav[str(pid)] = round(raw, 2)
-    ledger["snapshot"]["aav"] = aav
-    print(f"ESPN: week {latest}, {entries} roster entries, {len(seen)} transactions on file ({new} new), "
-          f"market values for {len(aav)} players")
+    print(f"ESPN: week {latest}, {entries} roster entries, {len(seen)} transactions on file ({new} new)")
     return ledger, new
 
 
@@ -299,24 +286,16 @@ def build(baseline, ledger, players):
             only_espn = [players.get(str(p), {}).get("name", p) for p in espn_roster.get(tid, set()) - roster[tid]]
             warnings.append(f"{teams[tid]['owner']}: replay differs from ESPN -- replay-only {only_replay}, ESPN-only {only_espn}")
 
-    # ---- what 2027 looks like for each player
-    aav_of = {str(k): v for k, v in (snap.get("aav") or {}).items()}
-
-    def market(pid):
-        raw = aav_of.get(str(pid))
-        return adp_round(raw) if raw is not None else None
-
-    def formula(price, m):
-        """The Manifesto's first-time / first-contract price: average of last cost
-        and market, or cost + $10 if the market jumped more than $10. Rounded
-        down, like the sheet. Returns the estimate and the range it can land in."""
-        est = math.floor(keeper_price(price, m)) if m is not None else price
-        return est, math.floor((price + 1) / 2), price + 10
+    # ---- what 2027 looks like for each player.
+    # Next summer's market is built on this season, so nothing today can price a
+    # first-time keeper. What IS certain is the range: the Manifesto averages
+    # this year's cost with the market (floor: a $1 market) and caps the jump at
+    # cost + $10 -- so at least half the cost, at most cost + $10.
+    def span(price):
+        return math.floor((price + 1) / 2), price + 10
 
     def outlook(pid, holder):
         o = origin.get(pid) or {"kind": "unknown"}
-        m = market(pid)
-        mkt_txt = f"his ESPN value today is ${m}" if m is not None else "no ESPN value on file for him"
         if o["kind"] == "draft":
             b = o["base"]
             cls, price = b["cls"], b["price"]
@@ -327,26 +306,24 @@ def build(baseline, ledger, players):
             if cls == "kept-yr2":
                 return {"type": "resign", "price": price + 5, "price2": price + 10, "basis": price, "cls": cls, "traded": traded,
                         "text": f"His deal ends after 2026. Keep him for 2027 and he re-signs for two years: ${price + 5} in 2027, ${price + 10} in 2028."}
-            est, lo, hi = formula(price, m)
-            rule = (f"the average of ${price} and his ESPN value next summer, or ${price + 10} if the market jumps more than $10 "
-                    f"-- so between ${lo} and ${hi}; {mkt_txt}, which puts him at about ${est}")
+            lo, hi = span(price)
+            rule = (f"the average of ${price} and his ESPN value next summer, or ${price + 10} if the market jumps by more than $10 "
+                    f"-- so at least ${lo} and at most ${hi}. Where he lands depends on his season")
             if cls == "kept-first":
-                return {"type": "formula", "est": est, "lo": lo, "hi": hi, "mkt": m, "basis": price, "cls": cls, "traded": traded,
-                        "text": f"Kept once. Keeping him again means his first two-year deal: 2027 is {rule}; 2028 is $5 more."}
-            return {"type": "formula", "est": est, "lo": lo, "hi": hi, "mkt": m, "basis": price, "cls": "bought", "traded": traded,
+                return {"type": "formula", "lo": lo, "hi": hi, "basis": price, "cls": cls, "traded": traded,
+                        "text": f"Kept once. Keeping him again signs his first two-year deal: 2027 is {rule}; 2028 is $5 more."}
+            return {"type": "formula", "lo": lo, "hi": hi, "basis": price, "cls": "bought", "traded": traded,
                     "text": f"Bought at the auction for ${price}. First-time keeper in 2027 at {rule}."}
         if o["kind"] == "added":
             if o.get("reAdd"):
                 b = o["reAdd"]["basis"]
-                est, lo, hi = formula(b, m)
-                est = max(est, m or 1)
-                return {"type": "reAdd", "est": est, "lo": lo, "hi": max(hi, m or 1), "mkt": m, "basis": b, "cls": "re-added",
-                        "text": f"Drafted, dropped, and back within the week: keeper value is the greater of the auction math against ${b} and his market value; {mkt_txt}, so about ${est}."}
+                lo, hi = span(b)
+                return {"type": "reAdd", "lo": lo, "hi": hi, "basis": b, "cls": "re-added",
+                        "text": f"Drafted, dropped, and back within the week: the greater of the auction math against ${b} (${lo} to ${hi}) and his market value next summer."}
             note = (" Dropped and re-added, but after a week" + (" and after another team had him" if o.get("reAddLate", {}).get("others") else "") +
                     ", so he counts as a fresh pickup.") if o.get("reAddLate") else ""
-            est = m or 1
-            return {"type": "market", "est": est, "mkt": m, "cls": "pickup",
-                    "text": f"Free-agent pickup: keepable at his ESPN market value next summer, whatever it is then; {mkt_txt}. No contract history carries." + note}
+            return {"type": "market", "cls": "pickup",
+                    "text": "Free-agent pickup: keepable at his ESPN market value next summer, whatever his season makes it. No cap, no contract history." + note}
         return {"type": "unknown", "cls": "unknown", "text": "No record of how he got here."}
 
     out_teams = []
