@@ -1273,7 +1273,7 @@ body.pc-open { overflow: hidden; }
 .rt-tag { display: inline-block; vertical-align: 2px; font-size: 9px; font-weight: 800; letter-spacing: .08em; padding: 1px 5px; border-radius: 3px; color: #8f1c19; background: #fadedc; margin-left: 4px; }
 .rt-tag.ir { color: #55524d; background: #e8e5df; }
 .rt-nomug { display: inline-block; width: 58px; height: 42px; border-radius: 5px; background: #e8e6e1; flex: 0 0 auto; }
-.rt-next { flex: 0 0 auto; min-width: 88px; text-align: right; cursor: help; }
+.rt-next { flex: 0 0 118px; width: 118px; text-align: right; cursor: help; }
 .rt-next b { display: block; font-family: var(--serif); font-size: 17px; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rt-next span { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
 .rt-next.lock b { color: #7c6114; }
@@ -1308,8 +1308,9 @@ body.pc-open { overflow: hidden; }
 @media (max-width: 720px) {
   .rt-ev { grid-template-columns: 62px 1fr; gap: 8px; }
   .rt-ev-body { font-size: 13px; }
-  .rt-next { min-width: 72px; }
+  .rt-next { flex-basis: 96px; width: 96px; }
   .rt-next b { font-size: 15px; }
+  .rt-next span, .rt-stat span { font-size: 8.5px; letter-spacing: .04em; }
   .rt-row .mug { width: 44px; height: 32px; }
   #rt-teamwrap { margin-left: 0; }
 }
@@ -1323,17 +1324,17 @@ body.pc-open { overflow: hidden; }
 .rt-row:hover { background: #f5f3ef; }
 .rt-row.ir:hover { background: #efece6; }
 /* season stats on the tracker */
-.rt-stat { flex: 0 0 auto; min-width: 70px; text-align: right; cursor: help; }
+.rt-stat { flex: 0 0 84px; width: 84px; text-align: right; cursor: help; }
 .rt-stat b { display: block; font-family: var(--serif); font-size: 16px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .rt-stat span { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
-.rt-stat.none { min-width: 0; }
+.rt-stat.none { visibility: hidden; }
 .rt-ctl { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 2px 0 6px; }
 .rt-ctl .dh-ctl-label { margin-right: 2px; }
 .rt-stats .dh-table td, .rt-stats .dh-table th { padding: 7px 8px; }
 .rt-stats .dh-table .dh-name small { display: block; font-size: 11px; font-weight: 500; color: var(--ink-faint); }
 .rt-fa { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
 @media (max-width: 720px) {
-  .rt-stat { min-width: 54px; }
+  .rt-stat { flex-basis: 60px; width: 60px; }
   .rt-stat b { font-size: 14px; }
   .rt-stats .dh-table .hide-m { display: none; }
 }

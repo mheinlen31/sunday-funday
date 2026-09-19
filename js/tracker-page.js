@@ -83,10 +83,10 @@
     var big, small, cls;
     switch (o.type) {
       case 'locked': big = money(o.price); small = '2027 · locked'; cls = 'lock'; break;
-      case 'resign': big = money(o.price); small = '2027 if re-signed'; cls = 'resign'; break;
+      case 'resign': big = money(o.price); small = '2027 \u00b7 re-sign'; cls = 'resign'; break;
       case 'formula': big = '$' + o.lo + '\u2013' + o.hi; small = '2027 range'; cls = 'formula'; break;
-      case 'reAdd': big = '$' + o.lo + '+'; small = '2027 \u00b7 auction math or market'; cls = 'formula'; break;
-      case 'market': big = 'market'; small = '2027 \u00b7 pickup, no cap'; cls = 'market'; break;
+      case 'reAdd': big = '$' + o.lo + '+'; small = '2027 \u00b7 re-add rule'; cls = 'formula'; break;
+      case 'market': big = 'market'; small = 'pickup \u00b7 no cap'; cls = 'market'; break;
       default: big = '?'; small = ''; cls = '';
     }
     return '<div class="rt-next ' + cls + '" title="' + esc(o.text) + '"><b>' + big + '</b><span>' + small + '</span></div>';
