@@ -52,8 +52,10 @@
   function statHtml(pid) {
     var s = S(pid);
     if (!s) return '<div class="rt-stat none"></div>';
-    var sub = (s.rk ? esc(meta(pid).pos) + s.rk : '') + (s.gp ? (s.rk ? ' \u00b7 ' : '') + fmt1(s.ppg) + '/g' : '');
-    return '<div class="rt-stat" title="' + esc(lineText(pid)) + (s.gp ? ' (' + s.gp + (s.gp === 1 ? ' game' : ' games') + ')' : '') + '"><b>' + fmt1(s.pts) + '</b><span>' + sub + '</span></div>';
+    // rank stays on a phone; the per-game figure is desktop-only (it is in the tooltip)
+    var sub = (s.rk ? '<i class="rk">' + esc(meta(pid).pos) + s.rk + '</i>' : '') +
+      (s.gp ? '<i class="pg">' + (s.rk ? ' \u00b7 ' : '') + fmt1(s.ppg) + '/g</i>' : '');
+    return '<div class="rt-stat" title="' + esc(lineText(pid)) + (s.gp ? ' (' + s.gp + (s.gp === 1 ? ' game' : ' games') + ', ' + fmt1(s.ppg) + ' per game)' : '') + '"><b>' + fmt1(s.pts) + '</b><span>' + sub + '</span></div>';
   }
 
   /* ---------- state ---------- */

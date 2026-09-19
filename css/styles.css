@@ -1334,8 +1334,11 @@ body.pc-open { overflow: hidden; }
 .rt-stats .dh-table .dh-name small { display: block; font-size: 11px; font-weight: 500; color: var(--ink-faint); }
 .rt-fa { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
 @media (max-width: 720px) {
-  .rt-stat { flex-basis: 60px; width: 60px; }
+  .rt-stat { flex-basis: 52px; width: 52px; }
+  .rt-stat .pg { display: none; }
+  .rt-row { gap: 8px; padding-right: 10px; }
   .rt-stat b { font-size: 14px; }
   .rt-stats .dh-table .hide-m { display: none; }
 }
 .pc-facts-3 { grid-template-columns: repeat(3, 1fr); margin-top: 6px; }
+.rt-stat span i { font-style: normal; }
