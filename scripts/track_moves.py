@@ -479,6 +479,64 @@ def build(baseline, ledger, players, stats=None):
         else:
             players[pid].pop("s", None)
 
+    # ---- worth so far. Inside a position the league's own draft-day prices are
+    # the ladder: the RB whose production ranks 7th among the league's RBs was
+    # worth what the 7th-priciest RB cost. Same yardstick as the Draft History
+    # page, applied to the season in progress -- dollars, no market guessing.
+    ladder = defaultdict(list)
+    for p in baseline["players"]:
+        ladder[p["pos"]].append(p["price"])
+    for lst in ladder.values():
+        lst.sort(reverse=True)
+    universe = {str(p["id"]) for p in baseline["players"]} | rostered
+    by_pos = defaultdict(list)
+    for pid in universe:
+        rec = players.get(pid)
+        if rec:
+            by_pos[rec["pos"]].append(((rec.get("s") or {}).get("pts") or 0, pid))
+    for pos, lst in by_pos.items():
+        lst.sort(key=lambda x: (-x[0], x[1]))
+        lad = ladder.get(pos) or [1]
+        for i, (_, pid) in enumerate(lst):
+            sb = players[pid].setdefault("s", {"pts": 0, "gp": 0, "ppg": 0, "rk": None, "wk": None, "w": [], "prev": None, "proj": None, "line": {}})
+            sb["worth"] = lad[i] if i < len(lad) else 1
+            sb["lrk"] = i + 1                      # rank among the league's players at his position
+    for p in baseline["players"]:
+        sb = players[str(p["id"])]["s"]
+        sb["paid"] = p["price"]
+        sb["val"] = sb["worth"] - p["price"]
+    # the scoreboard: what each roster's production would have cost at the
+    # auction, against the money the team committed on draft day. A dropped bust
+    # keeps his cost and loses his worth; a pickup brings worth for no auction money.
+    scoreboard = []
+    for tid, t in teams.items():
+        mine = [p for p in baseline["players"] if p["teamId"] == tid]
+        held = [players[str(pid)]["s"] for pid in roster[tid] if players.get(str(pid), {}).get("s")]
+        paid = sum(p["price"] for p in mine)
+        worth = sum(sb.get("worth") or 0 for sb in held)
+        graded = [(p, players[str(p["id"])]["s"]) for p in mine]
+        best = max(graded, key=lambda ps: ps[1]["val"])
+        worst = min(graded, key=lambda ps: ps[1]["val"])
+        scoreboard.append({"team": tid, "paid": paid, "worth": worth, "surplus": worth - paid,
+                           "keeperSurplus": sum(sb["val"] for p, sb in graded if p["keeper"]),
+                           "auctionSurplus": sum(sb["val"] for p, sb in graded if not p["keeper"]),
+                           "best": {"pid": best[0]["id"], "val": best[1]["val"]},
+                           "worst": {"pid": worst[0]["id"], "val": worst[1]["val"]}})
+    scoreboard.sort(key=lambda r: -r["surplus"])
+    # keeper watch: worth so far against the most he can cost to keep in 2027
+    for t in out_teams:
+        for row in t["roster"]:
+            o, sb = row["outlook"], (players.get(str(row["pid"])) or {}).get("s") or {}
+            # ceiling: the most he can cost (bargain test); floor: the least (bust test)
+            if o.get("type") in ("locked", "resign"):
+                hi = lo = o.get("price")
+            elif o.get("type") == "formula":
+                hi, lo = o.get("hi"), o.get("lo")
+            else:
+                hi = lo = None
+            if hi is not None and sb.get("worth") is not None:
+                row["keep"] = {"cost": hi, "floor": lo, "edge": sb["worth"] - hi, "edgeLo": sb["worth"] - lo}
+
     # names for anyone in an event who is no longer on a roster
     missing = {str(pid) for ev in events for pid in
                [a["pid"] for a in ev["adds"]] + [d["pid"] for d in ev["drops"]] + [t["pid"] for t in ev["trades"]] +
@@ -491,6 +549,8 @@ def build(baseline, ledger, players, stats=None):
         "players": {k: players[k] for k in sorted(players, key=lambda k: players[k]["name"])},
         "pool": sorted([k for k in players if players[k].get("s")], key=lambda k: -players[k]["s"]["pts"]),
         "statsWeek": (stats or {}).get("week"),
+        "scoreboard": scoreboard,
+        "noteManual": load_json(TRACKER_DIR / "note-manual.json", None),
         "stats": {
             "adds": sum(len(e["adds"]) for e in events), "drops": sum(len(e["drops"]) for e in events),
             "trades": sum(1 for e in events if e["trades"]),

@@ -55,7 +55,9 @@
     // rank stays on a phone; the per-game figure is desktop-only (it is in the tooltip)
     var sub = (s.rk ? '<i class="rk">' + esc(meta(pid).pos) + s.rk + '</i>' : '') +
       (s.gp ? '<i class="pg">' + (s.rk ? ' \u00b7 ' : '') + fmt1(s.ppg) + '/g</i>' : '');
-    return '<div class="rt-stat" title="' + esc(lineText(pid)) + (s.gp ? ' (' + s.gp + (s.gp === 1 ? ' game' : ' games') + ', ' + fmt1(s.ppg) + ' per game)' : '') + '"><b>' + fmt1(s.pts) + '</b><span>' + sub + '</span></div>';
+    var tip = lineText(pid) + (s.gp ? ' (' + s.gp + (s.gp === 1 ? ' game' : ' games') + ', ' + fmt1(s.ppg) + ' per game)' : '') +
+      (s.worth != null ? '. Worth so far ' + money(s.worth) + ' \u2014 what production like this went for at the auction' : '');
+    return '<div class="rt-stat" title="' + esc(tip) + '"><b>' + fmt1(s.pts) + '</b><span>' + sub + '</span></div>';
   }
 
   /* ---------- state ---------- */
@@ -235,12 +237,13 @@
       if (st.ssort === 'wk') return (B.wk || 0) - (A.wk || 0) || B.pts - A.pts;
       if (st.ssort === 'cost') return costOf(b).n - costOf(a).n || B.pts - A.pts;
       if (st.ssort === 'prev') return (B.prev || 0) - (A.prev || 0);
+      if (st.ssort === 'val') return (B.val == null ? -999 : B.val) - (A.val == null ? -999 : A.val) || B.pts - A.pts;
       return B.pts - A.pts;
     });
     var ctl = '<div class="rt-ctl">' +
       chips('Position', [['all', 'All']].concat(POSES.map(function (p) { return [p, p]; })), st.pos, 'pos') +
       chips('Show', [['rostered', 'Rostered'], ['all', 'Free agents too']], st.scope, 'scope') +
-      chips('Sort', [['pts', 'Points'], ['ppg', 'Per game'], ['wk', 'Week ' + wk], ['cost', 'Cost'], ['prev', '2025']], st.ssort, 'ssort') + '</div>';
+      chips('Sort', [['pts', 'Points'], ['ppg', 'Per game'], ['wk', 'Week ' + wk], ['cost', 'Cost'], ['val', 'Value'], ['prev', '2025']], st.ssort, 'ssort') + '</div>';
     var body = rows.slice(0, 400).map(function (pid) {
       var m = meta(pid), s = S(pid), w = WHERE[pid], c = costOf(pid);
       return '<tr data-pid="' + pid + '"><td class="dh-n">' + (s.rk ? esc(m.pos) + s.rk : '') + '</td>' +
@@ -249,14 +252,16 @@
         '<td class="dh-own">' + (w ? esc(w.t.owner) : '<span class="rt-fa">FA</span>') + '</td>' +
         '<td class="dh-own hide-m">' + c.txt + '</td>' +
         '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '\u2014') + '</td>' +
-        '<td class="dh-pts">' + (s.wk == null ? '\u2014' : fmt1(s.wk)) + '</td><td class="dh-pts hide-m">' + (s.prev == null ? '\u2014' : fmt1(s.prev)) + '</td></tr>';
+        '<td class="dh-pts">' + (s.wk == null ? '\u2014' : fmt1(s.wk)) + '</td><td class="dh-pts hide-m">' + (s.prev == null ? '\u2014' : fmt1(s.prev)) + '</td>' +
+        '<td class="dh-cash hide-m">' + (s.worth != null ? money(s.worth) : '\u2014') + '</td><td class="dh-vc hide-m">' + valChip(s.val) + '</td></tr>';
     }).join('');
     main.className = 'dh-main rt-stats';
     main.innerHTML = tiles() + '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Season stats</h2>' +
       '<span class="dh-sub">Sunday Funday scoring \u00b7 through week ' + wk + ' \u00b7 ' + rows.length + ' players</span></header>' +
       '<div style="padding:8px 14px 0">' + ctl + '</div>' +
       (rows.length ? '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">Rank</th><th>Player</th><th class="dh-p"></th><th class="hide-m">NFL</th><th>Owner</th><th class="hide-m">Cost</th>' +
-        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts">Wk ' + wk + '</th><th class="dh-pts hide-m">2025</th></tr></thead><tbody>' + body + '</tbody></table></div>'
+        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts">Wk ' + wk + '</th><th class="dh-pts hide-m">2025</th>' +
+        '<th class="dh-cash hide-m" title="What production like his went for at this year\u2019s auction">Worth</th><th class="dh-vc hide-m" title="Worth so far, less what was paid">\u00b1</th></tr></thead><tbody>' + body + '</tbody></table></div>'
         : '<div class="empty-note">Nothing matches.</div>') + '</article>';
     main.querySelectorAll('.rt-ctl .dh-seg').forEach(function (seg) {
       seg.addEventListener('click', function (e) {
@@ -266,6 +271,119 @@
     });
   }
 
+  /* ---------- value: the auction scoreboard and the keeper watch ---------- */
+  function valChip(v) {
+    if (v == null) return '';
+    var cls = v > 5 ? 'up' : (v < -5 ? 'down' : 'even');
+    return '<span class="dh-val ' + cls + '">' + (v > 0 ? '+' : v < 0 ? '\u2212' : '') + '$' + Math.abs(v) + '</span>';
+  }
+  function keepCost(r, low) {
+    var o = r.outlook || {};
+    if (o.type === 'locked') return money(r.keep.cost) + ' <i>locked</i>';
+    if (o.type === 'resign') return money(r.keep.cost) + ' <i>re-sign</i>';
+    return low ? '\u2265 ' + money(r.keep.floor) + ' <i>floor</i>' : '\u2264 ' + money(r.keep.cost) + ' <i>ceiling</i>';
+  }
+  function valueView() {
+    var sb = T.scoreboard || [];
+    var one = st.team !== 'all';
+    var board = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Auction scoreboard</h2>' +
+      '<span class="dh-sub">what each roster\u2019s production would have cost at this year\u2019s auction, against the money committed on draft day</span></header>' +
+      '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th>Team</th><th class="dh-cash">Paid</th><th class="dh-cash">Worth so far</th><th class="dh-vc">\u00b1</th>' +
+      '<th class="dh-vc hide-m">Keepers</th><th class="dh-vc hide-m">Bought</th><th class="hide-m">Best buy</th><th class="hide-m">Worst buy</th></tr></thead><tbody>' +
+      sb.map(function (r, i) {
+        var t = TEAMS[r.team];
+        return '<tr' + (one && String(r.team) === String(st.team) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + (i + 1) + '. ' + esc(t.owner) + ' <span class="dh-team">' + esc(t.name) + '</span></td>' +
+          '<td class="dh-cash">' + money(r.paid) + '</td><td class="dh-cash">' + money(r.worth) + '</td><td class="dh-vc">' + valChip(r.surplus) + '</td>' +
+          '<td class="dh-vc hide-m">' + valChip(r.keeperSurplus) + '</td><td class="dh-vc hide-m">' + valChip(r.auctionSurplus) + '</td>' +
+          '<td class="dh-best hide-m">' + esc(meta(r.best.pid).name) + ' ' + valChip(r.best.val) + '</td><td class="dh-best hide-m">' + esc(meta(r.worst.pid).name) + ' ' + valChip(r.worst.val) + '</td></tr>';
+      }).join('') + '</tbody></table></div></article>';
+
+    var watch = [];
+    T.teams.forEach(function (t) {
+      if (one && String(t.id) !== String(st.team)) return;
+      t.roster.forEach(function (r) { if (r.keep) watch.push({ t: t, r: r }); });
+    });
+    watch.sort(function (a, b) { return b.r.keep.edge - a.r.keep.edge; });
+    function watchRows(list, low) {
+      return list.map(function (x) {
+        var m = meta(x.r.pid), s = S(x.r.pid) || {};
+        return '<tr data-pid="' + x.r.pid + '"><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' \u00b7 ' + esc(m.nfl) : '') + (x.r.how ? ' \u00b7 ' + (x.r.how.kind === 'kept' ? 'kept ' : 'bought ') + money(x.r.how.price) : '') + '</small></td>' +
+          '<td class="dh-own">' + esc(x.t.owner) + '</td><td class="dh-pts">' + fmt1(s.pts) + '<small>' + (s.lrk ? esc(m.pos) + s.lrk + ' in the league' : '') + '</small></td>' +
+          '<td class="dh-cash">' + money(s.worth) + '</td><td class="dh-cash">' + keepCost(x.r, low) + '</td><td class="dh-vc">' + valChip(low ? x.r.keep.edgeLo : x.r.keep.edge) + '</td></tr>';
+      }).join('');
+    }
+    var head = '<thead><tr><th>Player</th><th>Owner</th><th class="dh-pts">Points</th><th class="dh-cash">Worth so far</th><th class="dh-cash">2027 cost</th><th class="dh-vc">Edge</th></tr></thead>';
+    var up = watch.filter(function (x) { return x.r.keep.edge > 0; }).slice(0, one ? 8 : 15);
+    var down = watch.filter(function (x) { return x.r.keep.edgeLo < 0; }).sort(function (a, b) { return a.r.keep.edgeLo - b.r.keep.edgeLo; }).slice(0, one ? 5 : 8);
+    var kw = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Keeper watch</h2>' +
+      '<span class="dh-sub">worth so far against the most he can cost to keep in 2027</span></header>' +
+      (up.length ? '<div class="rt-block-h" style="padding:10px 14px 0">Tracking as bargains<span>worth more than the most he could cost to keep</span></div><div style="overflow-x:auto"><table class="dh-table rt-watch">' + head + '<tbody>' + watchRows(up, false) + '</tbody></table></div>' : '<div class="empty-note">Nobody is ahead of his 2027 price yet.</div>') +
+      (down.length ? '<div class="rt-block-h" style="padding:14px 14px 0">Not even at his floor<span>worth less than the least he could cost to keep</span></div><div style="overflow-x:auto"><table class="dh-table rt-watch">' + head + '<tbody>' + watchRows(down, true) + '</tbody></table></div>' : '') +
+      '</article>';
+    var how = '<p class="dh-note" style="max-width:900px;margin:0 auto">Inside each position the league\u2019s own auction prices are the ladder: the RB whose production ranks 7th among the league\u2019s RBs so far was <b>worth</b> what the 7th-priciest RB cost on draft day. The scoreboard adds up what each team\u2019s current roster would have cost that way and subtracts what it committed on draft day \u2014 a dropped bust keeps his cost and loses his worth, a pickup adds worth for no auction money. Keeper watch compares worth so far with the most a player can cost to keep in 2027 (his range ceiling, a locked price, or the re-sign price); pickups have no ceiling and are left out. ' +
+      (T.statsWeek && T.statsWeek < 5 ? '<b>Week ' + T.statsWeek + ' is a small sample</b> \u2014 this firms up as the season goes.' : 'Through week ' + T.statsWeek + '.') + '</p>';
+    main.className = 'dh-main rt-value';
+    main.innerHTML = tiles() + board + kw + how;
+  }
+
+  /* ---------- the League Manager's note, generated ---------- */
+  var NOTE_CONTRACT_ORDER = ['Leo', 'Steve', 'Mark', 'Bob', 'Mike', 'AJ', 'Pat', 'Matt', 'Brian', 'John'];
+  var NOTE_MONEY_ORDER = ['Bob', 'Pat', 'Mike', 'Leo', 'AJ', 'John', 'Mark', 'Brian', 'Steve', 'Matt'];
+  function noteName(t) { return t.name.replace(/^The /, ''); }
+  function byOwner(order) { return order.map(function (o) { return T.teams.filter(function (t) { return t.owner === o; })[0]; }).filter(Boolean); }
+  function mdy(iso) { var d = new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')); return ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + d.getDate()).slice(-2) + '/' + String(d.getFullYear()).slice(2); }
+  function noteText() {
+    var S = T.season, L = window.LEAGUE_DATA, H = window.LEAGUE_HISTORY, out = ['League Information', ''];
+    ((T.noteManual || {}).sections || []).forEach(function (sec) { out.push(sec.title); out = out.concat(sec.lines); out.push(''); });
+    out.push((S + 1) + ' Players under Contract');
+    byOwner(NOTE_CONTRACT_ORDER).forEach(function (t) {
+      var locked = t.roster.filter(function (r) { return r.outlook && r.outlook.type === 'locked'; })
+        .sort(function (a, b) { return b.outlook.price - a.outlook.price; })
+        .map(function (r) { return meta(r.pid).name + ' ($' + r.outlook.price + ')'; });
+      out.push(noteName(t) + ' - ' + (locked.length ? locked.join(', ') : 'n/a'));
+    });
+    out.push('');
+    [S + 1, S + 2].forEach(function (yr) {
+      out.push(yr + ' Auction Money');
+      byOwner(NOTE_MONEY_ORDER).forEach(function (t) {
+        var b = L && (L.budgets || []).filter(function (x) { return x.team === t.name; })[0];
+        var y = b && b.years && b.years[String(yr)];
+        out.push(noteName(t) + ' - $' + (y && y.final != null ? y.final : (b && b.start) || 200));
+      });
+      out.push('');
+    });
+    out.push(S + ' Trades');
+    var trades = [];
+    (L && L.trades || []).forEach(function (tr) {
+      trades.push({ d: tr.date, txt: tr.summary.replace(/\btraded\b/, 'trades').replace(/ draft budget\.?$/, '').replace(/\.$/, '') });
+    });
+    (T.events || []).filter(function (e) { return e.trades && e.trades.length; }).forEach(function (e) {
+      var by = {};
+      e.trades.forEach(function (tr) { (by[tr.from + '>' + tr.to] = by[tr.from + '>' + tr.to] || []).push(meta(tr.pid).name); });
+      var keys = Object.keys(by), a = keys[0].split('>');
+      var back = keys.filter(function (k) { return k !== keys[0]; }).map(function (k) { return by[k].join(', '); }).join(', ');
+      trades.push({ d: new Date(e.ts).toISOString().slice(0, 10), txt: owner(+a[0]) + ' trades ' + by[keys[0]].join(', ') + ' to ' + owner(+a[1]) + (back ? ' for ' + back : '') });
+    });
+    trades.sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+    if (!trades.length) out.push('n/a');
+    trades.forEach(function (t, i) { out.push((i + 1) + '. ' + mdy(t.d) + ' - ' + t.txt); });
+    out.push('');
+    var prev = H && (H.tradeHistory || []).filter(function (b) { return +b.year === S - 1; })[0];
+    out.push((S - 1) + ' Trades');
+    if (prev) prev.entries.forEach(function (line, i) { out.push((i + 1) + '. ' + line.replace(/^\s*[\d/]+\s*-\s*/, function (m) { return m; })); });
+    else out.push('(loading last season\u2019s trades\u2026)');
+    return out.join('\n').trim() + '\n';
+  }
+  function noteCard() {
+    if (!window.LEAGUE_HISTORY) {
+      var sc = document.createElement('script'); sc.src = 'js/history.js'; sc.onload = function () { if (st.view === 'cap') render(); }; document.head.appendChild(sc);
+    }
+    var txt = noteText();
+    return '<article class="team-card board-card dh-card rt-note"><header class="dh-head"><h2>League Manager\u2019s note</h2>' +
+      '<span class="dh-sub">for the ESPN league page \u2014 built from the tracker, the budgets sheet and the trade log</span>' +
+      '<button class="dh-chip rt-copy" type="button">Copy</button></header>' +
+      '<pre class="rt-notebox">' + esc(txt) + '</pre></article>';
+  }
   /* ---------- 2027 contracts ---------- */
   function cap() {
     var list = T.teams.filter(function (t) { return st.team === 'all' || String(t.id) === String(st.team); });
@@ -297,7 +415,14 @@
         block('Pickups', 'keepable at market value, no contract history', pickups.map(function (r) { return line(r, r.outlook.type === 'reAdd' ? '$' + r.outlook.lo + '+' : 'market'); })) +
         (locked.length + dead.length + resign.length + first.length + pickups.length ? '' : '<div class="empty-note">Everyone here was bought at the auction — all first-time keepers in 2027, priced off the market.</div>') +
         '</div></article>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' + (st.team === 'all' ? noteCard() : '');
+    var copy = main.querySelector('.rt-copy');
+    if (copy) copy.addEventListener('click', function () {
+      var txt = main.querySelector('.rt-notebox').textContent;
+      var done = function () { copy.textContent = 'Copied \u2713'; setTimeout(function () { copy.textContent = 'Copy'; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { copy.textContent = 'Select and copy'; });
+      else { var r = document.createRange(); r.selectNodeContents(main.querySelector('.rt-notebox')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); copy.textContent = 'Selected \u2014 press copy'; }
+    });
   }
 
   /* ---------- chrome ---------- */
@@ -329,6 +454,7 @@
     n.push('<li><span class="rt-next formula inline"><b>$35\u201379</b></span> <b>Range</b> \u2014 no contract yet, so the 2027 price is set next summer: the average of this year\u2019s cost and his ESPN value then, or cost + $10 if the market jumps by more than $10. Nothing today can say where in the range he lands \u2014 that is his season \u2014 but he cannot cost less than half this year\u2019s price or more than $10 above it. A player kept once who is kept again signs his first two-year deal on that number.</li>');
     n.push('<li><span class="rt-next market inline"><b>market</b></span> <b>Pickup</b> \u2014 added off waivers or as a free agent. Keepable at whatever his ESPN market value is next summer; there is no cap and no contract history. One exception from the Manifesto: your own drafted player, dropped and re-added within a week with nobody else touching him, costs the <em>greater</em> of the auction math and market.</li>');
     n.push('<li><b>Moves</b> lists every executed add, drop, waiver claim and trade with the winning bid — and who was outbid. Lineup changes are not moves. Offseason trades live on the <a href="trades.html">Trades</a> page.</li>');
+    n.push('<li><b>Value</b> uses the league\u2019s own auction prices as the ladder for production: the RB whose points rank 7th among the league\u2019s RBs so far was worth what the 7th-priciest RB cost on draft day. The scoreboard totals that for each roster against the money committed on draft day; keeper watch compares it with the most a player can cost to keep in 2027. Small samples early \u2014 it firms up as the season goes.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
     if ((T.warnings || []).length) n.push('<li><b>To check:</b> ' + T.warnings.map(esc).join(' · ') + '</li>');
@@ -338,7 +464,7 @@
 
   function render() {
     buildViews();
-    if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else if (st.view === 'stats') statsView(); else rosters();
+    if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else if (st.view === 'stats') statsView(); else if (st.view === 'value') valueView(); else rosters();
   }
 
   // tap a player for his card. The card wants the keeper-sheet record when

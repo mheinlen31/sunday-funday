@@ -1,0 +1,23 @@
+{
+ "_": "Sections of the ESPN League Manager's note that only the commissioner knows. Contracts, purses and trades are generated from the tracker.",
+ "sections": [
+  {
+   "title": "2025 Payouts",
+   "lines": [
+    "Loser - $1,260 - Super Bowl Runner Up, 1st Place Team, Top Scoring Team, Weeks 5, 9, 11, 14, 16",
+    "Paw - $835 - Super Bowl Champion, 4 Seed, Weeks 2, 7, 15",
+    "House Bom - $570 - 2nd Place Team, 2nd most points, Championship Weekend, Weeks 4, 13, 17",
+    "Silent Pugios - $225 - 3rd most points, Championship Weekend, Weeks 3, 6, 8, 10, 18",
+    "Juice - $80 - 3 Seed",
+    "Chovies - $15 - Week 1",
+    "Centersup - $15 - Week 12"
+   ]
+  },
+  {
+   "title": "2025 Side Bets",
+   "lines": [
+    "Pep vs. Loser - More Points - Caleb Williams vs. Bo Nix"
+   ]
+  }
+ ]
+}
