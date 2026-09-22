@@ -665,6 +665,14 @@
     g.fillStyle = '#faf9f7'; g.fillRect(0, 0, W, H);
     g.fillStyle = GREEN; g.fillRect(0, 0, W, 12);
     function text(t, x, y, font, color, align) { g.font = font; g.fillStyle = color; g.textAlign = align || 'left'; g.fillText(t, x, y); }
+    function fit(t, x, y, font, color, maxW) {
+      // shrink the font to a floor, then trim with an ellipsis, so a long line stays on the card
+      var size = +font.match(/(\d+)px/)[1], f = font;
+      g.font = f;
+      while (g.measureText(t).width > maxW && size > 17) { size -= 1; f = font.replace(/\d+px/, size + 'px'); g.font = f; }
+      while (g.measureText(t).width > maxW && t.length > 8) { t = t.replace(/\s*\S+$/, '') + '\u2026'; }
+      text(t, x, y, f, color);
+    }
     function caps(t, x, y, color) { g.font = '800 20px ' + SANS; g.fillStyle = color || GREEN; g.textAlign = 'left'; var cx = x; for (var i = 0; i < t.length; i++) { g.fillText(t[i], cx, y); cx += g.measureText(t[i]).width + 4; } }
     function rule(x1, x2, y, color, w) { g.strokeStyle = color || RULE; g.lineWidth = w || 1; g.beginPath(); g.moveTo(x1, y); g.lineTo(x2, y); g.stroke(); }
     function section(t, x, y, w) { caps(t, x, y, FAINT); rule(x, x + w, y + 12, INK, 2); return y + 44; }
@@ -687,7 +695,7 @@
         text(fmt1(gm.wp) + '–' + fmt1(gm.lp), LX + LW, yl, 'bold 27px ' + SERIF, INK, 'right');
         rule(LX, LX + LW, yl + 14); yl += 46;
       });
-      text('High ' + owner(L.hi[0]) + ' ' + fmt1(L.hi[1]) + ' (+$' + (PAY.weekly || 15) + ')   ·   Low ' + owner(L.lo[0]) + ' ' + fmt1(L.lo[1]), LX, yl + 8, '600 21px ' + SANS, SOFT);
+      fit('High ' + owner(L.hi[0]) + ' ' + fmt1(L.hi[1]) + ' (+$' + (PAY.weekly || 15) + ')   ·   Low ' + owner(L.lo[0]) + ' ' + fmt1(L.lo[1]), LX, yl + 8, '600 21px ' + SANS, SOFT, LW);
       yl += 60;
     }
     // standings
@@ -703,10 +711,10 @@
     // money, full width
     y = section('MONEY', LX, y, W - 120);
     text('Banked  ', LX, y, '800 19px ' + SANS, FAINT);
-    text(ty.banked.length ? ty.banked.map(function (x) { return x.t.owner + ' $' + x.amt + ' (wk ' + x.weeks.join(', ') + ')'; }).join('  ·  ') : 'nobody yet', LX + 96, y, '600 24px ' + SANS, INK);
+    fit(ty.banked.length ? ty.banked.map(function (x) { return x.t.owner + ' $' + x.amt + ' (wk ' + x.weeks.join(', ') + ')'; }).join('  ·  ') : 'nobody yet', LX + 96, y, '600 24px ' + SANS, INK, W - 60 - (LX + 96));
     y += 42;
     text('If it ended today  ', LX, y, '800 19px ' + SANS, FAINT);
-    text(ty.today.slice(0, 5).map(function (x) { return x.t.owner + ' $' + x.total; }).join('  ·  '), LX + 196, y, '600 24px ' + SANS, INK);
+    fit(ty.today.slice(0, 5).map(function (x) { return x.t.owner + ' $' + x.total; }).join('  ·  '), LX + 196, y, '600 24px ' + SANS, INK, W - 60 - (LX + 196));
     y += 60;
     // points race (left) and top scorers (right)
     var y2l = section('POINTS RACE', LX, y, LW), y2r = section(L ? 'TOP SCORERS · WEEK ' + L.W : 'TOP SCORERS', RX, y, RW);
@@ -730,8 +738,8 @@
     var sb = (T.scoreboard || []).slice(0, 3), kw = keeperTop(3);
     if (y < H - 120) {
       y = section('THE MARKET', LX, y, W - 120);
-      if (sb.length) { text('Auction scoreboard  ', LX, y, '800 19px ' + SANS, FAINT); text(sb.map(function (r, i) { return (i + 1) + '. ' + owner(r.team) + ' ' + (r.surplus >= 0 ? '+' : '−') + '$' + Math.abs(r.surplus); }).join('   ·   '), LX + 220, y, '600 24px ' + SANS, INK); y += 42; }
-      if (kw.length) { text('Keeper watch  ', LX, y, '800 19px ' + SANS, FAINT); text(kw.map(function (x) { return shortName(meta(x.r.pid).name) + ' $' + S(x.r.pid).worth + ' vs ' + keepCostText(x.r).replace('at most ', '≤ '); }).join('   ·   '), LX + 160, y, '600 22px ' + SANS, INK); y += 42; }
+      if (sb.length) { text('Auction scoreboard  ', LX, y, '800 19px ' + SANS, FAINT); fit(sb.map(function (r, i) { return (i + 1) + '. ' + owner(r.team) + ' ' + (r.surplus >= 0 ? '+' : '−') + '$' + Math.abs(r.surplus); }).join('   ·   '), LX + 220, y, '600 24px ' + SANS, INK, W - 60 - (LX + 220)); y += 42; }
+      if (kw.length) { text('Keeper watch  ', LX, y, '800 19px ' + SANS, FAINT); fit(kw.map(function (x) { return shortName(meta(x.r.pid).name) + ' $' + S(x.r.pid).worth + ' vs ' + keepCostText(x.r).replace('at most ', '≤ '); }).join('   ·   '), LX + 160, y, '600 22px ' + SANS, INK, W - 60 - (LX + 160)); y += 42; }
     }
     // footer
     g.fillStyle = GREEN; g.fillRect(0, H - 64, W, 64);

@@ -1428,3 +1428,11 @@ body.pc-open { overflow: hidden; }
 .sm-sheet img { display: block; width: 100%; height: auto; }
 .sm-sheet-bar { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 2px 2px; }
 .sm-sheet-bar a { text-decoration: none; }
+/* a wide table inside a card must scroll inside it, not stretch the card past the screen */
+.dh-main > *, .dh-pair > *, .rt-teams > * { min-width: 0; }
+.dh-card { min-width: 0; }
+@media (max-width: 720px) {
+  .sm-head .dh-head { row-gap: 8px; }
+  .sm-head .dh-sub { flex-basis: 100%; margin-left: 0; order: 3; }
+  .sm-actions { margin-left: 0; }
+}
