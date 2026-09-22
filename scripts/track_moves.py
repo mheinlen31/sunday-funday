@@ -601,6 +601,7 @@ def build(baseline, ledger, players, stats=None, weekly=None):
         "byes": snap.get("byes") or {},
         "current": snap.get("current") or wk,
         "noteManual": load_json(TRACKER_DIR / "note-manual.json", None),
+        "payouts": load_json(TRACKER_DIR / f"payouts-{SEASON}.json", None),
         "stats": {
             "adds": sum(len(e["adds"]) for e in events), "drops": sum(len(e["drops"]) for e in events),
             "trades": sum(1 for e in events if e["trades"]),

@@ -1,0 +1,24 @@
+{
+ "_": "Manifesto v5.1, Current League Payouts (10 teams). Entry $300. Regular season = NFL weeks 1-18; playoffs are the league's own drafts in the NFL postseason.",
+ "entry": 300,
+ "weekly": 15,
+ "pointsRace": [
+  410,
+  250,
+  100
+ ],
+ "regular": [
+  425,
+  225
+ ],
+ "seeds": {
+  "3": 80,
+  "4": 40
+ },
+ "champWeekendLoser": 50,
+ "runnerUp": 350,
+ "champion": 750,
+ "playoffTeams": 6,
+ "byes": 2,
+ "regularWeeks": 18
+}

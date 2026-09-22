@@ -339,61 +339,82 @@
     else { var r = document.createRange(); r.selectNodeContents(box); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected \u2014 press copy'; }
   });
 
-  /* ---------- the week in review, for the group text ---------- */
-  function reviewText() {
-    var W = T.reviewWeek || T.statsWeek || T.week, L = ['Sunday Funday \u2014 Week ' + W];
-    var ms = (T.matchups || []).filter(function (m) { return m.week === W && m.winner && m.winner !== 'UNDECIDED'; });
-    if (ms.length) {
-      L.push('', 'Results');
-      ms.forEach(function (m) {
-        var w = m.winner === 'HOME' ? [m.home, m.hp, m.away, m.ap] : [m.away, m.ap, m.home, m.hp];
-        L.push(owner(w[0]) + ' ' + fmt1(w[1]) + ' \u2013 ' + owner(w[2]) + ' ' + fmt1(w[3]));
-      });
-      var scores = ms.map(function (m) { return [m.home, m.hp]; }).concat(ms.map(function (m) { return [m.away, m.ap]; })).sort(function (a, b) { return b[1] - a[1]; });
-      var closest = ms.slice().sort(function (a, b) { return Math.abs(a.hp - a.ap) - Math.abs(b.hp - b.ap); })[0];
-      L.push('Top score: ' + owner(scores[0][0]) + ' ' + fmt1(scores[0][1]) + ' \u00b7 Low: ' + owner(scores[scores.length - 1][0]) + ' ' + fmt1(scores[scores.length - 1][1]) +
-        ' \u00b7 Closest: ' + owner(closest.winner === 'HOME' ? closest.home : closest.away) + ' by ' + fmt1(Math.abs(closest.hp - closest.ap)));
-    }
-    var stand = T.teams.slice().sort(function (a, b) { return (b.record.wins || 0) - (a.record.wins || 0) || (b.record.pointsFor || 0) - (a.record.pointsFor || 0); });
-    L.push('', 'Standings');
-    stand.forEach(function (t, i) { L.push((i + 1) + '. ' + t.owner + ' ' + (t.record.wins || 0) + '-' + (t.record.losses || 0) + (t.record.ties ? '-' + t.record.ties : '') + ' (' + fmt1(t.record.pointsFor || 0) + ')'); });
+  /* ---------- the week in review: a designed card, and a tight text for the group text ---------- */
+  function shortName(name) {
+    var parts = String(name).split(' ');
+    return parts.length > 1 && /^[A-Z][a-z]*\.?$/.test(parts[0]) ? parts.slice(1).join(' ') : name;
+  }
+  function reviewData() {
+    var W = T.reviewWeek || T.statsWeek || T.week, M = payoutRace(), PAY = T.payouts || {};
+    var ms = (T.matchups || []).filter(function (m) { return m.week === W && decided(m); });
+    var games = ms.map(function (m) {
+      var hw = m.winner === 'HOME';
+      return { w: hw ? m.home : m.away, wp: hw ? m.hp : m.ap, l: hw ? m.away : m.home, lp: hw ? m.ap : m.hp };
+    }).sort(function (a, b) { return b.wp - a.wp; });
+    var scores = ms.map(function (m) { return [m.home, m.hp]; }).concat(ms.map(function (m) { return [m.away, m.ap]; })).sort(function (a, b) { return b[1] - a[1]; });
+    var closest = games.slice().sort(function (a, b) { return (a.wp - a.lp) - (b.wp - b.lp); })[0];
     var wkTop = (T.pool || []).filter(function (pid) { var s = S(pid); return WHERE[pid] && s.w && s.w[W - 1] != null; })
       .sort(function (a, b) { return S(b).w[W - 1] - S(a).w[W - 1]; }).slice(0, 5);
-    if (wkTop.length) { L.push('', 'Top scorers'); wkTop.forEach(function (pid) { L.push(meta(pid).name + ' ' + fmt1(S(pid).w[W - 1]) + ' (' + WHERE[pid].t.owner + ')'); }); }
-    var evs = T.events.filter(function (e) { return e.week === W; });
-    var adds = 0, drops = 0, trades = 0;
+    var evs = T.events.filter(function (e) { return e.week === W; }), adds = 0, drops = 0, trades = 0;
     evs.forEach(function (e) { adds += e.adds.length; drops += e.drops.length; if (e.trades.length) trades++; });
     var big = evs.filter(function (e) { return e.adds.length && e.bid; }).sort(function (a, b) { return b.bid - a.bid; })[0];
-    L.push('', 'Moves: ' + adds + ' adds, ' + drops + ' drops, ' + trades + (trades === 1 ? ' trade' : ' trades') +
-      (big ? ' \u00b7 biggest bid ' + meta(big.adds[0].pid).name + ' $' + big.bid + ' (' + owner(big.team) + ')' : ''));
-    var sb = T.scoreboard || [];
-    if (sb.length) {
-      L.push('', 'Auction scoreboard');
-      sb.slice(0, 3).forEach(function (r, i) {
-        L.push((i + 1) + '. ' + owner(r.team) + ' ' + (r.surplus >= 0 ? '+' : '\u2212') + '$' + Math.abs(r.surplus) +
-          (r.dSurplus ? ' (' + (r.dSurplus > 0 ? '\u25b2' : '\u25bc') + '$' + Math.abs(r.dSurplus) + ' this week)' : ''));
-      });
-      var mv = sb.filter(function (r) { return r.dSurplus != null; }).sort(function (a, b) { return b.dSurplus - a.dSurplus; });
-      if (mv.length > 1) L.push('Movers: ' + owner(mv[0].team) + ' \u25b2$' + Math.abs(mv[0].dSurplus) + ' \u00b7 ' + owner(mv[mv.length - 1].team) + ' \u25bc$' + Math.abs(mv[mv.length - 1].dSurplus));
-    }
     var watch = [];
     T.teams.forEach(function (t) { t.roster.forEach(function (r) { if (r.keep && r.keep.edge > 0) watch.push({ t: t, r: r }); }); });
     watch.sort(function (a, b) { return b.r.keep.edge - a.r.keep.edge; });
-    if (watch.length) {
-      L.push('', 'Keeper watch');
-      watch.slice(0, 5).forEach(function (x) {
-        L.push(meta(x.r.pid).name + ' (' + x.t.owner + ') worth $' + S(x.r.pid).worth + ' so far, keepable ' + keepCostText(x.r) + (x.r.keep.new && T.prevWeek ? ' \u2014 new this week' : ''));
-      });
+    return { W: W, M: M, PAY: PAY, games: games, scores: scores, closest: closest, wkTop: wkTop, adds: adds, drops: drops, trades: trades, big: big,
+             watch: watch.slice(0, 3), sb: (T.scoreboard || []).slice(0, 3), cut: PAY.playoffTeams || 6 };
+  }
+  function reviewText() {
+    var d = reviewData(), L = ['Sunday Funday — Week ' + d.W];
+    if (d.games.length) {
+      L.push(d.games.map(function (g) { return owner(g.w) + ' ' + fmt1(g.wp) + '–' + fmt1(g.lp) + ' ' + owner(g.l); }).join(' · '));
+      var hi = d.scores[0], lo = d.scores[d.scores.length - 1];
+      L.push('High: ' + owner(hi[0]) + ' ' + fmt1(hi[1]) + ' ($' + (d.PAY.weekly || 15) + ')' + ' · Low: ' + owner(lo[0]) + ' ' + fmt1(lo[1]) +
+        (d.closest ? ' · Closest: ' + owner(d.closest.w) + ' by ' + fmt1(d.closest.wp - d.closest.lp) : ''));
     }
-    L.push('', 'Full tracker: https://mheinlen31.github.io/sunday-funday/');
+    var o = d.M.order.map(function (x) { return x.t.owner + ' ' + x.w + '-' + x.l + (x.ti ? '-' + x.ti : ''); });
+    L.push('Standings: ' + o.slice(0, d.cut).join(', ') + ' | ' + o.slice(d.cut).join(', '));
+    L.push('Points race: ' + d.M.byPts.slice(0, 3).map(function (x) { return x.t.owner + ' ' + fmt1(x.pf); }).join(', '));
+    if (d.wkTop.length) L.push('Top scorers: ' + d.wkTop.slice(0, 3).map(function (pid) { return meta(pid).name + ' ' + fmt1(S(pid).w[d.W - 1]) + ' (' + WHERE[pid].t.owner + ')'; }).join(', '));
+    L.push('Moves: ' + d.adds + ' adds, ' + d.drops + ' drops' + (d.trades ? ', ' + d.trades + (d.trades === 1 ? ' trade' : ' trades') : '') +
+      (d.big ? ' · biggest bid ' + meta(d.big.adds[0].pid).name + ' $' + d.big.bid + ' (' + owner(d.big.team) + ')' : ''));
+    if (d.sb.length) L.push('Auction scoreboard: ' + d.sb.map(function (r) { return owner(r.team) + ' ' + (r.surplus >= 0 ? '+' : '−') + '$' + Math.abs(r.surplus) + (r.dSurplus ? ' (' + (r.dSurplus > 0 ? '▲' : '▼') + '$' + Math.abs(r.dSurplus) + ')' : ''); }).join(', '));
+    if (d.watch.length) L.push('Keeper watch: ' + d.watch.map(function (x) { return shortName(meta(x.r.pid).name) + ' $' + S(x.r.pid).worth + ' vs ' + keepCostText(x.r).replace('at most ', '≤ '); }).join(' · '));
+    L.push('mheinlen31.github.io/sunday-funday');
     return L.join('\n');
   }
   function reviewCard() {
     var W = T.reviewWeek;
     if (!W) return '';
-    return '<article class="team-card board-card dh-card rt-note"><header class="dh-head"><h2>Week ' + W + ' in review</h2>' +
-      '<span class="dh-sub">written from the tracker \u2014 for the group text</span><button class="dh-chip rt-copy" type="button">Copy</button></header>' +
-      '<pre class="rt-notebox">' + esc(reviewText()) + '</pre></article>';
+    var d = reviewData();
+    var games = d.games.map(function (g) {
+      return '<div class="rv-game"><div class="rv-side win"><b>' + fmt1(g.wp) + '</b><span>' + esc(owner(g.w)) + '</span></div>' +
+        '<div class="rv-side"><b>' + fmt1(g.lp) + '</b><span>' + esc(owner(g.l)) + '</span></div></div>';
+    }).join('');
+    var hi = d.scores[0];
+    var stand = '<ol class="rv-stand">' + d.M.order.map(function (x, i) {
+      return '<li' + (i === d.cut - 1 ? ' class="cut"' : '') + (String(x.t.id) === String(st.me) ? ' style="color:var(--accent)"' : '') + '><span>' + esc(x.t.owner) + '</span><b>' + x.w + '–' + x.l + (x.ti ? '–' + x.ti : '') + '</b><i>' + fmt1(x.pf) + '</i></li>';
+    }).join('') + '</ol>';
+    var top = '<ul class="rv-top">' + d.wkTop.map(function (pid) {
+      var m = meta(pid);
+      return '<li>' + (m.img ? '<img src="' + esc(m.img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '<span class="rv-nomug"></span>') +
+        '<span class="rv-who">' + esc(m.name) + '<small>' + esc(m.pos) + ' · ' + esc(WHERE[pid].t.owner) + '</small></span><b>' + fmt1(S(pid).w[d.W - 1]) + '</b></li>';
+    }).join('') + '</ul>';
+    var facts = '<ul class="rv-facts">' +
+      (hi ? '<li><b>$' + (d.PAY.weekly || 15) + ' weekly high</b>' + esc(owner(hi[0])) + ' · ' + fmt1(hi[1]) + (d.closest ? ' <i>closest: ' + esc(owner(d.closest.w)) + ' by ' + fmt1(d.closest.wp - d.closest.lp) + '</i>' : '') + '</li>' : '') +
+      '<li><b>Points race</b>' + d.M.byPts.slice(0, 3).map(function (x, i) { return (i + 1) + '. ' + esc(x.t.owner) + ' ' + fmt1(x.pf); }).join(' · ') + '</li>' +
+      '<li><b>Moves</b>' + d.adds + ' adds · ' + d.drops + ' drops' + (d.trades ? ' · ' + d.trades + (d.trades === 1 ? ' trade' : ' trades') : '') +
+        (d.big ? '<i>biggest bid: ' + esc(meta(d.big.adds[0].pid).name) + ' $' + d.big.bid + ' (' + esc(owner(d.big.team)) + ')</i>' : '') + '</li>' +
+      (d.sb.length ? '<li><b>Auction scoreboard</b>' + d.sb.map(function (r) { return esc(owner(r.team)) + ' ' + valChip(r.surplus) + trend(r.dSurplus, true); }).join(' · ') + '</li>' : '') +
+      (d.watch.length ? '<li><b>Keeper watch</b>' + d.watch.map(function (x) { return esc(shortName(meta(x.r.pid).name)) + ' $' + S(x.r.pid).worth + ' <i>vs ' + esc(keepCostText(x.r).replace('at most ', '≤ ')) + '</i>'; }).join(' · ') + '</li>' : '') +
+      '</ul>';
+    return '<article class="team-card board-card dh-card rt-review"><header class="dh-head"><h2>Week ' + W + ' in review</h2>' +
+      '<span class="dh-sub">written from the tracker</span><button class="dh-chip rt-copy" type="button" title="Copy a text version for the group text">Copy</button></header>' +
+      (games ? '<div class="rv-scores">' + games + '</div>' : '') +
+      '<div class="rv-grid"><section><h3>Standings</h3>' + stand + '</section>' +
+      (d.wkTop.length ? '<section><h3>Top scorers</h3>' + top + '</section>' : '') +
+      '<section><h3>The week</h3>' + facts + '</section></div>' +
+      '<pre class="rt-notebox" hidden>' + esc(reviewText()) + '</pre></article>';
   }
 
   /* ---------- lineup trouble: byes and injuries on current rosters ---------- */
@@ -472,6 +493,134 @@
       (T.statsWeek && T.statsWeek < 5 ? '<b>Week ' + T.statsWeek + ' is a small sample</b> \u2014 this firms up as the season goes.' : 'Through week ' + T.statsWeek + '.') + '</p>';
     main.className = 'dh-main rt-value';
     main.innerHTML = tiles() + board + kw + how;
+  }
+
+  /* ---------- standings: the table, the money, the weeks ---------- */
+  function regular(m) { return !m.playoff && (!T.payouts || !T.payouts.regularWeeks || m.week <= T.payouts.regularWeeks); }
+  function decided(m) { return m.winner && m.winner !== 'UNDECIDED'; }
+  function h2h() {
+    var R = {};
+    T.teams.forEach(function (t) { R[t.id] = {}; });
+    (T.matchups || []).filter(function (m) { return regular(m) && decided(m); }).forEach(function (m) {
+      function add(a, b, pa, pb) {
+        var r = R[a][b] = R[a][b] || { w: 0, l: 0, t: 0, pf: 0, pa: 0, games: [] };
+        r.pf += pa; r.pa += pb; r.games.push([m.week, pa, pb]);
+        if (pa > pb) r.w++; else if (pa < pb) r.l++; else r.t++;
+      }
+      add(m.home, m.away, m.hp, m.ap); add(m.away, m.home, m.ap, m.hp);
+    });
+    return R;
+  }
+  /* Manifesto order: record, total points, head-to-head record, head-to-head points */
+  function standingsOrder(R) {
+    var list = T.teams.map(function (t) {
+      var r = t.record || {};
+      return { t: t, w: r.wins || 0, l: r.losses || 0, ti: r.ties || 0, pf: r.pointsFor || 0, pa: r.pointsAgainst || 0, streak: (r.streakType === 'WIN' ? 'W' : r.streakType === 'LOSS' ? 'L' : '') + (r.streakLength || '') };
+    });
+    list.sort(function (a, b) {
+      var ga = a.w + a.l + a.ti, gb = b.w + b.l + b.ti;
+      var pa = ga ? (a.w + a.ti / 2) / ga : 0, pb = gb ? (b.w + b.ti / 2) / gb : 0;
+      if (pb !== pa) return pb - pa;
+      if (b.pf !== a.pf) return b.pf - a.pf;
+      var ab = R[a.t.id][b.t.id], ba = R[b.t.id][a.t.id];
+      if (ab && ba) { if (ab.w !== ba.w) return ba.w - ab.w; if (ab.pf !== ba.pf) return ba.pf - ab.pf; }
+      return 0;
+    });
+    return list;
+  }
+  function weeks() {
+    var by = {};
+    (T.matchups || []).filter(regular).forEach(function (m) {
+      var arr = by[m.week] = by[m.week] || { ms: [], scores: [] };
+      arr.ms.push(m); arr.scores.push({ team: m.home, pts: m.hp }, { team: m.away, pts: m.ap });
+    });
+    return Object.keys(by).map(Number).sort(function (a, b) { return a - b; }).map(function (wk) {
+      var w = by[wk], sc = w.scores.slice().sort(function (a, b) { return b.pts - a.pts; });
+      var done = w.ms.every(decided), live = !done && sc.some(function (x) { return x.pts > 0; });
+      return { week: wk, ms: w.ms, done: done, live: live, top: sc[0], second: sc[1], tie: sc.length > 1 && sc[0].pts === sc[1].pts && sc[0].pts > 0 };
+    });
+  }
+  function payoutRace() {
+    var PAY = T.payouts || {}, weekly = PAY.weekly || 15, R = h2h(), order = standingsOrder(R), W = weeks();
+    var banked = {}, inPlay = {};
+    T.teams.forEach(function (t) { banked[t.id] = { weeks: [], amt: 0 }; inPlay[t.id] = []; });
+    W.forEach(function (w) { if (w.done && w.top && w.top.pts > 0 && !w.tie) { banked[w.top.team].weeks.push(w.week); banked[w.top.team].amt += weekly; } });
+    var reg = PAY.regular || [425, 225], seeds = PAY.seeds || { '3': 80, '4': 40 }, pr = PAY.pointsRace || [410, 250, 100];
+    if (order[0]) inPlay[order[0].t.id].push(['1st place', reg[0]]);
+    if (order[1]) inPlay[order[1].t.id].push(['2nd place', reg[1]]);
+    if (order[2]) inPlay[order[2].t.id].push(['3 seed', seeds['3']]);
+    if (order[3]) inPlay[order[3].t.id].push(['4 seed', seeds['4']]);
+    var byPts = order.slice().sort(function (a, b) { return b.pf - a.pf; });
+    ['Top scorer', '2nd most points', '3rd most points'].forEach(function (lab, i) { if (byPts[i]) inPlay[byPts[i].t.id].push([lab, pr[i]]); });
+    return { PAY: PAY, weekly: weekly, R: R, order: order, W: W, banked: banked, inPlay: inPlay, byPts: byPts };
+  }
+  function standingsView() {
+    var M = payoutRace(), PAY = M.PAY, cut = PAY.playoffTeams || 6, byes = PAY.byes || 2;
+    var ptsRank = {}; M.byPts.forEach(function (x, i) { ptsRank[x.t.id] = i + 1; });
+    var table = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Standings</h2>' +
+      '<span class="dh-sub">Manifesto tiebreakers: record, points, head-to-head \u00b7 top ' + cut + ' make the playoffs, top ' + byes + ' get a bye</span></header>' +
+      '<div style="overflow-x:auto"><table class="dh-table rt-standings"><thead><tr><th class="dh-n">#</th><th>Team</th><th class="dh-cash">W\u2013L</th><th class="dh-cash">PF</th><th class="dh-cash hide-m">PA</th>' +
+      '<th class="dh-cash hide-m">Streak</th><th class="dh-cash">Pts rank</th><th class="dh-cash">Weekly wins</th></tr></thead><tbody>' +
+      M.order.map(function (x, i) {
+        var t = x.t, b = M.banked[t.id], mine = String(t.id) === String(st.me);
+        var cls = (i === byes - 1 ? 'rt-bye' : '') + (i === cut - 1 ? ' rt-cut' : '');
+        return '<tr class="' + cls + '"' + (mine ? ' style="background:#f4f8f5"' : '') + '><td class="dh-n">' + (i + 1) + '</td>' +
+          '<td class="dh-name">' + esc(t.owner) + ' <span class="dh-team">' + esc(t.name) + '</span></td>' +
+          '<td class="dh-cash">' + x.w + '\u2013' + x.l + (x.ti ? '\u2013' + x.ti : '') + '</td><td class="dh-cash">' + fmt1(x.pf) + '</td><td class="dh-cash hide-m">' + fmt1(x.pa) + '</td>' +
+          '<td class="dh-cash hide-m">' + esc(x.streak) + '</td><td class="dh-cash">' + ptsRank[t.id] + '</td>' +
+          '<td class="dh-cash">' + (b.weeks.length ? b.weeks.length + ' <i class="dh-yr">' + money(b.amt) + '</i>' : '\u2014') + '</td></tr>';
+      }).join('') + '</tbody></table></div></article>';
+
+    var pot = T.teams.length * (PAY.entry || 300);
+    var weeklyPaid = Object.keys(M.banked).reduce(function (a, k) { return a + M.banked[k].amt; }, 0);
+    var ledger = T.teams.map(function (t) {
+      var b = M.banked[t.id], ip = M.inPlay[t.id], ipAmt = ip.reduce(function (a, x) { return a + x[1]; }, 0);
+      return { t: t, banked: b, ip: ip, ipAmt: ipAmt, total: b.amt + ipAmt };
+    }).sort(function (a, b) { return b.total - a.total || b.banked.amt - a.banked.amt; });
+    var moneyCard = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Payout race</h2>' +
+      '<span class="dh-sub">' + money(pot) + ' pot \u00b7 ' + money(weeklyPaid) + ' of weekly money decided \u00b7 ' + money((PAY.champion || 750) + (PAY.runnerUp || 350) + 2 * (PAY.champWeekendLoser || 50)) + ' waits for the playoffs</span></header>' +
+      '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th>Team</th><th class="dh-cash">Banked</th><th>If the season ended today</th><th class="dh-cash">Total</th></tr></thead><tbody>' +
+      ledger.map(function (r) {
+        return '<tr' + (String(r.t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + esc(r.t.owner) + '</td>' +
+          '<td class="dh-cash">' + (r.banked.amt ? money(r.banked.amt) + ' <i class="dh-yr">wk ' + r.banked.weeks.join(', ') + '</i>' : '\u2014') + '</td>' +
+          '<td class="dh-best">' + (r.ip.length ? r.ip.map(function (x) { return esc(x[0]) + ' <i class="dh-yr">' + money(x[1]) + '</i>'; }).join(' \u00b7 ') : '') + '</td>' +
+          '<td class="dh-cash dh-tot">' + (r.total ? money(r.total) : '\u2014') + '</td></tr>';
+      }).join('') + '</tbody></table></div></article>';
+
+    var wkCard = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Weekly high scores</h2><span class="dh-sub">' + money(M.weekly) + ' a week to the top total</span></header>' +
+      '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">Week</th><th>High score</th><th class="dh-cash">Points</th><th class="hide-m">Runner-up</th></tr></thead><tbody>' +
+      M.W.filter(function (w) { return w.done || w.live; }).slice().reverse().map(function (w) {
+        return '<tr><td class="dh-n">' + w.week + '</td><td class="dh-name">' + esc(owner(w.top.team)) + (w.live ? ' <span class="rt-live">in progress</span>' : (w.tie ? ' <span class="dh-yr">tie</span>' : '')) + '</td>' +
+          '<td class="dh-cash">' + fmt1(w.top.pts) + '</td><td class="dh-own hide-m">' + (w.second ? esc(owner(w.second.team)) + ' ' + fmt1(w.second.pts) : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div></article>';
+
+    var cur = T.current || T.week;
+    function matchRows(wk) {
+      var w = M.W.filter(function (x) { return x.week === wk; })[0];
+      if (!w) return '';
+      return '<div class="rt-block-h" style="padding:10px 14px 0">Week ' + wk + (w.done ? '' : w.live ? ' <span class="rt-live">in progress</span>' : ' <span class="dh-yr">upcoming</span>') + '</div>' +
+        '<table class="dh-table"><tbody>' + w.ms.map(function (m) {
+          var hw = m.winner === 'HOME', aw = m.winner === 'AWAY';
+          return '<tr><td class="dh-name" style="text-align:right' + (hw ? ';color:var(--accent)' : '') + '">' + esc(owner(m.home)) + '</td><td class="dh-cash" style="text-align:right">' + (m.hp || w.live ? fmt1(m.hp) : '') + '</td>' +
+            '<td style="text-align:center;color:var(--ink-faint)">vs</td><td class="dh-cash" style="text-align:left">' + (m.ap || w.live ? fmt1(m.ap) : '') + '</td><td class="dh-name"' + (aw ? ' style="color:var(--accent)"' : '') + '>' + esc(owner(m.away)) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    var sched = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Matchups</h2><span class="dh-sub">this week and next</span></header>' + matchRows(cur) + matchRows(cur + 1) + '</article>';
+
+    var grid = '<article class="team-card board-card dh-card"><header class="dh-head"><h2>Head to head</h2><span class="dh-sub">the tiebreaker table \u00b7 row beat column</span></header>' +
+      '<div style="overflow-x:auto"><table class="dh-table rt-h2h"><thead><tr><th></th>' + M.order.map(function (x) { return '<th title="' + esc(x.t.owner) + '">' + esc(x.t.owner.slice(0, 4)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      M.order.map(function (a) {
+        return '<tr><th style="text-align:left">' + esc(a.t.owner) + '</th>' + M.order.map(function (b) {
+          if (a.t.id === b.t.id) return '<td class="x">\u2014</td>';
+          var r = M.R[a.t.id][b.t.id];
+          if (!r) return '<td></td>';
+          var tip = r.games.map(function (g) { return 'wk ' + g[0] + ': ' + fmt1(g[1]) + '\u2013' + fmt1(g[2]); }).join(', ');
+          return '<td class="' + (r.w > r.l ? 'w' : r.l > r.w ? 'l' : 't') + '" title="' + esc(tip) + '">' + (r.w + r.l + r.t > 1 ? r.w + '\u2013' + r.l : (r.w ? 'W' : r.l ? 'L' : 'T')) + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div></article>';
+
+    main.className = 'dh-main rt-standings-view';
+    main.innerHTML = tiles() + table + '<div class="dh-pair">' + moneyCard + wkCard + '</div><div class="dh-pair">' + sched + grid + '</div>';
   }
 
   /* ---------- the League Manager's note, generated ---------- */
@@ -596,6 +745,7 @@
     n.push('<li><span class="rt-next market inline"><b>market</b></span> <b>Pickup</b> \u2014 added off waivers or as a free agent. Keepable at whatever his ESPN market value is next summer; there is no cap and no contract history. One exception from the Manifesto: your own drafted player, dropped and re-added within a week with nobody else touching him, costs the <em>greater</em> of the auction math and market.</li>');
     n.push('<li><b>Moves</b> lists every executed add, drop, waiver claim and trade with the winning bid — and who was outbid. Lineup changes are not moves. Offseason trades live on the <a href="trades.html">Trades</a> page.</li>');
     n.push('<li><b>Value</b> uses the league\u2019s own auction prices as the ladder for production: the RB whose points rank 7th among the league\u2019s RBs so far was worth what the 7th-priciest RB cost on draft day. The scoreboard totals that for each roster against the money committed on draft day; keeper watch compares it with the most a player can cost to keep in 2027. Small samples early \u2014 it firms up as the season goes.</li>');
+    n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
     n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Week in review</b> (top of Moves) and <b>Lineup trouble</b> (top of Rosters) are written fresh from the same data each run.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li><b>Tap a team\u2019s name</b> to open or close its card; the \u2606 makes it your team (first, and open, every visit). Moves marked <em class="rt-newtag inline">new</em> happened since you were last here. The <b>Waiver wire</b> preset lists free agents by last week\u2019s points with the going rate for winning bids by position.</li>');
@@ -607,7 +757,7 @@
 
   function render() {
     buildViews();
-    if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else if (st.view === 'stats') statsView(); else if (st.view === 'value') valueView(); else rosters();
+    if (st.view === 'moves') moves(); else if (st.view === 'cap') cap(); else if (st.view === 'stats') statsView(); else if (st.view === 'value') valueView(); else if (st.view === 'standings') standingsView(); else rosters();
   }
 
   // tap a player for his card. The card wants the keeper-sheet record when
