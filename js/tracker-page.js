@@ -62,9 +62,19 @@
 
   /* ---------- state ---------- */
   var LS = 'sf-tracker';
-  var st = { view: 'rosters', team: 'all', pos: 'all', scope: 'rostered', ssort: 'pts' };
+  var st = { view: 'rosters', team: 'all', pos: 'all', scope: 'rostered', ssort: 'pts', open: {}, me: null };
   try { Object.assign(st, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+  if (!st.open || typeof st.open !== 'object') st.open = {};
   function save() { try { localStorage.setItem(LS, JSON.stringify(st)); } catch (e) {} }
+  // cards start open on a desktop and closed on a phone, except the team you starred
+  function isOpen(tid) { return st.open[tid] != null ? st.open[tid] : (window.innerWidth > 720 || String(tid) === String(st.me)); }
+  // "new since your last visit": remember when you were last here, stamped as you leave
+  var SEEN = 0;
+  try { SEEN = +localStorage.getItem('sf-tracker-seen') || 0; } catch (e) {}
+  function markSeen() { try { localStorage.setItem('sf-tracker-seen', String(Date.now())); } catch (e) {} }
+  window.addEventListener('pagehide', markSeen);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') markSeen(); });
+  setTimeout(markSeen, 90000);
 
   /* ---------- wording ---------- */
   var CLS = {
@@ -137,8 +147,10 @@
       t.deadMoney.map(function (d) {
         return esc(meta(d.pid).name) + ' ' + money(d.amount) + ' (dropped ' + day(d.droppedOn) + (d.now ? ', now with ' + esc(owner(d.now)) : ', unowned') + ')';
       }).join('; ') + '</div>' : '';
-    return '<article class="team-card board-card rt-card" style="--tc:' + color(t.id) + '" id="rt-team-' + t.id + '">' +
-      '<header class="team-head static"><div class="team-name">' + esc(t.owner) + ' <span class="rt-team">' + esc(t.name) + '</span></div>' +
+    var mine = String(t.id) === String(st.me);
+    return '<article class="team-card board-card rt-card' + (isOpen(t.id) ? '' : ' collapsed') + (mine ? ' mine' : '') + '" style="--tc:' + color(t.id) + '" id="rt-team-' + t.id + '" data-tid="' + t.id + '">' +
+      '<header class="team-head rt-head" title="Tap to open or close"><div class="team-name"><span class="rt-caret">\u25be</span>' + esc(t.owner) + ' <span class="rt-team">' + esc(t.name) + '</span>' +
+      '<button class="rt-star' + (mine ? ' on' : '') + '" type="button" title="' + (mine ? 'Your team' : 'Make this my team') + '">' + (mine ? '\u2605' : '\u2606') + '</button></div>' +
       '<div class="team-meta">' +
       (rec.wins != null ? '<span class="stat"><strong>' + rec.wins + '–' + rec.losses + (rec.ties ? '–' + rec.ties : '') + '</strong></span>' : '') +
       (rec.pointsFor != null ? '<span class="stat"><strong>' + fmt1(rec.pointsFor) + '</strong> pts</span>' : '') +
@@ -148,6 +160,7 @@
   }
   function rosters() {
     var list = T.teams.filter(function (t) { return st.team === 'all' || String(t.id) === String(st.team); });
+    if (st.me) list.sort(function (a, b) { return (String(b.id) === String(st.me)) - (String(a.id) === String(st.me)); });
     main.className = 'dh-main rt-grid';
     main.innerHTML = tiles() + troubleCard() + '<div class="team-grid rt-teams">' + list.map(teamCard).join('') + '</div>';
   }
@@ -176,7 +189,8 @@
       var r = e.rivals.slice().sort(function (a, b) { return b.bid - a.bid; });
       rivals = '<div class="rt-rivals">outbid ' + r.map(function (x) { return esc(owner(x.team)) + ' ' + money(x.bid); }).join(', ') + '</div>';
     }
-    return '<li class="rt-ev" style="--tc:' + color(e.team) + '"><div class="rt-ev-time">' + clock(e.ts) + '<span>wk ' + e.week + '</span></div>' +
+    var fresh = SEEN && e.ts > SEEN;
+    return '<li class="rt-ev' + (fresh ? ' fresh' : '') + '" style="--tc:' + color(e.team) + '"><div class="rt-ev-time">' + clock(e.ts) + (fresh ? '<em class="rt-newtag">new</em>' : '') + '<span>wk ' + e.week + '</span></div>' +
       '<div class="rt-ev-body">' + parts.join(' · ') + rivals + '</div></li>';
   }
   function player(pid) {
@@ -201,7 +215,9 @@
       if (!byDay[k]) { byDay[k] = []; days.push(k); }
       byDay[k].push(e);
     });
-    main.innerHTML = tiles() + (st.team === 'all' ? reviewCard() : '') + '<div class="rt-log">' + days.map(function (k) {
+    var fresh = SEEN ? evs.filter(function (e) { return e.ts > SEEN; }).length : 0;
+    var banner = fresh ? '<div class="rt-banner">' + fresh + (fresh === 1 ? ' move' : ' moves') + ' since your last visit (' + new Date(SEEN).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ')</div>' : '';
+    main.innerHTML = tiles() + (st.team === 'all' ? reviewCard() : '') + banner + '<div class="rt-log">' + days.map(function (k) {
       var list = byDay[k];
       return '<section class="rt-day"><h2>' + dayFull(list[0].ts) + '</h2><ol>' + list.map(eventHtml).join('') + '</ol></section>';
     }).join('') + '</div>';
@@ -222,12 +238,30 @@
     return '<span class="dh-ctl"><span class="dh-ctl-label">' + id + '</span><span class="dh-seg" data-key="' + key + '">' +
       opts.map(function (o) { return '<button class="dh-chip' + (o[0] === cur ? ' on' : '') + '" data-v="' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</span></span>';
   }
+  function lastWk(s) { var R = T.reviewWeek; return R && s.w && s.w[R - 1] != null ? s.w[R - 1] : 0; }
+  function goingRates() {
+    var by = {};
+    (T.events || []).forEach(function (e) {
+      if (e.kind !== 'waiver' || !e.bid) return;
+      e.adds.forEach(function (a) {
+        var pos = meta(a.pid).pos, g = by[pos] = by[pos] || { n: 0, sum: 0, max: 0, who: null };
+        g.n++; g.sum += e.bid;
+        if (e.bid > g.max) { g.max = e.bid; g.who = meta(a.pid).name; }
+      });
+    });
+    var parts = POSES.filter(function (p) { return by[p]; }).map(function (p) {
+      var g = by[p];
+      return '<b>' + esc(p) + '</b> ' + g.n + (g.n === 1 ? ' claim' : ' claims') + ', avg $' + Math.round(g.sum / g.n) + ', high $' + g.max + ' (' + esc(g.who) + ')';
+    });
+    return parts.length ? '<div class="rt-rates"><span class="dh-ctl-label">Going rate</span> ' + parts.join(' \u00b7 ') + '</div>' : '';
+  }
   function statsView() {
     var wk = T.statsWeek || T.week;
     var rows = (T.pool || []).filter(function (pid) {
       var m = meta(pid);
       if (st.pos !== 'all' && m.pos !== st.pos) return false;
       if (st.scope === 'rostered' && !WHERE[pid]) return false;
+      if (st.scope === 'fa' && WHERE[pid]) return false;
       if (st.team !== 'all' && (!WHERE[pid] || String(WHERE[pid].t.id) !== String(st.team))) return false;
       return true;
     });
@@ -235,15 +269,21 @@
       var A = S(a), B = S(b);
       if (st.ssort === 'ppg') return B.ppg - A.ppg || B.pts - A.pts;
       if (st.ssort === 'wk') return (B.wk || 0) - (A.wk || 0) || B.pts - A.pts;
+      if (st.ssort === 'last') return lastWk(B) - lastWk(A) || B.pts - A.pts;
       if (st.ssort === 'cost') return costOf(b).n - costOf(a).n || B.pts - A.pts;
       if (st.ssort === 'prev') return (B.prev || 0) - (A.prev || 0);
       if (st.ssort === 'val') return (B.val == null ? -999 : B.val) - (A.val == null ? -999 : A.val) || B.pts - A.pts;
       return B.pts - A.pts;
     });
+    var sorts = [['pts', 'Points'], ['ppg', 'Per game']];
+    if (T.reviewWeek && T.reviewWeek !== wk) sorts.push(['last', 'Week ' + T.reviewWeek]);
+    sorts.push(['wk', 'Week ' + wk], ['cost', 'Cost'], ['val', 'Value'], ['prev', '2025']);
+    var preset = st.pos === 'all' && st.scope === 'fa' && st.ssort === (T.reviewWeek && T.reviewWeek !== wk ? 'last' : 'wk');
     var ctl = '<div class="rt-ctl">' +
+      '<span class="dh-ctl"><span class="dh-seg" data-key="preset"><button class="dh-chip' + (preset ? ' on' : '') + '" data-v="waivers">Waiver wire</button></span></span>' +
       chips('Position', [['all', 'All']].concat(POSES.map(function (p) { return [p, p]; })), st.pos, 'pos') +
-      chips('Show', [['rostered', 'Rostered'], ['all', 'Free agents too']], st.scope, 'scope') +
-      chips('Sort', [['pts', 'Points'], ['ppg', 'Per game'], ['wk', 'Week ' + wk], ['cost', 'Cost'], ['val', 'Value'], ['prev', '2025']], st.ssort, 'ssort') + '</div>';
+      chips('Show', [['rostered', 'Rostered'], ['all', 'Everyone'], ['fa', 'Free agents only']], st.scope, 'scope') +
+      chips('Sort', sorts, st.ssort, 'ssort') + '</div>' + (st.scope === 'fa' ? goingRates() : '');
     var body = rows.slice(0, 400).map(function (pid) {
       var m = meta(pid), s = S(pid), w = WHERE[pid], c = costOf(pid);
       return '<tr data-pid="' + pid + '"><td class="dh-n">' + (s.rk ? esc(m.pos) + s.rk : '') + '</td>' +
@@ -252,7 +292,7 @@
         '<td class="dh-own">' + (w ? esc(w.t.owner) : '<span class="rt-fa">FA</span>') + '</td>' +
         '<td class="dh-own hide-m">' + c.txt + '</td>' +
         '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '\u2014') + '</td>' +
-        '<td class="dh-pts">' + (s.wk == null ? '\u2014' : fmt1(s.wk)) + '</td><td class="dh-pts hide-m">' + (s.prev == null ? '\u2014' : fmt1(s.prev)) + '</td>' +
+        '<td class="dh-pts">' + (st.ssort === 'last' ? fmt1(lastWk(s)) : (s.wk == null ? '\u2014' : fmt1(s.wk))) + '</td><td class="dh-pts hide-m">' + (s.prev == null ? '\u2014' : fmt1(s.prev)) + '</td>' +
         '<td class="dh-cash hide-m">' + (s.worth != null ? money(s.worth) : '\u2014') + '</td><td class="dh-vc hide-m">' + valChip(s.val) + '</td></tr>';
     }).join('');
     main.className = 'dh-main rt-stats';
@@ -260,13 +300,15 @@
       '<span class="dh-sub">Sunday Funday scoring \u00b7 through week ' + wk + ' \u00b7 ' + rows.length + ' players</span></header>' +
       '<div style="padding:8px 14px 0">' + ctl + '</div>' +
       (rows.length ? '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">Rank</th><th>Player</th><th class="dh-p"></th><th class="hide-m">NFL</th><th>Owner</th><th class="hide-m">Cost</th>' +
-        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts">Wk ' + wk + '</th><th class="dh-pts hide-m">2025</th>' +
+        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts">Wk ' + (st.ssort === 'last' ? T.reviewWeek : wk) + '</th><th class="dh-pts hide-m">2025</th>' +
         '<th class="dh-cash hide-m" title="What production like his went for at this year\u2019s auction">Worth</th><th class="dh-vc hide-m" title="Worth so far, less what was paid">\u00b1</th></tr></thead><tbody>' + body + '</tbody></table></div>'
         : '<div class="empty-note">Nothing matches.</div>') + '</article>';
     main.querySelectorAll('.rt-ctl .dh-seg').forEach(function (seg) {
       seg.addEventListener('click', function (e) {
         var b = e.target.closest('.dh-chip'); if (!b) return;
-        st[seg.dataset.key] = b.dataset.v; save(); render();
+        if (seg.dataset.key === 'preset') { st.pos = 'all'; st.scope = 'fa'; st.ssort = (T.reviewWeek && T.reviewWeek !== wk) ? 'last' : 'wk'; }
+        else st[seg.dataset.key] = b.dataset.v;
+        save(); render();
       });
     });
   }
@@ -391,7 +433,7 @@
       '<th class="dh-vc hide-m">Keepers</th><th class="dh-vc hide-m">Bought</th><th class="hide-m">Best buy</th><th class="hide-m">Worst buy</th></tr></thead><tbody>' +
       sb.map(function (r, i) {
         var t = TEAMS[r.team];
-        return '<tr' + (one && String(r.team) === String(st.team) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + (i + 1) + '. ' + esc(t.owner) + ' <span class="dh-team">' + esc(t.name) + '</span>' + trend(r.dRank, false) + '</td>' +
+        return '<tr' + ((one && String(r.team) === String(st.team)) || String(r.team) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + (i + 1) + '. ' + esc(t.owner) + ' <span class="dh-team">' + esc(t.name) + '</span>' + trend(r.dRank, false) + '</td>' +
           '<td class="dh-cash">' + money(r.paid) + '</td><td class="dh-cash">' + money(r.worth) + '</td><td class="dh-vc">' + valChip(r.surplus) + trend(r.dSurplus, true) + '</td>' +
           '<td class="dh-vc hide-m">' + valChip(r.keeperSurplus) + '</td><td class="dh-vc hide-m">' + valChip(r.auctionSurplus) + '</td>' +
           '<td class="dh-best hide-m">' + esc(meta(r.best.pid).name) + ' ' + valChip(r.best.val) + '</td><td class="dh-best hide-m">' + esc(meta(r.worst.pid).name) + ' ' + valChip(r.worst.val) + '</td></tr>';
@@ -550,6 +592,7 @@
     n.push('<li><b>Value</b> uses the league\u2019s own auction prices as the ladder for production: the RB whose points rank 7th among the league\u2019s RBs so far was worth what the 7th-priciest RB cost on draft day. The scoreboard totals that for each roster against the money committed on draft day; keeper watch compares it with the most a player can cost to keep in 2027. Small samples early \u2014 it firms up as the season goes.</li>');
     n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Week in review</b> (top of Moves) and <b>Lineup trouble</b> (top of Rosters) are written fresh from the same data each run.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
+    n.push('<li><b>Tap a team\u2019s name</b> to open or close its card; the \u2606 makes it your team (first, and open, every visit). Moves marked <em class="rt-newtag inline">new</em> happened since you were last here. The <b>Waiver wire</b> preset lists free agents by last week\u2019s points with the going rate for winning bids by position.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
     if ((T.warnings || []).length) n.push('<li><b>To check:</b> ' + T.warnings.map(esc).join(' · ') + '</li>');
     n.push('</ul>');
@@ -565,6 +608,19 @@
   // there is one (matched on ESPN id, or by name for a D/ST); a pickup who was
   // never on the sheet gets the tracker's own name, position and headshot.
   main.addEventListener('click', function (e) {
+    var star = e.target.closest('.rt-star');
+    if (star) {
+      var tid = star.closest('.rt-card').dataset.tid;
+      st.me = String(st.me) === String(tid) ? null : +tid;
+      save(); render(); return;
+    }
+    var head = e.target.closest('.rt-head');
+    if (head) {
+      var card = head.closest('.rt-card'), id = card.dataset.tid;
+      st.open[id] = card.classList.contains('collapsed');
+      card.classList.toggle('collapsed', !st.open[id]);
+      save(); return;
+    }
     var row = e.target.closest('.rt-row, tr[data-pid]');
     if (!row || !window.PlayerCard) return;
     var pid = +row.dataset.pid, m = meta(pid), L = window.LEAGUE_DATA, found = null;
