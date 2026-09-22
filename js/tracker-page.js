@@ -69,8 +69,14 @@
   // cards start open on a desktop and closed on a phone, except the team you starred
   function isOpen(tid) { return st.open[tid] != null ? st.open[tid] : (window.innerWidth > 720 || String(tid) === String(st.me)); }
   // "new since your last visit": remember when you were last here, stamped as you leave
+  // a reload inside one visit keeps the same "last visit" (session storage
+  // holds the visit's start); leaving the page stamps the new one
   var SEEN = 0;
-  try { SEEN = +localStorage.getItem('sf-tracker-seen') || 0; } catch (e) {}
+  try {
+    SEEN = +sessionStorage.getItem('sf-tracker-visit') || 0;
+    if (!SEEN) { SEEN = +localStorage.getItem('sf-tracker-seen') || 0; sessionStorage.setItem('sf-tracker-visit', String(SEEN || -1)); }
+    if (SEEN < 0) SEEN = 0;
+  } catch (e) {}
   function markSeen() { try { localStorage.setItem('sf-tracker-seen', String(Date.now())); } catch (e) {} }
   window.addEventListener('pagehide', markSeen);
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') markSeen(); });
