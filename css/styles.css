@@ -1348,3 +1348,10 @@ body.pc-open { overflow: hidden; }
 .rt-note .dh-head { align-items: center; }
 .rt-copy { margin-left: 8px; }
 .rt-notebox { white-space: pre-wrap; font: 12.5px/1.55 var(--sans); color: var(--ink); background: var(--paper); border-top: 1px solid var(--rule); padding: 14px 16px; max-height: 460px; overflow: auto; margin: 0; }
+.rt-trend { font-size: 10.5px; font-weight: 800; margin-left: 4px; white-space: nowrap; }
+.rt-trend.up { color: #0a5c2f; }
+.rt-trend.down { color: #8f1c19; }
+.rt-new { font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-left: 4px; vertical-align: 1px; }
+.rt-trouble-list { list-style: none; padding: 8px 16px 12px; font-size: 13px; line-height: 1.65; }
+.rt-trouble-list li { padding: 3px 0; border-bottom: 1px solid var(--rule); }
+.rt-trouble-list li:last-child { border-bottom: none; }

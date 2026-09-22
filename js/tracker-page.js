@@ -149,7 +149,7 @@
   function rosters() {
     var list = T.teams.filter(function (t) { return st.team === 'all' || String(t.id) === String(st.team); });
     main.className = 'dh-main rt-grid';
-    main.innerHTML = tiles() + '<div class="team-grid rt-teams">' + list.map(teamCard).join('') + '</div>';
+    main.innerHTML = tiles() + troubleCard() + '<div class="team-grid rt-teams">' + list.map(teamCard).join('') + '</div>';
   }
 
   /* ---------- moves ---------- */
@@ -201,7 +201,7 @@
       if (!byDay[k]) { byDay[k] = []; days.push(k); }
       byDay[k].push(e);
     });
-    main.innerHTML = tiles() + '<div class="rt-log">' + days.map(function (k) {
+    main.innerHTML = tiles() + (st.team === 'all' ? reviewCard() : '') + '<div class="rt-log">' + days.map(function (k) {
       var list = byDay[k];
       return '<section class="rt-day"><h2>' + dayFull(list[0].ts) + '</h2><ol>' + list.map(eventHtml).join('') + '</ol></section>';
     }).join('') + '</div>';
@@ -271,6 +271,105 @@
     });
   }
 
+  /* ---------- shared bits for the review, the arrows and the copy buttons ---------- */
+  function trend(d, dollars) {
+    if (d == null || d === 0) return '';
+    return ' <span class="rt-trend ' + (d > 0 ? 'up' : 'down') + '" title="vs last week">' + (d > 0 ? '\u25b2' : '\u25bc') + (dollars ? '$' : '') + Math.abs(d) + '</span>';
+  }
+  function keepCostText(r) {
+    var o = r.outlook || {};
+    if (o.type === 'locked') return '$' + r.keep.cost + ' locked';
+    if (o.type === 'resign') return '$' + r.keep.cost + ' re-sign';
+    return 'at most $' + r.keep.cost;
+  }
+  main.addEventListener('click', function (e) {
+    var b = e.target.closest('.rt-copy');
+    if (!b) return;
+    var box = b.closest('article').querySelector('.rt-notebox'), txt = box.textContent;
+    var done = function () { b.textContent = 'Copied \u2713'; setTimeout(function () { b.textContent = 'Copy'; }, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { b.textContent = 'Select and copy'; });
+    else { var r = document.createRange(); r.selectNodeContents(box); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected \u2014 press copy'; }
+  });
+
+  /* ---------- the week in review, for the group text ---------- */
+  function reviewText() {
+    var W = T.reviewWeek || T.statsWeek || T.week, L = ['Sunday Funday \u2014 Week ' + W];
+    var ms = (T.matchups || []).filter(function (m) { return m.week === W && m.winner && m.winner !== 'UNDECIDED'; });
+    if (ms.length) {
+      L.push('', 'Results');
+      ms.forEach(function (m) {
+        var w = m.winner === 'HOME' ? [m.home, m.hp, m.away, m.ap] : [m.away, m.ap, m.home, m.hp];
+        L.push(owner(w[0]) + ' ' + fmt1(w[1]) + ' \u2013 ' + owner(w[2]) + ' ' + fmt1(w[3]));
+      });
+      var scores = ms.map(function (m) { return [m.home, m.hp]; }).concat(ms.map(function (m) { return [m.away, m.ap]; })).sort(function (a, b) { return b[1] - a[1]; });
+      var closest = ms.slice().sort(function (a, b) { return Math.abs(a.hp - a.ap) - Math.abs(b.hp - b.ap); })[0];
+      L.push('Top score: ' + owner(scores[0][0]) + ' ' + fmt1(scores[0][1]) + ' \u00b7 Low: ' + owner(scores[scores.length - 1][0]) + ' ' + fmt1(scores[scores.length - 1][1]) +
+        ' \u00b7 Closest: ' + owner(closest.winner === 'HOME' ? closest.home : closest.away) + ' by ' + fmt1(Math.abs(closest.hp - closest.ap)));
+    }
+    var stand = T.teams.slice().sort(function (a, b) { return (b.record.wins || 0) - (a.record.wins || 0) || (b.record.pointsFor || 0) - (a.record.pointsFor || 0); });
+    L.push('', 'Standings');
+    stand.forEach(function (t, i) { L.push((i + 1) + '. ' + t.owner + ' ' + (t.record.wins || 0) + '-' + (t.record.losses || 0) + (t.record.ties ? '-' + t.record.ties : '') + ' (' + fmt1(t.record.pointsFor || 0) + ')'); });
+    var wkTop = (T.pool || []).filter(function (pid) { var s = S(pid); return WHERE[pid] && s.w && s.w[W - 1] != null; })
+      .sort(function (a, b) { return S(b).w[W - 1] - S(a).w[W - 1]; }).slice(0, 5);
+    if (wkTop.length) { L.push('', 'Top scorers'); wkTop.forEach(function (pid) { L.push(meta(pid).name + ' ' + fmt1(S(pid).w[W - 1]) + ' (' + WHERE[pid].t.owner + ')'); }); }
+    var evs = T.events.filter(function (e) { return e.week === W; });
+    var adds = 0, drops = 0, trades = 0;
+    evs.forEach(function (e) { adds += e.adds.length; drops += e.drops.length; if (e.trades.length) trades++; });
+    var big = evs.filter(function (e) { return e.adds.length && e.bid; }).sort(function (a, b) { return b.bid - a.bid; })[0];
+    L.push('', 'Moves: ' + adds + ' adds, ' + drops + ' drops, ' + trades + (trades === 1 ? ' trade' : ' trades') +
+      (big ? ' \u00b7 biggest bid ' + meta(big.adds[0].pid).name + ' $' + big.bid + ' (' + owner(big.team) + ')' : ''));
+    var sb = T.scoreboard || [];
+    if (sb.length) {
+      L.push('', 'Auction scoreboard');
+      sb.slice(0, 3).forEach(function (r, i) {
+        L.push((i + 1) + '. ' + owner(r.team) + ' ' + (r.surplus >= 0 ? '+' : '\u2212') + '$' + Math.abs(r.surplus) +
+          (r.dSurplus ? ' (' + (r.dSurplus > 0 ? '\u25b2' : '\u25bc') + '$' + Math.abs(r.dSurplus) + ' this week)' : ''));
+      });
+      var mv = sb.filter(function (r) { return r.dSurplus != null; }).sort(function (a, b) { return b.dSurplus - a.dSurplus; });
+      if (mv.length > 1) L.push('Movers: ' + owner(mv[0].team) + ' \u25b2$' + Math.abs(mv[0].dSurplus) + ' \u00b7 ' + owner(mv[mv.length - 1].team) + ' \u25bc$' + Math.abs(mv[mv.length - 1].dSurplus));
+    }
+    var watch = [];
+    T.teams.forEach(function (t) { t.roster.forEach(function (r) { if (r.keep && r.keep.edge > 0) watch.push({ t: t, r: r }); }); });
+    watch.sort(function (a, b) { return b.r.keep.edge - a.r.keep.edge; });
+    if (watch.length) {
+      L.push('', 'Keeper watch');
+      watch.slice(0, 5).forEach(function (x) {
+        L.push(meta(x.r.pid).name + ' (' + x.t.owner + ') worth $' + S(x.r.pid).worth + ' so far, keepable ' + keepCostText(x.r) + (x.r.keep.new && T.prevWeek ? ' \u2014 new this week' : ''));
+      });
+    }
+    L.push('', 'Full tracker: https://mheinlen31.github.io/sunday-funday/');
+    return L.join('\n');
+  }
+  function reviewCard() {
+    var W = T.reviewWeek;
+    if (!W) return '';
+    return '<article class="team-card board-card dh-card rt-note"><header class="dh-head"><h2>Week ' + W + ' in review</h2>' +
+      '<span class="dh-sub">written from the tracker \u2014 for the group text</span><button class="dh-chip rt-copy" type="button">Copy</button></header>' +
+      '<pre class="rt-notebox">' + esc(reviewText()) + '</pre></article>';
+  }
+
+  /* ---------- lineup trouble: byes and injuries on current rosters ---------- */
+  function troubleCard() {
+    var wk = T.current || T.week, byes = T.byes || {}, items = [];
+    T.teams.forEach(function (t) {
+      if (st.team !== 'all' && String(t.id) !== String(st.team)) return;
+      var bye = [], out = [], ir = [];
+      t.roster.forEach(function (r) {
+        var m = P[String(r.pid)] || {};
+        if (r.ir) { ir.push(m.name); return; }
+        if (m.pro && byes[m.pro] === wk) bye.push(m.name);
+        if (/OUT|DOUBTFUL|SUSPENSION/.test(r.inj || '')) out.push(m.name + ' (' + (INJ[r.inj] || r.inj) + ')');
+      });
+      if (bye.length || out.length) {
+        items.push('<li><b>' + esc(t.owner) + '</b> ' + [bye.length ? 'Bye: ' + esc(bye.join(', ')) : '', out.length ? 'Out: ' + esc(out.join(', ')) : ''].filter(Boolean).join(' \u00b7 ') +
+          (ir.length ? ' <span class="pc-dim">IR: ' + esc(ir.join(', ')) + '</span>' : '') + '</li>');
+      }
+    });
+    if (!items.length) return '';
+    return '<article class="team-card board-card dh-card rt-trouble"><header class="dh-head"><h2>Lineup trouble \u00b7 week ' + wk + '</h2>' +
+      '<span class="dh-sub">byes and injuries on current rosters</span></header><ul class="rt-trouble-list">' + items.join('') + '</ul></article>';
+  }
+
   /* ---------- value: the auction scoreboard and the keeper watch ---------- */
   function valChip(v) {
     if (v == null) return '';
@@ -292,8 +391,8 @@
       '<th class="dh-vc hide-m">Keepers</th><th class="dh-vc hide-m">Bought</th><th class="hide-m">Best buy</th><th class="hide-m">Worst buy</th></tr></thead><tbody>' +
       sb.map(function (r, i) {
         var t = TEAMS[r.team];
-        return '<tr' + (one && String(r.team) === String(st.team) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + (i + 1) + '. ' + esc(t.owner) + ' <span class="dh-team">' + esc(t.name) + '</span></td>' +
-          '<td class="dh-cash">' + money(r.paid) + '</td><td class="dh-cash">' + money(r.worth) + '</td><td class="dh-vc">' + valChip(r.surplus) + '</td>' +
+        return '<tr' + (one && String(r.team) === String(st.team) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + (i + 1) + '. ' + esc(t.owner) + ' <span class="dh-team">' + esc(t.name) + '</span>' + trend(r.dRank, false) + '</td>' +
+          '<td class="dh-cash">' + money(r.paid) + '</td><td class="dh-cash">' + money(r.worth) + '</td><td class="dh-vc">' + valChip(r.surplus) + trend(r.dSurplus, true) + '</td>' +
           '<td class="dh-vc hide-m">' + valChip(r.keeperSurplus) + '</td><td class="dh-vc hide-m">' + valChip(r.auctionSurplus) + '</td>' +
           '<td class="dh-best hide-m">' + esc(meta(r.best.pid).name) + ' ' + valChip(r.best.val) + '</td><td class="dh-best hide-m">' + esc(meta(r.worst.pid).name) + ' ' + valChip(r.worst.val) + '</td></tr>';
       }).join('') + '</tbody></table></div></article>';
@@ -309,7 +408,8 @@
         var m = meta(x.r.pid), s = S(x.r.pid) || {};
         return '<tr data-pid="' + x.r.pid + '"><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' \u00b7 ' + esc(m.nfl) : '') + (x.r.how ? ' \u00b7 ' + (x.r.how.kind === 'kept' ? 'kept ' : 'bought ') + money(x.r.how.price) : '') + '</small></td>' +
           '<td class="dh-own">' + esc(x.t.owner) + '</td><td class="dh-pts">' + fmt1(s.pts) + '<small>' + (s.lrk ? esc(m.pos) + s.lrk + ' in the league' : '') + '</small></td>' +
-          '<td class="dh-cash">' + money(s.worth) + '</td><td class="dh-cash">' + keepCost(x.r, low) + '</td><td class="dh-vc">' + valChip(low ? x.r.keep.edgeLo : x.r.keep.edge) + '</td></tr>';
+          '<td class="dh-cash">' + money(s.worth) + '</td><td class="dh-cash">' + keepCost(x.r, low) + '</td><td class="dh-vc">' + valChip(low ? x.r.keep.edgeLo : x.r.keep.edge) +
+          (low ? '' : trend(x.r.keep.dEdge, true) + (x.r.keep.new && T.prevWeek ? ' <span class="rt-new">new</span>' : '')) + '</td></tr>';
       }).join('');
     }
     var head = '<thead><tr><th>Player</th><th>Owner</th><th class="dh-pts">Points</th><th class="dh-cash">Worth so far</th><th class="dh-cash">2027 cost</th><th class="dh-vc">Edge</th></tr></thead>';
@@ -416,13 +516,6 @@
         (locked.length + dead.length + resign.length + first.length + pickups.length ? '' : '<div class="empty-note">Everyone here was bought at the auction — all first-time keepers in 2027, priced off the market.</div>') +
         '</div></article>';
     }).join('') + '</div>' + (st.team === 'all' ? noteCard() : '');
-    var copy = main.querySelector('.rt-copy');
-    if (copy) copy.addEventListener('click', function () {
-      var txt = main.querySelector('.rt-notebox').textContent;
-      var done = function () { copy.textContent = 'Copied \u2713'; setTimeout(function () { copy.textContent = 'Copy'; }, 1600); };
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { copy.textContent = 'Select and copy'; });
-      else { var r = document.createRange(); r.selectNodeContents(main.querySelector('.rt-notebox')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); copy.textContent = 'Selected \u2014 press copy'; }
-    });
   }
 
   /* ---------- chrome ---------- */
@@ -455,6 +548,7 @@
     n.push('<li><span class="rt-next market inline"><b>market</b></span> <b>Pickup</b> \u2014 added off waivers or as a free agent. Keepable at whatever his ESPN market value is next summer; there is no cap and no contract history. One exception from the Manifesto: your own drafted player, dropped and re-added within a week with nobody else touching him, costs the <em>greater</em> of the auction math and market.</li>');
     n.push('<li><b>Moves</b> lists every executed add, drop, waiver claim and trade with the winning bid — and who was outbid. Lineup changes are not moves. Offseason trades live on the <a href="trades.html">Trades</a> page.</li>');
     n.push('<li><b>Value</b> uses the league\u2019s own auction prices as the ladder for production: the RB whose points rank 7th among the league\u2019s RBs so far was worth what the 7th-priciest RB cost on draft day. The scoreboard totals that for each roster against the money committed on draft day; keeper watch compares it with the most a player can cost to keep in 2027. Small samples early \u2014 it firms up as the season goes.</li>');
+    n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Week in review</b> (top of Moves) and <b>Lineup trouble</b> (top of Rosters) are written fresh from the same data each run.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
     if ((T.warnings || []).length) n.push('<li><b>To check:</b> ' + T.warnings.map(esc).join(' · ') + '</li>');

@@ -35,6 +35,7 @@ BASELINE = TRACKER_DIR / f"baseline-{SEASON}.json"
 LEDGER = TRACKER_DIR / f"ledger-{SEASON}.json"
 PLAYERS = TRACKER_DIR / f"players-{SEASON}.json"
 STATS = TRACKER_DIR / f"stats-{SEASON}.json"
+HISTORY = TRACKER_DIR / f"history-{SEASON}.json"   # one snapshot per week, for the arrows
 OUT_JS = ROOT / "js" / "tracker.js"
 
 FAAB = 100                # free-agent budget per team, per season (Manifesto)
@@ -135,6 +136,7 @@ def meta_from_espn(p):
     pos = POS_IDS.get(p.get("defaultPositionId"), "?")
     return {"name": p["fullName"], "pos": pos,
             "nfl": PRO_TEAM.get(p.get("proTeamId")) if pos != "D/ST" else None,
+            "pro": PRO_TEAM.get(p.get("proTeamId")),
             "img": player_img(p["fullName"], pos, p["id"])}
 
 
@@ -263,6 +265,24 @@ def fetch(ledger, baseline):
             } for e in t["roster"]["entries"]],
         } for t in league["teams"]],
     }
+    # bye weeks (for the lineup-trouble panel) and the week's results (for the review)
+    byes = {}
+    season_url = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}?view=proTeamSchedules_wl"
+    for pt in (get(season_url).get("settings") or {}).get("proTeams") or []:
+        ab = PRO_TEAM.get(pt.get("id"))
+        if ab and pt.get("byeWeek"):
+            byes[ab] = pt["byeWeek"]
+    matchups = []
+    for m in get(API + "?view=mMatchupScore").get("schedule") or []:
+        h, a = m.get("home") or {}, m.get("away") or {}
+        if not h.get("teamId") or not a.get("teamId"):
+            continue
+        matchups.append({"week": m.get("matchupPeriodId"), "home": h["teamId"], "away": a["teamId"],
+                         "hp": round(h.get("totalPoints") or 0, 1), "ap": round(a.get("totalPoints") or 0, 1),
+                         "winner": m.get("winner"), "playoff": (m.get("playoffTierType") or "NONE") != "NONE"})
+    ledger["snapshot"]["byes"] = byes
+    ledger["snapshot"]["matchups"] = matchups
+    ledger["snapshot"]["current"] = league.get("scoringPeriodId") or latest
     stats = fetch_stats(latest, [e["playerId"] for t in league["teams"] for e in t["roster"]["entries"]])
     print(f"ESPN: week {latest}, {entries} roster entries, {len(seen)} transactions on file ({new} new), "
           f"stats for {len(stats['players'])} players")
@@ -270,7 +290,7 @@ def fetch(ledger, baseline):
 
 
 # ---------------------------------------------------------------- model
-def build(baseline, ledger, players, stats=None):
+def build(baseline, ledger, players, stats=None, weekly=None):
     snap = ledger.get("snapshot")
     if not snap:
         sys.exit("no roster snapshot yet -- run once online first")
@@ -537,6 +557,30 @@ def build(baseline, ledger, players, stats=None):
             if hi is not None and sb.get("worth") is not None:
                 row["keep"] = {"cost": hi, "floor": lo, "edge": sb["worth"] - hi, "edgeLo": sb["worth"] - lo}
 
+    # ---- this week's snapshot, and movement against last week's
+    wk = snap["week"]
+    cur_snap = {"teams": {str(r["team"]): {"surplus": r["surplus"], "worth": r["worth"], "rank": i + 1} for i, r in enumerate(scoreboard)},
+                "keep": {str(row["pid"]): row["keep"]["edge"] for t in out_teams for row in t["roster"] if row.get("keep")},
+                "pts": {pid: (players[pid].get("s") or {}).get("pts", 0) for pid in players if players[pid].get("s")}}
+    if weekly is not None:                     # (not `history` -- that name is the per-player log above)
+        weekly[str(wk)] = cur_snap
+    prev = (weekly or {}).get(str(wk - 1))
+    if prev:
+        for i, r in enumerate(scoreboard):
+            was = prev["teams"].get(str(r["team"]))
+            if was:
+                r["dSurplus"] = r["surplus"] - was["surplus"]
+                r["dRank"] = was["rank"] - (i + 1)
+        for t in out_teams:
+            for row in t["roster"]:
+                k = row.get("keep")
+                if not k:
+                    continue
+                if str(row["pid"]) in prev.get("keep", {}):
+                    k["dEdge"] = k["edge"] - prev["keep"][str(row["pid"])]
+                else:
+                    k["new"] = True
+
     # names for anyone in an event who is no longer on a roster
     missing = {str(pid) for ev in events for pid in
                [a["pid"] for a in ev["adds"]] + [d["pid"] for d in ev["drops"]] + [t["pid"] for t in ev["trades"]] +
@@ -550,6 +594,12 @@ def build(baseline, ledger, players, stats=None):
         "pool": sorted([k for k in players if players[k].get("s")], key=lambda k: -players[k]["s"]["pts"]),
         "statsWeek": (stats or {}).get("week"),
         "scoreboard": scoreboard,
+        "prevWeek": wk - 1 if prev else None,
+        # the last week with results in the books -- what the review is about
+        "reviewWeek": max([m["week"] for m in (snap.get("matchups") or []) if m.get("winner") not in (None, "UNDECIDED")] or [None]),
+        "matchups": snap.get("matchups") or [],
+        "byes": snap.get("byes") or {},
+        "current": snap.get("current") or wk,
         "noteManual": load_json(TRACKER_DIR / "note-manual.json", None),
         "stats": {
             "adds": sum(len(e["adds"]) for e in events), "drops": sum(len(e["drops"]) for e in events),
@@ -564,6 +614,17 @@ def build(baseline, ledger, players, stats=None):
 
 
 def main():
+    if "--warnings" in sys.argv:
+        # the Action runs this AFTER committing, so the page still updates and
+        # the job fails loudly enough to send an email
+        txt = OUT_JS.read_text() if OUT_JS.exists() else ""
+        try:
+            warns = json.loads(txt[txt.index("=") + 1:].rstrip().rstrip(";")).get("warnings") or []
+        except ValueError:
+            warns = ["js/tracker.js is unreadable"]
+        for w in warns:
+            print("WARNING:", w)
+        sys.exit(1 if warns else 0)
     offline = "--offline" in sys.argv
     if not BASELINE.exists():
         sys.exit(f"{BASELINE} missing -- run scripts/build_tracker_baseline.py first")
@@ -572,13 +633,14 @@ def main():
     players = load_json(PLAYERS, {})
     new_tx = 0
     stats = load_json(STATS, None)
+    history = load_json(HISTORY, {})
     if not offline:
         ledger, new_tx, stats = fetch(ledger, baseline)
-    payload, missing = build(baseline, ledger, players, stats)
+    payload, missing = build(baseline, ledger, players, stats, history)
     if missing and not offline:
         for pid, p in kona_players([int(x) for x in missing]).items():
             players[str(pid)] = meta_from_espn(p)
-        payload, missing = build(baseline, ledger, players, stats)
+        payload, missing = build(baseline, ledger, players, stats, history)
     if missing:
         payload["warnings"].append(f"no name on file for player ids {sorted(missing)}")
 
@@ -599,8 +661,11 @@ def main():
         stats_txt = json.dumps(stats, separators=(",", ":"))
         if not STATS.exists() or STATS.read_text() != stats_txt:
             STATS.write_text(stats_txt)
+    hist_txt = json.dumps(history, separators=(",", ":"), sort_keys=True)
+    if not HISTORY.exists() or HISTORY.read_text() != hist_txt:
+        HISTORY.write_text(hist_txt)
     # the cache keeps identities only -- stats and the free-agent flag are per run
-    cache = {k: {f: v[f] for f in ("name", "pos", "nfl", "img") if f in v} for k, v in players.items() if not v.get("fa")}
+    cache = {k: {f: v[f] for f in ("name", "pos", "nfl", "pro", "img") if f in v} for k, v in players.items() if not v.get("fa")}
     players_txt = json.dumps(cache, separators=(",", ":"), sort_keys=True)
     if not PLAYERS.exists() or PLAYERS.read_text() != players_txt:
         PLAYERS.write_text(players_txt)

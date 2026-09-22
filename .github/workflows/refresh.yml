@@ -44,3 +44,5 @@ jobs:
             git commit -m "ESPN refresh $(date -u '+%Y-%m-%d %H:%M') UTC"
             git push
           fi
+      - name: Fail loudly if the tracker flagged anything
+        run: python scripts/track_moves.py --warnings
