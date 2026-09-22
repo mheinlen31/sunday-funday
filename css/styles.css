@@ -1415,3 +1415,16 @@ body.pc-open { overflow: hidden; }
 .rv-results b { margin-left: auto; font-family: var(--serif); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rv-results i { font-style: normal; font-size: 11px; color: var(--ink-faint); min-width: 52px; text-align: right; white-space: nowrap; }
 .rv-facts a { color: var(--accent); font-weight: 700; text-decoration: none; }
+/* season summary */
+.sm-head .dh-head { align-items: center; }
+.sm-actions { display: flex; gap: 6px; margin-left: 8px; }
+.sm-status { padding: 10px 16px 12px; font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+.sm-line { padding: 8px 14px 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+.sm-line b { color: var(--ink); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; margin-right: 3px; }
+.sm-top { padding: 0 14px; }
+.sm-facts { padding: 0 14px 6px; }
+.sm-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(20,18,14,.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.sm-sheet { background: var(--card); padding: 10px; max-width: 520px; width: 100%; box-shadow: 0 18px 60px rgba(0,0,0,.3); }
+.sm-sheet img { display: block; width: 100%; height: auto; }
+.sm-sheet-bar { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 2px 2px; }
+.sm-sheet-bar a { text-decoration: none; }
