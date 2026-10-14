@@ -264,7 +264,7 @@
       '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">#</th><th>Player</th><th>Added by</th><th class="dh-n">Wk</th><th class="dh-cash">Paid</th><th class="dh-pts">Points since</th><th class="dh-pts hide-m">Per game</th></tr></thead><tbody>' +
       picks.slice(0, 8).map(function (x, i) {
         var m = meta(x.pid);
-        return '<tr data-pid="' + x.pid + '"><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' \u00b7 ' + esc(m.nfl) : '') + (x.held ? '' : ' \u00b7 since dropped') + '</small></td>' +
+        return '<tr data-pid="' + x.pid + '"><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' \u00b7 ' + esc(m.nfl) : '') + (x.held ? '' : ' \u00b7 later dropped') + '</small></td>' +
           '<td class="dh-own">' + esc(owner(x.team)) + '</td><td class="dh-n">' + x.week + '</td><td class="dh-cash">' + (x.bid ? money(x.bid) : '\u2014') + '</td>' +
           '<td class="dh-pts"><b>' + fmt1(x.pts) + '</b><small>' + x.g + (x.g === 1 ? ' game' : ' games') + '</small></td><td class="dh-pts hide-m">' + fmt1(x.pts / x.g) + '</td></tr>';
       }).join('') + '</tbody></table></div>') : '';
