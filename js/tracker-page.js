@@ -607,16 +607,44 @@
       ' <span class="dh-yr">$' + ((M.PAY.pointsRace || [410, 250, 100]).join(' / $')) + '</span></p>';
     return card('Season leaders', 'top ' + list.length + ' ' + esc(pos) + (pos === 'D/ST' ? 's' : 's') + ' by points, rostered or on the wire', body + race, sel);
   }
-  function marketCard(M, L) {
-    var s = T.stats || {}, sb = (T.scoreboard || []).slice(0, 3), kw = keeperTop(3);
-    var body = '<ul class="rv-facts sm-facts">' +
-      '<li><b>Moves this season</b>' + s.adds + ' adds · ' + s.drops + ' drops · ' + s.trades + (s.trades === 1 ? ' trade' : ' trades') + ' · ' + money(s.faabSpent) + ' of FAAB spent' +
-        (s.biggestBid ? '<i>biggest bid: ' + esc(meta(s.biggestBid[1]).name) + ' ' + money(s.biggestBid[0]) + ' (' + esc(owner(s.biggestBid[2])) + ')</i>' : '') +
-        (L ? '<i>week ' + L.W + ': ' + L.adds + ' adds, ' + L.drops + ' drops' + (L.big ? ' · ' + esc(meta(L.big.adds[0].pid).name) + ' $' + L.big.bid + ' (' + esc(owner(L.big.team)) + ')' : '') + '</i>' : '') + ' <a href="#" data-goto="moves">all moves →</a></li>' +
-      (sb.length ? '<li><b>Auction scoreboard</b>' + sb.map(function (r, i) { return (i + 1) + '. ' + esc(owner(r.team)) + ' ' + valChip(r.surplus) + trend(r.dSurplus, true); }).join(' · ') + ' <a href="#" data-goto="value">full board →</a></li>' : '') +
-      (kw.length ? '<li><b>Keeper watch</b>' + kw.map(function (x) { return esc(shortName(meta(x.r.pid).name)) + ' <i style="display:inline">$' + S(x.r.pid).worth + ' vs ' + esc(keepCostText(x.r).replace('at most ', '≤ ')) + '</i>'; }).join(' · ') + ' <a href="#" data-goto="value">the watch →</a></li>' : '') +
-      '</ul>';
-    return card('The market', 'moves, the auction so far, and next year', body);
+  function movesCard(L) {
+    var s = T.stats || {}, bigBy = {};
+    (T.events || []).forEach(function (e) {
+      if (e.adds.length && e.bid && (!bigBy[e.team] || e.bid > bigBy[e.team].bid)) bigBy[e.team] = { bid: e.bid, pid: e.adds[0].pid };
+    });
+    var rows = T.teams.slice().sort(function (a, b) { return b.moves.adds - a.moves.adds || b.faabSpent - a.faabSpent; }).map(function (t) {
+      var b = bigBy[t.id];
+      return '<tr' + (String(t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + esc(t.owner) + '</td>' +
+        '<td class="dh-cash">' + t.moves.adds + '</td><td class="dh-cash">' + t.moves.drops + '</td>' +
+        '<td class="dh-cash">' + money(t.faabLeft) + '</td>' +
+        '<td class="dh-best hide-m">' + (b ? esc(meta(b.pid).name) + ' <i class="dh-yr">' + money(b.bid) + '</i>' : '—') + '</td></tr>';
+    }).join('');
+    var body = '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th>Team</th><th class="dh-cash">Adds</th><th class="dh-cash">Drops</th><th class="dh-cash">FAAB left</th><th class="hide-m">Biggest bid</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<p class="sm-line">' + (L ? '<b>Week ' + L.W + '</b> ' + L.adds + ' adds · ' + L.drops + ' drops' + (L.trades ? ' · ' + L.trades + (L.trades === 1 ? ' trade' : ' trades') : '') +
+        (L.big ? ' · biggest bid ' + esc(meta(L.big.adds[0].pid).name) + ' ' + money(L.big.bid) + ' (' + esc(owner(L.big.team)) + ')' : '') + ' · ' : '') +
+      '<a href="#" data-goto="moves">every move →</a></p>';
+    return card('Moves', s.adds + ' adds · ' + s.drops + ' drops · ' + s.trades + (s.trades === 1 ? ' trade' : ' trades') + ' · ' + money(s.faabSpent) + ' of ' + money(T.teams.length * FAAB) + ' FAAB spent', body);
+  }
+  function scoreboardMini() {
+    var sb = (T.scoreboard || []).slice(0, 5);
+    var rows = sb.map(function (r, i) {
+      return '<tr' + (String(r.team) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(owner(r.team)) + '</td>' +
+        '<td class="dh-cash hide-m">' + money(r.paid) + '</td><td class="dh-cash">' + money(r.worth) + '</td><td class="dh-vc">' + valChip(r.surplus) + trend(r.dSurplus, true) + '</td></tr>';
+    }).join('');
+    var body = '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">#</th><th>Team</th><th class="dh-cash hide-m">Paid</th><th class="dh-cash">Worth so far</th><th class="dh-vc">±</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<p class="sm-line">What each roster’s production would have cost at the auction, against the money committed on draft day. <a href="#" data-goto="value">full board →</a></p>';
+    return card('Auction scoreboard', 'top five', body);
+  }
+  function keeperMini() {
+    var kw = keeperTop(5);
+    var rows = kw.map(function (x) {
+      var m = meta(x.r.pid), s = S(x.r.pid) || {};
+      return '<tr data-pid="' + x.r.pid + '"><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + ' · ' + esc(x.t.owner) + '</small></td>' +
+        '<td class="dh-cash">' + money(s.worth) + '</td><td class="dh-cash">' + keepCost(x.r, false) + '</td><td class="dh-vc">' + valChip(x.r.keep.edge) + '</td></tr>';
+    }).join('');
+    var body = kw.length ? '<div style="overflow-x:auto"><table class="dh-table rt-watch"><thead><tr><th>Player</th><th class="dh-cash">Worth so far</th><th class="dh-cash">2027 cost</th><th class="dh-vc">Edge</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      : '<div class="empty-note">Nobody is ahead of his 2027 price yet.</div>';
+    return card('Keeper watch', 'production worth more than the most he could cost to keep', body + '<p class="sm-line">Pickups have no ceiling and are left out. <a href="#" data-goto="value">the whole watch →</a></p>');
   }
   function matchupsCard(M) {
     var cur = T.current || T.week;
@@ -818,7 +846,8 @@
     main.className = 'dh-main rt-summary';
     main.innerHTML = tiles() + head + (L ? resultsCard(L, PAY) : '') +
       '<div class="dh-pair">' + standingsCard(M) + payoutCard(M) + '</div>' +
-      '<div class="dh-pair">' + leadersCard(M, L) + marketCard(M, L) + '</div>' +
+      '<div class="dh-pair">' + leadersCard(M, L) + movesCard(L) + '</div>' +
+      '<div class="dh-pair">' + scoreboardMini() + keeperMini() + '</div>' +
       '<div class="dh-pair">' + weeklyCard(M) + matchupsCard(M) + '</div>' + picksixCard() + h2hCard(M);
     var sh = main.querySelector('.sm-share');
     sh.addEventListener('click', function () { shareSummary(sh); });
