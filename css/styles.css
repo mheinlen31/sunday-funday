@@ -1450,3 +1450,12 @@ body.pc-open { overflow: hidden; }
 .rt-tr.bye { background: #fff4e5; } .rt-tr.bye i { color: #b35c00; }
 .rt-tr.out { background: #fadedc; } .rt-tr.out i { color: #8f1c19; }
 .rt-tr.q i { color: #7c6114; }
+/* lineup reading order */
+.rt-div { font: 800 9.5px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); padding: 8px 14px 4px; background: #faf9f7; border-bottom: 1px solid var(--rule); }
+.rt-slot { font: 800 9px/1 var(--sans); letter-spacing: .08em; color: var(--accent); min-width: 30px; }
+.rt-since { font-size: 11.5px; color: var(--ink-faint); font-weight: 500; }
+/* weekly points on the player card */
+.pc-bars { display: flex; align-items: flex-end; gap: 3px; height: 44px; margin: 10px 0 2px; padding-bottom: 12px; position: relative; border-bottom: 1px solid var(--rule); }
+.pc-bars i { flex: 1; min-width: 8px; background: var(--accent); opacity: .85; border-radius: 2px 2px 0 0; position: relative; }
+.pc-bars i.none { background: var(--rule); height: 4px; }
+.pc-bars i b { position: absolute; top: 100%; left: 0; right: 0; text-align: center; font: 600 8.5px/12px var(--sans); color: var(--ink-faint); }

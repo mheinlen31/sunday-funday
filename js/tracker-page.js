@@ -64,6 +64,21 @@
     return '<div class="rt-stat" title="' + esc(tip) + '"><b>' + fmt1(s.pts) + '</b><span>' + sub + '</span></div>';
   }
 
+  /* what a pickup has done for the team that added him: points and games from
+     the week he was added until the week he was dropped (if he was) */
+  var SLOT_NAME = { 0: 'QB', 2: 'RB', 4: 'WR', 6: 'TE', 16: 'D/ST', 17: 'K', 23: 'FLEX', 20: 'Bench', 21: 'IR' };
+  function sinceAdd(pid, team, week) {
+    var s = S(pid);
+    if (!s || !s.w || !week) return null;
+    var end = T.week + 1;
+    (T.events || []).slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (e) {
+      if (e.week >= week && end === T.week + 1 && e.drops.some(function (d) { return d.pid === pid && d.team === team; })) end = e.week;
+    });
+    var pts = 0, g = 0;
+    for (var w = week; w < end && w <= s.w.length; w++) { if (s.w[w - 1] != null) { pts += s.w[w - 1]; g++; } }
+    return { pts: pts, g: g, held: end === T.week + 1 };
+  }
+
   /* ---------- state ---------- */
   var LS = 'sf-tracker';
   var st = { view: 'rosters', team: 'all', pos: 'all', scope: 'rostered', ssort: 'pts', open: {}, me: null, leadPos: 'RB' };
@@ -100,7 +115,11 @@
     var s;
     if (h.kind === 'kept') s = 'Kept · ' + money(h.price) + (CLS[h.cls] ? ' <i>' + CLS[h.cls] + '</i>' : '');
     else if (h.kind === 'bought') s = 'Bought · ' + money(h.price) + (h.pick ? ' <i>pick ' + h.pick + '</i>' : '');
-    else s = 'Added ' + day(h.ts) + ' · ' + money(h.bid) + ' <i>' + esc(h.via) + '</i>';
+    else {
+      s = 'Added ' + day(h.ts) + ' · ' + money(h.bid) + ' <i>' + esc(h.via) + '</i>';
+      var sa = sinceAdd(r.pid, tid, h.week);
+      if (sa && sa.g) s += ' <i>' + fmt1(sa.pts) + ' pts since</i>';
+    }
     if (h.from && h.from !== tid) s += ' <i>via trade from ' + esc(owner(h.from)) + '</i>';
     if (h.reacquired) s += ' <i>re-acquired ' + day(h.reacquired) + '</i>';
     return '<span class="rt-how">' + s + '</span>';
@@ -158,11 +177,14 @@
   function teamCard(t) {
     var rec = t.record || {};
     var dead = (t.deadMoney || []).reduce(function (a, d) { return a + d.amount; }, 0);
-    var rows = t.roster.map(function (r) {
-      var m = meta(r.pid);
-      return '<div class="prow static rt-row' + (r.ir ? ' ir' : '') + '" data-pid="' + r.pid + '" title="Tap for his history">' + mug(r.pid) +
+    var seen = {}, rows = t.roster.map(function (r) {
+      var m = meta(r.pid), div = '';
+      var grp = r.ir || r.slot === 21 ? 'IR' : r.slot === 20 ? 'Bench' : 'start';
+      if (grp !== 'start' && !seen[grp]) { seen[grp] = true; div = '<div class="rt-div">' + grp + '</div>'; }
+      var slot = grp === 'start' && SLOT_NAME[r.slot] ? '<span class="rt-slot">' + SLOT_NAME[r.slot] + '</span>' : '';
+      return div + '<div class="prow static rt-row' + (r.ir ? ' ir' : '') + (grp === 'start' ? ' starter' : '') + '" data-pid="' + r.pid + '" title="Tap for his history">' + mug(r.pid) +
         '<div class="pinfo"><div class="pname">' + esc(m.name) + injTag(r) + '</div>' +
-        '<div class="psub">' + posChip(m.pos) + (m.nfl ? '<span class="nfl">' + esc(m.nfl) + '</span>' : '') + howHtml(r, t.id) + '</div></div>' +
+        '<div class="psub">' + slot + posChip(m.pos) + (m.nfl ? '<span class="nfl">' + esc(m.nfl) + '</span>' : '') + howHtml(r, t.id) + '</div></div>' +
         statHtml(r.pid) + nextHtml(r.outlook) + '</div>';
     }).join('');
     var deadHtml = (t.deadMoney || []).length ? '<div class="rt-dead"><b>2027 dead money ' + money(dead) + '</b> — ' +
@@ -200,7 +222,10 @@
       }).join('; '));
     }
     if (e.adds.length) {
-      parts.push(who + ' added ' + e.adds.map(function (a) { return player(a.pid); }).join(', ') +
+      parts.push(who + ' added ' + e.adds.map(function (a) {
+        var sa = sinceAdd(a.pid, a.team, e.week);
+        return player(a.pid) + (sa && sa.g ? ' <span class="rt-since">' + fmt1(sa.pts) + ' pts in ' + sa.g + (sa.g === 1 ? ' game' : ' games') + (sa.held ? ' since' : ' before he was dropped') + '</span>' : '');
+      }).join(', ') +
         (e.bid ? ' for <b>' + money(e.bid) + '</b>' : '') + (e.kind === 'waiver' ? ' off waivers' : e.kind === 'free agent' ? ' as a free agent' : ''));
     }
     if (e.drops.length) {
@@ -226,6 +251,23 @@
       return e.team === tid || e.adds.some(function (a) { return a.team === tid; }) || e.drops.some(function (d) { return d.team === tid; }) ||
         e.trades.some(function (t) { return t.from === tid || t.to === tid; });
     });
+    var picks = [];
+    (T.events || []).forEach(function (e) {
+      e.adds.forEach(function (a) {
+        if (st.team !== 'all' && String(a.team) !== String(st.team)) return;
+        var sa = sinceAdd(a.pid, a.team, e.week);
+        if (sa && sa.g) picks.push({ pid: a.pid, team: a.team, week: e.week, bid: e.bid, pts: sa.pts, g: sa.g, held: sa.held });
+      });
+    });
+    picks.sort(function (a, b) { return b.pts - a.pts; });
+    var best = picks.length ? card('Best pickups', 'what the adds have returned, points while on the roster that added them',
+      '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">#</th><th>Player</th><th>Added by</th><th class="dh-n">Wk</th><th class="dh-cash">Paid</th><th class="dh-pts">Points since</th><th class="dh-pts hide-m">Per game</th></tr></thead><tbody>' +
+      picks.slice(0, 8).map(function (x, i) {
+        var m = meta(x.pid);
+        return '<tr data-pid="' + x.pid + '"><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' \u00b7 ' + esc(m.nfl) : '') + (x.held ? '' : ' \u00b7 since dropped') + '</small></td>' +
+          '<td class="dh-own">' + esc(owner(x.team)) + '</td><td class="dh-n">' + x.week + '</td><td class="dh-cash">' + (x.bid ? money(x.bid) : '\u2014') + '</td>' +
+          '<td class="dh-pts"><b>' + fmt1(x.pts) + '</b><small>' + x.g + (x.g === 1 ? ' game' : ' games') + '</small></td><td class="dh-pts hide-m">' + fmt1(x.pts / x.g) + '</td></tr>';
+      }).join('') + '</tbody></table></div>') : '';
     main.className = 'dh-main rt-moves';
     if (!evs.length) {
       main.innerHTML = tiles() + '<article class="team-card board-card"><div class="empty-note">No moves yet' + (st.team === 'all' ? '' : ' for this team') + '.</div></article>';
@@ -239,7 +281,7 @@
     });
     var fresh = SEEN ? evs.filter(function (e) { return e.ts > SEEN; }).length : 0;
     var banner = fresh ? '<div class="rt-banner">' + fresh + (fresh === 1 ? ' move' : ' moves') + ' since your last visit (' + new Date(SEEN).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ')</div>' : '';
-    main.innerHTML = tiles() + banner + '<div class="rt-log">' + days.map(function (k) {
+    main.innerHTML = tiles() + best + banner + '<div class="rt-log">' + days.map(function (k) {
       var list = byDay[k];
       return '<section class="rt-day"><h2>' + dayFull(list[0].ts) + '</h2><ol>' + list.map(eventHtml).join('') + '</ol></section>';
     }).join('') + '</div>';

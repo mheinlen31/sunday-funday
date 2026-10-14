@@ -412,6 +412,13 @@
         '<div class="pc-fact"><b>' + f1(s.pts) + '</b><span>points' + (s.rk ? ' \u00b7 ' + esc(m) + s.rk : '') + '</span></div>' +
         '<div class="pc-fact"><b>' + (s.gp ? f1(s.ppg) : '\u2014') + '</b><span>per game \u00b7 ' + s.gp + (s.gp === 1 ? ' game' : ' games') + '</span></div>' +
         '<div class="pc-fact"><b>' + (s.wk == null ? '\u2014' : f1(s.wk)) + '</b><span>week ' + (T.statsWeek || T.week) + '</span></div></div>' +
+        (s.w && s.w.length ? (function () {
+          var mx = Math.max.apply(null, s.w.map(function (v) { return v || 0; }).concat([1]));
+          return '<div class="pc-bars" title="points by week">' + s.w.map(function (v, i) {
+            return v == null ? '<i class="none" title="week ' + (i + 1) + ': did not play"></i>'
+              : '<i style="height:' + Math.max(6, Math.round(100 * v / mx)) + '%" title="week ' + (i + 1) + ': ' + f1(v) + '"><b>' + (i + 1) + '</b></i>';
+          }).join('') + '</div>';
+        })() : '') +
         (txt ? '<p class="pc-note">' + esc(txt) + (s.prev != null ? ' \u00b7 ' + f1(s.prev) + ' pts last season' : '') + '</p>' : '');
     }
     if (!lines.length && !stat) return '';
