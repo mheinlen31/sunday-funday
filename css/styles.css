@@ -1338,7 +1338,7 @@ body.pc-open { overflow: hidden; }
   .rt-stat .pg { display: none; }
   .rt-row { gap: 8px; padding-right: 10px; }
   .rt-stat b { font-size: 14px; }
-  .rt-stats .dh-table .hide-m { display: none; }
+  .dh-table .hide-m { display: none; }     /* optional columns leave on a phone, on every tab */
 }
 .pc-facts-3 { grid-template-columns: repeat(3, 1fr); margin-top: 6px; }
 .rt-stat span i { font-style: normal; }
