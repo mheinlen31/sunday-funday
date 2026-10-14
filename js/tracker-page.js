@@ -642,7 +642,7 @@
           : r.lineupKnown ? '<span class="dh-yr">not rostered</span>' : '<span class="dh-yr">lineups not in yet</span>';
         return '<tr' + (r.started != null ? ' class="rt-p6-hit"' : '') + '><td class="dh-n">' + r.week + '</td>' +
           '<td class="dh-name">' + esc(r.name) + '<small>' + esc(r.pos || '') + (r.pro ? ' \u00b7 ' + esc(r.pro) : '') + (r.period ? ' \u00b7 Q' + r.period + ' ' + esc(r.clock || '') : '') + '</small></td>' +
-          '<td class="dh-own hide-m">' + esc(r.game || '') + '</td><td class="dh-own hide-m" title="' + esc(r.text || '') + '">' + esc(r.returner || '') + '</td>' +
+          '<td class="dh-own hide-m">' + esc(r.game || '') + '</td><td class="dh-own hide-m" title="' + esc(r.text || '') + '">' + esc(r.returner || '') + (r.yards != null ? ' <span class="dh-yr">' + r.yards + ' yds</span>' : '') + '</td>' +
           '<td class="dh-own">' + who + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     var hits = rows.filter(function (r) { return r.started != null; }).length;
