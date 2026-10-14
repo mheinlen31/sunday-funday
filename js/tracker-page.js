@@ -66,7 +66,7 @@
 
   /* ---------- state ---------- */
   var LS = 'sf-tracker';
-  var st = { view: 'rosters', team: 'all', pos: 'all', scope: 'rostered', ssort: 'pts', open: {}, me: null };
+  var st = { view: 'rosters', team: 'all', pos: 'all', scope: 'rostered', ssort: 'pts', open: {}, me: null, leadPos: 'RB' };
   try { Object.assign(st, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
   if (!st.open || typeof st.open !== 'object') st.open = {};
   var hashView = (location.hash || '').replace('#', '');
@@ -586,16 +586,26 @@
     }).join('');
     return card('Weekly high scores', money(M.weekly) + ' a week to the top total', '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">Week</th><th>High score</th><th class="dh-cash">Points</th><th class="hide-m">Runner-up</th></tr></thead><tbody>' + rows + '</tbody></table></div>');
   }
+  var LEAD_POS = ['QB', 'RB', 'WR', 'TE', 'K', 'D/ST'];
   function leadersCard(M, L) {
-    var top = seasonTop(6).map(function (pid) {
-      var m = meta(pid), s = S(pid);
-      return '<li>' + (m.img ? '<img src="' + esc(m.img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '<span class="rv-nomug"></span>') +
-        '<span class="rv-who">' + esc(m.name) + '<small>' + esc(m.pos) + ' · ' + esc(WHERE[pid].t.owner) + (s.rk ? ' · ' + esc(m.pos) + s.rk + ' in the NFL' : '') + '</small></span><b>' + fmt1(s.pts) + '</b></li>';
+    var pos = LEAD_POS.indexOf(st.leadPos) >= 0 ? st.leadPos : 'RB', R = T.reviewWeek;
+    var list = (T.pool || []).filter(function (pid) { var s = S(pid); return meta(pid).pos === pos && s && s.pts > 0; }).slice(0, 20);
+    var sel = '<label class="year-picker sm-pos">Position <select class="sm-possel">' +
+      LEAD_POS.map(function (p) { return '<option value="' + p + '"' + (p === pos ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select></label>';
+    var rows = list.map(function (pid, i) {
+      var m = meta(pid), s = S(pid), w = WHERE[pid];
+      return '<tr data-pid="' + pid + '"' + (w && String(w.t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-n">' + (i + 1) + '</td>' +
+        '<td class="dh-name">' + (m.img ? '<img src="' + esc(m.img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '') + esc(m.name) +
+        '<small>' + (m.nfl ? esc(m.nfl) + ' · ' : '') + (s.rk ? esc(pos) + s.rk + ' in the NFL' : '') + (w && w.r.ir ? ' · IR' : '') + '</small></td>' +
+        '<td class="dh-own">' + (w ? esc(w.t.owner) : '<span class="rt-fa">FA</span>') + '</td>' +
+        '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '—') + '</td>' +
+        '<td class="dh-pts hide-m">' + (R && s.w && s.w[R - 1] != null ? fmt1(s.w[R - 1]) : '—') + '</td></tr>';
     }).join('');
+    var body = '<div style="overflow-x:auto"><table class="dh-table sm-lead"><thead><tr><th class="dh-n">#</th><th>Player</th><th>Owner</th><th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts hide-m">Wk ' + (R || '') + '</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="6" class="empty-note">No ' + esc(pos) + ' has scored yet.</td></tr>') + '</tbody></table></div>';
     var race = '<p class="sm-line"><b>Points race</b> ' + M.byPts.slice(0, 3).map(function (x, i) { return (i + 1) + '. ' + esc(x.t.owner) + ' ' + fmt1(x.pf); }).join(' · ') +
       ' <span class="dh-yr">$' + ((M.PAY.pointsRace || [410, 250, 100]).join(' / $')) + '</span></p>';
-    var wk = L && L.wkTop.length ? '<p class="sm-line"><b>Week ' + L.W + '</b> ' + L.wkTop.slice(0, 3).map(function (pid) { return esc(meta(pid).name) + ' ' + fmt1(S(pid).w[L.W - 1]); }).join(' · ') + '</p>' : '';
-    return card('Season leaders', 'points so far, Sunday Funday scoring', '<ul class="rv-top sm-top">' + top + '</ul>' + race + wk);
+    return card('Season leaders', 'top ' + list.length + ' ' + esc(pos) + (pos === 'D/ST' ? 's' : 's') + ' by points, rostered or on the wire', body + race, sel);
   }
   function marketCard(M, L) {
     var s = T.stats || {}, sb = (T.scoreboard || []).slice(0, 3), kw = keeperTop(3);
@@ -940,6 +950,12 @@
   // tap a player for his card. The card wants the keeper-sheet record when
   // there is one (matched on ESPN id, or by name for a D/ST); a pickup who was
   // never on the sheet gets the tracker's own name, position and headshot.
+  main.addEventListener('change', function (e) {
+    var sel = e.target.closest('.sm-possel');
+    if (!sel) return;
+    st.leadPos = sel.value; save();
+    var y = window.scrollY; render(); window.scrollTo(0, y);
+  });
   main.addEventListener('click', function (e) {
     var go = e.target.closest('[data-goto]');
     if (go) { e.preventDefault(); st.view = go.dataset.goto; save(); render(); window.scrollTo(0, 0); return; }
