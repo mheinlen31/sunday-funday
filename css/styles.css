@@ -1136,11 +1136,12 @@ body[data-page="rosters"] .board-toolbar { justify-content: space-between; }
 .dh-team { font-family: var(--sans); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
 .dh-sub { margin-left: auto; font-size: 11.5px; color: var(--ink-faint); font-weight: 600; }
 
-.dh-tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(168px, 100%), 1fr)); }
-.dh-tile { background: var(--card); border: 1px solid var(--rule); border-top: 3px solid var(--accent); padding: 12px 14px; }
-.dh-tile-l { font: 800 10px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
-.dh-tile-b { font-family: var(--serif); font-size: 25px; font-weight: 700; line-height: 1.15; margin: 6px 0 3px; }
-.dh-tile-s { font-size: 11.5px; color: var(--ink-soft); }
+.dh-tiles { display: flex; flex-wrap: wrap; background: var(--card); border-top: 2px solid var(--rule-dark); border-bottom: 1px solid var(--rule); }
+.dh-tile { flex: 1 1 160px; min-width: 0; padding: 9px 16px 8px; border-right: 1px solid var(--rule); }
+.dh-tile:last-child { border-right: none; }
+.dh-tile-l { font: 800 9.5px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.dh-tile-b { font-family: var(--serif); font-size: 21px; font-weight: 700; line-height: 1.15; margin: 4px 0 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-tile-s { font-size: 11px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .dh-table { width: 100%; border-collapse: collapse; }
 .dh-table th {
@@ -1187,7 +1188,8 @@ body[data-page="rosters"] .board-toolbar { justify-content: space-between; }
   .dh-main { padding: 14px 10px 34px; }
   .dh-table td, .dh-table th { padding: 7px 6px; font-size: 12.5px; }
   .dh-fin, th.dh-fin { display: none; }
-  .dh-tile-b { font-size: 21px; }
+  .dh-tile { flex-basis: 45%; }
+  .dh-tile-b { font-size: 18px; }
 }
 
 /* ================= player card (js/playercard.js) ================= */
@@ -1352,9 +1354,6 @@ body.pc-open { overflow: hidden; }
 .rt-trend.up { color: #0a5c2f; }
 .rt-trend.down { color: #8f1c19; }
 .rt-new { font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-left: 4px; vertical-align: 1px; }
-.rt-trouble-list { list-style: none; padding: 8px 16px 12px; font-size: 13px; line-height: 1.65; }
-.rt-trouble-list li { padding: 3px 0; border-bottom: 1px solid var(--rule); }
-.rt-trouble-list li:last-child { border-bottom: none; }
 .rt-head { cursor: pointer; user-select: none; }
 .rt-head:hover { background: #f7f5f1; }
 .rt-caret { display: inline-block; width: 16px; color: var(--ink-faint); font-size: 14px; transition: transform .15s; }
@@ -1444,3 +1443,10 @@ body.pc-open { overflow: hidden; }
 .rt-p6 .dh-name small { display: block; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); letter-spacing: .04em; text-transform: uppercase; }
 .rt-p6-start { color: #8f1c19; }
 .rt-p6-hit td { background: #fbeceb; }
+/* starters in trouble */
+.rt-trouble td { vertical-align: top; }
+.rt-tr { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 2px 7px; border-radius: 3px; margin: 2px 4px 2px 0; background: #f1efeb; white-space: nowrap; }
+.rt-tr i { font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-left: 4px; color: var(--ink-faint); }
+.rt-tr.bye { background: #fff4e5; } .rt-tr.bye i { color: #b35c00; }
+.rt-tr.out { background: #fadedc; } .rt-tr.out i { color: #8f1c19; }
+.rt-tr.q i { color: #7c6114; }

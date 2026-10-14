@@ -133,21 +133,25 @@
     return tile('Payout race', lead ? esc(lead.t.owner) : '—', (lead ? money(lead.total) + ' if it ended today · ' : '') + money(ty.bankedTotal) + ' banked');
   }
   function tiles() {
-    var s = T.stats || {};
-    var dead = 0, deadN = 0, lockedOn = 0;
+    var st_ = T.stats || {}, dead = 0, deadN = 0, lockedOn = 0;
     T.teams.forEach(function (t) {
       (t.deadMoney || []).forEach(function (d) { dead += d.amount; deadN++; });
       t.roster.forEach(function (r) { if (r.outlook && r.outlook.type === 'locked') lockedOn += r.outlook.price; });
     });
-    var bb = s.biggestBid;
-    return '<div class="dh-tiles">' +
-      tile('Moves', (s.adds + s.drops + s.trades).toLocaleString(), s.adds + ' adds · ' + s.drops + ' drops · ' + s.trades + (s.trades === 1 ? ' trade' : ' trades')) +
-      tile('FAAB spent', money(s.faabSpent), 'of ' + money(FAAB * T.teams.length) + ' league-wide') +
-      tile('Biggest bid', bb ? money(bb[0]) : '—', bb ? esc(meta(bb[1]).name) + ' · ' + esc(owner(bb[2])) : '') +
-      (T.pool && T.pool.length ? tile('Top scorer', esc(meta(T.pool[0]).name), fmt1(S(T.pool[0]).pts) + ' pts \u00b7 ' + (WHERE[T.pool[0]] ? esc(WHERE[T.pool[0]].t.owner) : 'free agent')) : '') +
-      tile('Locked for 2027', money(lockedOn + dead), (lockedOn + dead ? 'contract money already on the books' : '')) +
-      tile('Dead money', money(dead), deadN ? deadN + (deadN === 1 ? ' dropped contract' : ' dropped contracts') : 'no dropped contracts') +
-      payoutTile() + '</div>';
+    var bb = st_.biggestBid;
+    var all = {
+      moves: tile('Moves', (st_.adds + st_.drops + st_.trades).toLocaleString(), st_.adds + ' adds · ' + st_.drops + ' drops · ' + st_.trades + (st_.trades === 1 ? ' trade' : ' trades')),
+      faab: tile('FAAB spent', money(st_.faabSpent), 'of ' + money(FAAB * T.teams.length) + ' league-wide'),
+      bid: bb ? tile('Biggest bid', money(bb[0]), esc(meta(bb[1]).name) + ' · ' + esc(owner(bb[2]))) : '',
+      top: T.pool && T.pool.length ? tile('Top scorer', esc(meta(T.pool[0]).name), fmt1(S(T.pool[0]).pts) + ' pts · ' + (WHERE[T.pool[0]] ? esc(WHERE[T.pool[0]].t.owner) : 'free agent')) : '',
+      locked: tile('Locked for 2027', money(lockedOn + dead), 'contract money already on the books'),
+      dead: tile('Dead money', money(dead), deadN ? deadN + (deadN === 1 ? ' dropped contract' : ' dropped contracts') : 'no dropped contracts'),
+      pay: payoutTile()
+    };
+    var pick = { rosters: ['moves', 'faab', 'top', 'pay'], moves: ['moves', 'faab', 'bid', 'pay'], stats: ['top', 'bid', 'faab'],
+                 value: ['locked', 'dead', 'pay'], cap: ['locked', 'dead', 'pay'], summary: [] }[st.view] || ['moves', 'faab', 'top', 'pay'];
+    var html = pick.map(function (k) { return all[k]; }).filter(Boolean).join('');
+    return html ? '<div class="dh-tiles">' + html + '</div>' : '';
   }
 
   /* ---------- rosters ---------- */
@@ -351,26 +355,30 @@
     else { var r = document.createRange(); r.selectNodeContents(box); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected \u2014 press copy'; }
   });
 
-  /* ---------- lineup trouble: byes and injuries on current rosters ---------- */
+  /* ---------- starters in trouble: bye, out or questionable, as the lineup stands ---------- */
   function troubleCard() {
-    var wk = T.current || T.week, byes = T.byes || {}, items = [];
+    var wk = T.current || T.week, byes = T.byes || {}, rows = [];
     T.teams.forEach(function (t) {
       if (st.team !== 'all' && String(t.id) !== String(st.team)) return;
-      var bye = [], out = [], ir = [];
+      var hits = [];
       t.roster.forEach(function (r) {
+        if (r.ir || r.slot === 20 || r.slot === 21) return;              // starters only
         var m = P[String(r.pid)] || {};
-        if (r.ir) { ir.push(m.name); return; }
-        if (m.pro && byes[m.pro] === wk) bye.push(m.name);
-        if (/OUT|DOUBTFUL|SUSPENSION/.test(r.inj || '')) out.push(m.name + ' (' + (INJ[r.inj] || r.inj) + ')');
+        if (m.pro && byes[m.pro] === wk) hits.push({ n: m.name, tag: 'bye', cls: 'bye' });
+        else if (/OUT|DOUBTFUL|SUSPENSION|INJURY_RESERVE/.test(r.inj || '')) hits.push({ n: m.name, tag: INJ[r.inj] || r.inj, cls: 'out' });
+        else if (/QUESTIONABLE/.test(r.inj || '')) hits.push({ n: m.name, tag: 'Q', cls: 'q' });
       });
-      if (bye.length || out.length) {
-        items.push('<li><b>' + esc(t.owner) + '</b> ' + [bye.length ? 'Bye: ' + esc(bye.join(', ')) : '', out.length ? 'Out: ' + esc(out.join(', ')) : ''].filter(Boolean).join(' \u00b7 ') +
-          (ir.length ? ' <span class="pc-dim">IR: ' + esc(ir.join(', ')) + '</span>' : '') + '</li>');
-      }
+      if (hits.length) rows.push({ t: t, hits: hits, hard: hits.filter(function (h) { return h.cls !== 'q'; }).length });
     });
-    if (!items.length) return '';
-    return '<article class="team-card board-card dh-card rt-trouble"><header class="dh-head"><h2>Lineup trouble \u00b7 week ' + wk + '</h2>' +
-      '<span class="dh-sub">byes and injuries on current rosters</span></header><ul class="rt-trouble-list">' + items.join('') + '</ul></article>';
+    rows.sort(function (a, b) { return b.hard - a.hard || b.hits.length - a.hits.length; });
+    if (!rows.length) return '';
+    var body = '<div style="overflow-x:auto"><table class="dh-table rt-trouble"><thead><tr><th>Team</th><th class="dh-n">Starters</th><th>Who</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        return '<tr' + (String(r.t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + esc(r.t.owner) + '</td>' +
+          '<td class="dh-n"><b>' + r.hard + '</b>' + (r.hits.length > r.hard ? ' <span class="dh-yr">+' + (r.hits.length - r.hard) + ' Q</span>' : '') + '</td>' +
+          '<td>' + r.hits.map(function (h) { return '<span class="rt-tr ' + h.cls + '">' + esc(h.n) + ' <i>' + esc(h.tag) + '</i></span>'; }).join(' ') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    return card('Starters in trouble · week ' + wk, 'on bye, out or questionable as lineups stand right now', body);
   }
 
   /* ---------- value: the auction scoreboard and the keeper watch ---------- */
@@ -984,7 +992,7 @@
     n.push('<li><b>Season Summary</b> is the whole season on one page \u2014 last week\u2019s results, standings, the payout race, weekly high scores, leaders, the market. <b>Share image</b> draws it as a card for the group text; <b>Copy text</b> gives the same in plain lines. A link to <a href="#summary">#summary</a> opens it straight away.</li>');
     n.push('<li><b>Pick sixes</b> are read from ESPN\u2019s play-by-play, which names the passer; each one is checked against that week\u2019s fantasy lineups. A starter who threw one is flagged <b class="rt-p6-start">Started by</b> \u2014 the points override is applied by hand in ESPN.</li>');
     n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won (a tie for the week\u2019s high score splits the $15 evenly; those weeks are starred) and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
-    n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Lineup trouble</b> (top of Rosters) is written fresh from the same data each run.</li>');
+    n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Starters in trouble</b> (top of Rosters) counts only players in a starting slot who are on bye, out or questionable, as the lineup stands at the last refresh.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li><b>Tap a team\u2019s name</b> to open or close its card; the \u2606 makes it your team (first, and open, every visit). Moves marked <em class="rt-newtag inline">new</em> happened since you were last here. The <b>Waiver wire</b> preset lists free agents by last week\u2019s points with the going rate for winning bids by position.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
