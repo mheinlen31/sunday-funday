@@ -1441,3 +1441,6 @@ body.pc-open { overflow: hidden; }
 .sm-lead td img { width: 40px; height: 29px; object-fit: cover; border-radius: 3px; vertical-align: middle; margin-right: 8px; background: #e8e6e1; }
 .sm-lead .dh-name small { display: block; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); letter-spacing: .04em; text-transform: uppercase; margin-left: 48px; }
 .sm-lead tr { cursor: pointer; }
+.rt-p6 .dh-name small { display: block; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); letter-spacing: .04em; text-transform: uppercase; }
+.rt-p6-start { color: #8f1c19; }
+.rt-p6-hit td { background: #fbeceb; }

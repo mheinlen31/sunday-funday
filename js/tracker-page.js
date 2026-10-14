@@ -632,6 +632,22 @@
     }
     return card('Matchups', 'this week and next', rows(cur) + rows(cur + 1));
   }
+  function picksixCard() {
+    var rows = T.picksix || [];
+    if (!rows.length) return card('Pick sixes', 'every interception returned for a touchdown this season', '<div class="empty-note">None yet this season.</div>');
+    var body = '<div style="overflow-x:auto"><table class="dh-table rt-p6"><thead><tr><th class="dh-n">Week</th><th>Thrown by</th><th class="hide-m">Game</th><th class="hide-m">Returned by</th><th>Fantasy lineup that week</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        var who = r.started != null ? '<b class="rt-p6-start">Started by ' + esc(owner(r.started)) + '</b> <span class="dh-yr">override due</span>'
+          : r.benched != null ? 'On ' + esc(owner(r.benched)) + '\u2019s bench'
+          : r.lineupKnown ? '<span class="dh-yr">not rostered</span>' : '<span class="dh-yr">lineups not in yet</span>';
+        return '<tr' + (r.started != null ? ' class="rt-p6-hit"' : '') + '><td class="dh-n">' + r.week + '</td>' +
+          '<td class="dh-name">' + esc(r.name) + '<small>' + esc(r.pos || '') + (r.pro ? ' \u00b7 ' + esc(r.pro) : '') + (r.period ? ' \u00b7 Q' + r.period + ' ' + esc(r.clock || '') : '') + '</small></td>' +
+          '<td class="dh-own hide-m">' + esc(r.game || '') + '</td><td class="dh-own hide-m" title="' + esc(r.text || '') + '">' + esc(r.returner || '') + '</td>' +
+          '<td class="dh-own">' + who + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    var hits = rows.filter(function (r) { return r.started != null; }).length;
+    return card('Pick sixes', rows.length + ' this season \u00b7 ' + hits + ' thrown by a starter' + (hits ? ' \u2014 the override is applied by hand in ESPN' : ''), body);
+  }
   function h2hCard(M) {
     var body = '<div style="overflow-x:auto"><table class="dh-table rt-h2h"><thead><tr><th></th>' + M.order.map(function (x) { return '<th title="' + esc(x.t.owner) + '">' + esc(x.t.owner.slice(0, 4)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       M.order.map(function (a) {
@@ -670,6 +686,12 @@
     if (L && L.wkTop.length) {
       out.push('TOP SCORERS, WEEK ' + L.W);
       L.wkTop.slice(0, 5).forEach(function (pid) { out.push(meta(pid).name + '  ' + fmt1(S(pid).w[L.W - 1]) + '  (' + WHERE[pid].t.owner + ')'); });
+      out.push('');
+    }
+    var p6 = (T.picksix || []).filter(function (r) { return L && r.week === L.W; });
+    if (p6.length) {
+      out.push('PICK SIXES');
+      p6.forEach(function (r) { out.push(r.name + ' (' + (r.pro || '') + ')' + (r.started != null ? '  \u2014  started by ' + owner(r.started) + ', override due' : r.benched != null ? '  \u2014  on ' + owner(r.benched) + '\u2019s bench' : '  \u2014  not rostered')); });
       out.push('');
     }
     if (L) out.push('MOVES', L.adds + ' adds, ' + L.drops + ' drops' + (L.trades ? ', ' + L.trades + (L.trades === 1 ? ' trade' : ' trades') : '') + (L.big ? '  ·  biggest bid ' + meta(L.big.adds[0].pid).name + ' $' + L.big.bid + ' (' + owner(L.big.team) + ')' : ''), '');
@@ -797,7 +819,7 @@
     main.innerHTML = tiles() + head + (L ? resultsCard(L, PAY) : '') +
       '<div class="dh-pair">' + standingsCard(M) + payoutCard(M) + '</div>' +
       '<div class="dh-pair">' + leadersCard(M, L) + marketCard(M, L) + '</div>' +
-      '<div class="dh-pair">' + weeklyCard(M) + matchupsCard(M) + '</div>' + h2hCard(M);
+      '<div class="dh-pair">' + weeklyCard(M) + matchupsCard(M) + '</div>' + picksixCard() + h2hCard(M);
     var sh = main.querySelector('.sm-share');
     sh.addEventListener('click', function () { shareSummary(sh); });
     var cp = main.querySelector('.sm-copytext');
@@ -931,6 +953,7 @@
     n.push('<li><b>Moves</b> lists every executed add, drop, waiver claim and trade with the winning bid — and who was outbid. Lineup changes are not moves. Offseason trades live on the <a href="trades.html">Trades</a> page.</li>');
     n.push('<li><b>Value</b> uses the league\u2019s own auction prices as the ladder for production: the RB whose points rank 7th among the league\u2019s RBs so far was worth what the 7th-priciest RB cost on draft day. The scoreboard totals that for each roster against the money committed on draft day; keeper watch compares it with the most a player can cost to keep in 2027. Small samples early \u2014 it firms up as the season goes.</li>');
     n.push('<li><b>Season Summary</b> is the whole season on one page \u2014 last week\u2019s results, standings, the payout race, weekly high scores, leaders, the market. <b>Share image</b> draws it as a card for the group text; <b>Copy text</b> gives the same in plain lines. A link to <a href="#summary">#summary</a> opens it straight away.</li>');
+    n.push('<li><b>Pick sixes</b> are read from ESPN\u2019s play-by-play, which names the passer; each one is checked against that week\u2019s fantasy lineups. A starter who threw one is flagged <b class="rt-p6-start">Started by</b> \u2014 the points override is applied by hand in ESPN.</li>');
     n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won (a tie for the week\u2019s high score splits the $15 evenly; those weeks are starred) and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
     n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Lineup trouble</b> (top of Rosters) is written fresh from the same data each run.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');

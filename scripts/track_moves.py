@@ -36,6 +36,7 @@ LEDGER = TRACKER_DIR / f"ledger-{SEASON}.json"
 PLAYERS = TRACKER_DIR / f"players-{SEASON}.json"
 STATS = TRACKER_DIR / f"stats-{SEASON}.json"
 HISTORY = TRACKER_DIR / f"history-{SEASON}.json"   # one snapshot per week, for the arrows
+PICKSIX = TRACKER_DIR / f"picksix-{SEASON}.json"   # every interception returned for a TD, with who threw it
 OUT_JS = ROOT / "js" / "tracker.js"
 
 FAAB = 100                # free-agent budget per team, per season (Manifesto)
@@ -161,6 +162,90 @@ def slim(tx):
     }
 
 
+# ---------------------------------------------------------------- pick sixes
+NFL_SB = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week={week}&dates={season}"
+NFL_PLAYS = "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/{eid}/competitions/{eid}/plays?limit=500"
+QB_SLOT = 0
+
+
+def fetch_picksix(latest, cache):
+    """Scan every completed NFL game once for interception-return touchdowns.
+    ESPN's play-by-play tags the passer by athlete id -- the same id the
+    fantasy rosters use -- so each one can be matched to that week's lineups.
+    The league applies a manual points override to a starter who throws one;
+    the site only flags them."""
+    games = cache.setdefault("games", {})
+    lineups = cache.setdefault("lineups", {})
+    names = cache.setdefault("names", {})
+    new_games = 0
+    for week in range(1, latest + 1):
+        sb = get(NFL_SB.format(week=week, season=SEASON))
+        for e in sb.get("events", []):
+            comp = e["competitions"][0]
+            if not comp["status"]["type"].get("completed") or e["id"] in games:
+                continue
+            plays = get(NFL_PLAYS.format(eid=e["id"]))
+            hits = []
+            for pl in plays.get("items", []):
+                if not pl.get("scoringPlay") or "ntercept" not in ((pl.get("type") or {}).get("text") or ""):
+                    continue
+                who = {}
+                for part in pl.get("participants", []):
+                    ref = (part.get("athlete") or {}).get("$ref", "")
+                    pid = ref.split("/")[-1].split("?")[0]
+                    if part.get("type") and pid.isdigit():
+                        who.setdefault(part["type"], int(pid))
+                hits.append({"passer": who.get("passer"), "returner": who.get("returner") or who.get("passDefender"),
+                             "text": pl.get("text"), "period": (pl.get("period") or {}).get("number"),
+                             "clock": (pl.get("clock") or {}).get("displayValue")})
+            games[e["id"]] = {"week": week, "name": e.get("shortName"), "date": e.get("date"), "plays": hits}
+            new_games += 1
+    # lineups for every week that has one (only once a week is over)
+    for eid, g in games.items():
+        wk = str(g["week"])
+        if g["plays"] and wk not in lineups and g["week"] < latest:
+            d = get(API + f"?view=mRoster&scoringPeriodId={g['week']}")
+            lineups[wk] = {str(t["id"]): [[e["playerId"], e.get("lineupSlotId")] for e in t["roster"]["entries"]] for t in d["teams"]}
+    # names for the passers and returners (fantasy universe = every NFL player)
+    ids = {str(h[k]) for g in games.values() for h in g["plays"] for k in ("passer", "returner") if h.get(k)}
+    missing = [int(i) for i in ids if i not in names]
+    if missing:
+        for pid, pl in kona_players(missing).items():
+            names[str(pid)] = {"name": pl["fullName"], "pos": POS_IDS.get(pl.get("defaultPositionId"), "?"), "pro": PRO_TEAM.get(pl.get("proTeamId"))}
+    print(f"pick sixes: {sum(len(g['plays']) for g in games.values())} in {len(games)} games scanned ({new_games} new)")
+    return cache
+
+
+def picksix_rows(cache, teams_by_id):
+    rows = []
+    for eid, g in (cache.get("games") or {}).items():
+        for h in g["plays"]:
+            wk = str(g["week"])
+            started = benched = None
+            for tid, entries in (cache.get("lineups", {}).get(wk) or {}).items():
+                for pid, slot in entries:
+                    if pid == h.get("passer"):
+                        if slot == QB_SLOT:
+                            started = int(tid)
+                        else:
+                            benched = int(tid)
+            nm = (cache.get("names") or {}).get(str(h.get("passer")), {})
+            rt = (cache.get("names") or {}).get(str(h.get("returner")), {})
+            # defenders are not fantasy players, so the returner comes from the play text
+            txt = h.get("text") or ""
+            m_ret = re.search(r"INTERCEPTED by ([A-Z][a-z]*\.? ?[A-Za-z'\-]+)", txt)
+            m_yds = re.search(r"for (-?\d+) yards?, TOUCHDOWN", txt)
+            rows.append({"week": g["week"], "game": g["name"], "date": g["date"], "eid": eid,
+                         "pid": h.get("passer"), "name": nm.get("name") or "unknown passer", "pos": nm.get("pos"), "pro": nm.get("pro"),
+                         "returner": rt.get("name") or (m_ret.group(1) if m_ret else None),
+                         "yards": int(m_yds.group(1)) if m_yds else None,
+                         "text": txt, "period": h.get("period"), "clock": h.get("clock"),
+                         "started": started, "benched": benched,
+                         "lineupKnown": wk in (cache.get("lineups") or {})})
+    rows.sort(key=lambda r: (-r["week"], r["date"] or ""))
+    return rows
+
+
 # ---------------------------------------------------------------- stats
 def fetch_stats(latest, rostered):
     """Season-to-date points (league scoring), weekly points, games, last
@@ -284,6 +369,11 @@ def fetch(ledger, baseline):
     ledger["snapshot"]["matchups"] = matchups
     ledger["snapshot"]["current"] = league.get("scoringPeriodId") or latest
     stats = fetch_stats(latest, [e["playerId"] for t in league["teams"] for e in t["roster"]["entries"]])
+    picks = fetch_picksix(latest, load_json(PICKSIX, {}))
+    txt = json.dumps(picks, separators=(",", ":"), sort_keys=True)
+    if not PICKSIX.exists() or PICKSIX.read_text() != txt:
+        TRACKER_DIR.mkdir(exist_ok=True)
+        PICKSIX.write_text(txt)
     print(f"ESPN: week {latest}, {entries} roster entries, {len(seen)} transactions on file ({new} new), "
           f"stats for {len(stats['players'])} players")
     return ledger, new, stats
@@ -602,6 +692,7 @@ def build(baseline, ledger, players, stats=None, weekly=None):
         "current": snap.get("current") or wk,
         "noteManual": load_json(TRACKER_DIR / "note-manual.json", None),
         "payouts": load_json(TRACKER_DIR / f"payouts-{SEASON}.json", None),
+        "picksix": picksix_rows(load_json(PICKSIX, {}), teams),
         "stats": {
             "adds": sum(len(e["adds"]) for e in events), "drops": sum(len(e["drops"]) for e in events),
             "trades": sum(1 for e in events if e["trades"]),
