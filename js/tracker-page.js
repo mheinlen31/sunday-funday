@@ -646,7 +646,7 @@
       var m = meta(pid), s = S(pid), w = WHERE[pid];
       return '<tr data-pid="' + pid + '"' + (w && String(w.t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-n">' + (i + 1) + '</td>' +
         '<td class="dh-name">' + (m.img ? '<img src="' + esc(m.img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '') + esc(m.name) +
-        '<small>' + (m.nfl ? esc(m.nfl) + ' · ' : '') + (s.rk ? esc(pos) + s.rk + ' in the NFL' : '') + (w && w.r.ir ? ' · IR' : '') + '</small></td>' +
+        '<small>' + (m.nfl ? esc(m.nfl) + ' · ' : '') + (s.rk ? 'NFL ' + esc(pos) + s.rk : '') + (w && w.r.ir ? ' · IR' : '') + '</small></td>' +
         '<td class="dh-own">' + (w ? esc(w.t.owner) : '<span class="rt-fa">FA</span>') + '</td>' +
         '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '—') + '</td>' +
         '<td class="dh-pts hide-m">' + (R && s.w && s.w[R - 1] != null ? fmt1(s.w[R - 1]) : '—') + '</td></tr>';
@@ -782,10 +782,10 @@
     var M = payoutRace(), L = lastWeek(M), ty = moneyTally(M), PAY = M.PAY, cut = PAY.playoffTeams || 6;
     var W = 1080, H = 1350, c = document.createElement('canvas'); c.width = W; c.height = H;
     var g = c.getContext('2d');
-    var SANS = '-apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif', SERIF = 'Georgia, "Times New Roman", serif';
-    var INK = '#1a1a1a', SOFT = '#55524d', FAINT = '#8a867f', GREEN = '#0d5c3f', RULE = '#e3e0da', GOLD = '#b08d2f';
-    g.fillStyle = '#faf9f7'; g.fillRect(0, 0, W, H);
-    g.fillStyle = GREEN; g.fillRect(0, 0, W, 12);
+    var SANS = '"Inter", -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif', SERIF = '"Barlow Condensed", "Inter", -apple-system, Helvetica, Arial, sans-serif';
+    var INK = '#12171a', SOFT = '#4b5257', FAINT = '#7b848a', GREEN = '#0d5c3f', RULE = '#e1e4e0', GOLD = '#a9842d', DARK = '#11151c', BRIGHT = '#2fb37a', MUTE = '#9aa3ad';
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    g.fillStyle = DARK; g.fillRect(0, 0, W, 236); g.fillStyle = GREEN; g.fillRect(0, 236, W, 5);
     function text(t, x, y, font, color, align) { g.font = font; g.fillStyle = color; g.textAlign = align || 'left'; g.fillText(t, x, y); }
     function fit(t, x, y, font, color, maxW) {
       // shrink the font to a floor, then trim with an ellipsis, so a long line stays on the card
@@ -795,16 +795,16 @@
       while (g.measureText(t).width > maxW && t.length > 8) { t = t.replace(/\s*\S+$/, '') + '\u2026'; }
       text(t, x, y, f, color);
     }
-    function caps(t, x, y, color) { g.font = '800 20px ' + SANS; g.fillStyle = color || GREEN; g.textAlign = 'left'; var cx = x; for (var i = 0; i < t.length; i++) { g.fillText(t[i], cx, y); cx += g.measureText(t[i]).width + 4; } }
+    function caps(t, x, y, color) { g.font = '700 21px ' + SERIF; g.fillStyle = color || BRIGHT; g.textAlign = 'left'; var cx = x; for (var i = 0; i < t.length; i++) { g.fillText(t[i], cx, y); cx += g.measureText(t[i]).width + 5; } }
     function rule(x1, x2, y, color, w) { g.strokeStyle = color || RULE; g.lineWidth = w || 1; g.beginPath(); g.moveTo(x1, y); g.lineTo(x2, y); g.stroke(); }
     function section(t, x, y, w) { caps(t, x, y, FAINT); rule(x, x + w, y + 12, INK, 2); return y + 44; }
     var wkLabel = L ? 'Week ' + L.W : 'Season so far';
     caps('FANTASY FOOTBALL · SUNDAY FUNDAY', 60, 72);
-    text(wkLabel, 60, 156, 'bold 78px ' + SERIF, INK);
-    text('Season summary · ' + new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' }), 60, 200, 'italic 28px ' + SERIF, SOFT);
-    text(PAY.entry ? '$' + (T.teams.length * PAY.entry).toLocaleString() + ' pot' : '', W - 60, 156, 'bold 34px ' + SERIF, GOLD, 'right');
+    text(wkLabel.toUpperCase(), 58, 164, '800 96px ' + SERIF, '#ffffff');
+    text(('Season summary · ' + new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })).toUpperCase(), 60, 206, '600 24px ' + SERIF, MUTE);
+    text(PAY.entry ? '$' + (T.teams.length * PAY.entry).toLocaleString() + ' POT' : '', W - 60, 164, '700 44px ' + SERIF, '#d6b25e', 'right');
 
-    var LX = 60, LW = 470, RX = 590, RW = 430, y = 270;
+    var LX = 60, LW = 470, RX = 590, RW = 430, y = 300;
     // results
     var yl = y;
     if (L && L.games.length) {
@@ -864,12 +864,16 @@
       if (kw.length) { text('Keeper watch  ', LX, y, '800 19px ' + SANS, FAINT); fit(kw.map(function (x) { return shortName(meta(x.r.pid).name) + ' $' + S(x.r.pid).worth + ' vs ' + keepCostText(x.r).replace('at most ', '≤ '); }).join('   ·   '), LX + 160, y, '600 22px ' + SANS, INK, W - 60 - (LX + 160)); y += 42; }
     }
     // footer
-    g.fillStyle = GREEN; g.fillRect(0, H - 64, W, 64);
-    text('mheinlen31.github.io/sunday-funday', W / 2, H - 24, '700 22px ' + SANS, '#ffffff', 'center');
+    g.fillStyle = DARK; g.fillRect(0, H - 64, W, 64); g.fillStyle = GREEN; g.fillRect(0, H - 64, W, 4);
+    text('mheinlen31.github.io/sunday-funday', W / 2, H - 24, '600 24px ' + SERIF, '#ffffff', 'center');
     return c;
   }
   function shareSummary(btn) {
-    var c = drawSummary(), W = T.reviewWeek || T.week;
+    var W = T.reviewWeek || T.week;
+    // the card is drawn with the site's web fonts; make sure they are in before painting
+    var ready = document.fonts && document.fonts.load ? Promise.all(['800 96px "Barlow Condensed"', '700 21px "Barlow Condensed"', '700 27px "Inter"', '600 24px "Inter"'].map(function (f) { return document.fonts.load(f); })).catch(function () {}) : Promise.resolve();
+    ready.then(function () {
+    var c = drawSummary();
     c.toBlob(function (blob) {
       if (!blob) { btn.textContent = 'Could not draw it'; return; }
       var file = new File([blob], 'sunday-funday-week-' + W + '.png', { type: 'image/png' });
@@ -884,6 +888,7 @@
       ov.addEventListener('click', function (e) { if (e.target === ov || e.target.closest('.sm-close')) { ov.remove(); URL.revokeObjectURL(url); } });
       document.body.appendChild(ov);
     }, 'image/png');
+    });
   }
   function summaryView() {
     var M = payoutRace(), L = lastWeek(M), PAY = M.PAY;

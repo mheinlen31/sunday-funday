@@ -15,8 +15,9 @@
     "#0f7b8a", "#c05a17", "#3d6d1f", "#7d2f52", "#444a56"];
 
   // masthead
-  document.getElementById("season").textContent = D.season;
-  document.getElementById("updated").textContent =
+  // the masthead lost these spans in the Sept 2026 reword; guard so the board still wires up
+  const seasonEl = document.getElementById("season"); if (seasonEl) seasonEl.textContent = D.season;
+  const updatedEl = document.getElementById("updated"); if (updatedEl) updatedEl.textContent =
     new Date(D.generated).toLocaleString(undefined, {
       month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
     });
