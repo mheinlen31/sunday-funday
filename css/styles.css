@@ -1598,4 +1598,4 @@ body.pc-open { overflow: hidden; }
 .dh-table .dh-pts b.down { color: #8f1c19; }
 /* phone-only labels; the replacement baseline under each pickup stays in the footnote on a phone */
 .only-m { display: none; }
-@media (max-width: 720px) { .only-m { display: inline; } .rt-moves .rt-vs { display: none; } }
+@media (max-width: 720px) { .only-m { display: inline; } .rt-moves .dh-table .dh-pts small.rt-vs { display: none; } }
