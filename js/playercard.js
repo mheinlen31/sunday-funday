@@ -370,6 +370,30 @@
   }
   /* what the roster tracker has seen this season: the day he was added, for
      how much, who dropped him, where he sits today */
+  /* replacement level by position, from the tracker payload: starters = the league's
+     lineup slots per team (QB 1, RB 2, WR 2, TE 1, K 1, D/ST 1) x teams, plus the flex
+     split the way this week's lineups use it; the baseline is the per-game average of
+     the three players ranked just outside that count by season points. */
+  var SLOT_COUNTS = { QB: 1, RB: 2, WR: 2, TE: 1, K: 1, 'D/ST': 1 };
+  function replacementLevel(T) {
+    if (!T || !T.teams || !T.players) return {};
+    if (T._repl) return T._repl;
+    var P = T.players, n = T.teams.length, flex = {}, byPos = {};
+    function pos(pid) { var x = P[String(pid)]; return x ? x.pos : null; }
+    function st(pid) { var x = P[String(pid)]; return x && x.s ? x.s : null; }
+    T.teams.forEach(function (t) { (t.roster || []).forEach(function (r) { if (r.slot === 23) { var q = pos(r.pid); flex[q] = (flex[q] || 0) + 1; } }); });
+    (T.pool || []).forEach(function (pid) { var q = pos(pid), x = st(pid); if (x && x.pts > 0 && SLOT_COUNTS[q]) (byPos[q] = byPos[q] || []).push(pid); });
+    var R = {};
+    Object.keys(SLOT_COUNTS).forEach(function (q) {
+      var starters = SLOT_COUNTS[q] * n + (flex[q] || 0);
+      var list = (byPos[q] || []).sort(function (a, b) { return st(b).pts - st(a).pts; }), band = list.slice(starters, starters + 3), pts = 0, g = 0;
+      band.forEach(function (pid) { pts += st(pid).pts; g += st(pid).gp || 0; });
+      R[q] = { starters: starters, ppg: g ? pts / g : 0, who: band.map(function (pid) { return P[String(pid)].name; }) };
+    });
+    T._repl = R;
+    return R;
+  }
+
   function seasonHtml(p) {
     var T = window.ROSTER_TRACKER;
     if (!T) return '';
@@ -408,10 +432,12 @@
       else if (m === 'K') txt = l.fgm + '/' + l.fga + ' FG, ' + l.xpm + ' XP';
       else if (m === 'D/ST') txt = l.sack + ' sacks, ' + l.int + ' INT, ' + l.fr + ' FR, ' + l.td + ' TD, ' + l.pa + ' pts allowed';
       var f1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1); };
-      stat = '<div class="pc-facts pc-facts-3">' +
+      var R = replacementLevel(T)[m], par = R && s.gp ? s.pts - s.gp * R.ppg : null;
+      var parFact = '<div class="pc-fact"><b>' + (par == null ? '\u2014' : (par >= 0 ? '+' : '\u2212') + f1(Math.abs(par))) + '</b><span>vs replacement' + (R ? ' \u00b7 ' + f1(R.ppg) + '/g ' + esc(m) : '') + '</span></div>';
+      stat = '<div class="pc-facts">' +
         '<div class="pc-fact"><b>' + f1(s.pts) + '</b><span>points' + (s.rk ? ' \u00b7 ' + esc(m) + s.rk : '') + '</span></div>' +
         '<div class="pc-fact"><b>' + (s.gp ? f1(s.ppg) : '\u2014') + '</b><span>per game \u00b7 ' + s.gp + (s.gp === 1 ? ' game' : ' games') + '</span></div>' +
-        '<div class="pc-fact"><b>' + (s.wk == null ? '\u2014' : f1(s.wk)) + '</b><span>week ' + (T.statsWeek || T.week) + '</span></div></div>' +
+        '<div class="pc-fact"><b>' + (s.wk == null ? '\u2014' : f1(s.wk)) + '</b><span>week ' + (T.statsWeek || T.week) + '</span></div>' + parFact + '</div>' +
         (s.w && s.w.length ? (function () {
           var mx = Math.max.apply(null, s.w.map(function (v) { return v || 0; }).concat([1]));
           return '<div class="pc-bars" title="points by week">' + s.w.map(function (v, i) {
@@ -445,5 +471,5 @@
     });
   }
 
-  window.PlayerCard = { open: open, close: close, _key: key, _ensure: ensure };
+  window.PlayerCard = { open: open, close: close, replacement: replacementLevel, _key: key, _ensure: ensure };
 })();

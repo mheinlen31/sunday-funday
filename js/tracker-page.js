@@ -79,28 +79,8 @@
     return { pts: pts, g: g, held: end === T.week + 1, par: pts - g * base, base: base };
   }
 
-  /* replacement level, by position: what the next man up scores. Starters = the
-     league's lineup slots per team (QB 1, RB 2, WR 2, TE 1, K 1, D/ST 1) times the
-     teams, plus the flex split the way this week's lineups actually use it; the
-     baseline is the per-game average of the three players ranked just outside
-     that count by season points. Points above replacement = points less games
-     times that baseline, so a QB and a tight end can be compared on one scale. */
-  var SLOT_COUNTS = { QB: 1, RB: 2, WR: 2, TE: 1, K: 1, 'D/ST': 1 };
-  var REPL = null;
-  function replacement() {
-    if (REPL) return REPL;
-    var n = T.teams.length, flex = {}, byPos = {};
-    T.teams.forEach(function (t) { t.roster.forEach(function (r) { if (r.slot === 23) { var p = meta(r.pid).pos; flex[p] = (flex[p] || 0) + 1; } }); });
-    (T.pool || []).forEach(function (pid) { var m = meta(pid), s = S(pid); if (s && s.pts > 0 && SLOT_COUNTS[m.pos]) (byPos[m.pos] = byPos[m.pos] || []).push(pid); });
-    REPL = {};
-    Object.keys(SLOT_COUNTS).forEach(function (pos) {
-      var starters = SLOT_COUNTS[pos] * n + (flex[pos] || 0);
-      var list = (byPos[pos] || []).sort(function (a, b) { return S(b).pts - S(a).pts; }), band = list.slice(starters, starters + 3), pts = 0, g = 0;
-      band.forEach(function (pid) { pts += S(pid).pts; g += S(pid).gp || 0; });
-      REPL[pos] = { starters: starters, ppg: g ? pts / g : 0, who: band.map(function (pid) { return meta(pid).name; }) };
-    });
-    return REPL;
-  }
+  /* replacement level by position is computed in playercard.js (shared with the player card) */
+  function replacement() { return window.PlayerCard && PlayerCard.replacement ? PlayerCard.replacement(T) : {}; }
   function parSeason(pid) { var s = S(pid), r = replacement()[meta(pid).pos]; return s && r && s.gp ? s.pts - s.gp * r.ppg : null; }
   function signed(n) { return (n >= 0 ? '+' : '−') + fmt1(Math.abs(n)); }
   var PICKS = null;
@@ -175,8 +155,22 @@
     return '<div class="rt-next ' + cls + '" title="' + esc(o.text) + '"><b>' + big + '</b><span>' + small + '</span></div>';
   }
   function injTag(r) {
-    var t = r.ir ? 'IR' : INJ[r.inj];
-    return t ? ' <span class="rt-tag' + (r.ir ? ' ir' : '') + '">' + t + '</span>' : '';
+    var t = r.ir ? 'IR' : INJ[r.inj], m = P[String(r.pid)] || {}, out = '';
+    if (t) out += ' <span class="rt-tag' + (r.ir ? ' ir' : '') + '">' + t + '</span>';
+    if (m.pro && (T.byes || {})[m.pro] === (T.current || T.week)) out += ' <span class="rt-tag bye">BYE</span>';
+    return out;
+  }
+  /* starters on bye or out this week, as the lineup stood at the last refresh */
+  function lineupWarn(t) {
+    var wk = T.current || T.week, byes = T.byes || {}, onBye = 0, out = 0;
+    t.roster.forEach(function (r) {
+      if (r.ir || r.slot === 20 || r.slot === 21) return;
+      var m = P[String(r.pid)] || {};
+      if (m.pro && byes[m.pro] === wk) onBye++;
+      else if (/OUT|DOUBTFUL|SUSPENSION|INJURY_RESERVE/.test(r.inj || '')) out++;
+    });
+    return (onBye ? '<span class="stat rt-warn"><strong>' + onBye + '</strong> ' + (onBye === 1 ? 'starter' : 'starters') + ' on bye</span>' : '') +
+      (out ? '<span class="stat rt-warn"><strong>' + out + '</strong> ' + (out === 1 ? 'starter' : 'starters') + ' out</span>' : '');
   }
 
   /* ---------- tiles ---------- */
@@ -236,14 +230,14 @@
       (rec.wins != null ? '<span class="stat"><strong>' + rec.wins + '–' + rec.losses + (rec.ties ? '–' + rec.ties : '') + '</strong></span>' : '') +
       (rec.pointsFor != null ? '<span class="stat"><strong>' + fmt1(rec.pointsFor) + '</strong> pts</span>' : '') +
       '<span class="stat">FAAB <strong>' + money(t.faabLeft) + '</strong> left</span>' +
-      '<span class="stat">' + t.moves.adds + ' added · ' + t.moves.drops + ' dropped</span></div></header>' +
+      '<span class="stat">' + t.moves.adds + ' added · ' + t.moves.drops + ' dropped</span>' + lineupWarn(t) + '</div></header>' +
       '<div class="roster">' + rows + '</div>' + deadHtml + '</article>';
   }
   function rosters() {
     var list = T.teams.filter(function (t) { return st.team === 'all' || String(t.id) === String(st.team); });
     if (st.me) list.sort(function (a, b) { return (String(b.id) === String(st.me)) - (String(a.id) === String(st.me)); });
     main.className = 'dh-main rt-grid';
-    main.innerHTML = tiles() + troubleCard() + '<div class="team-grid rt-teams">' + list.map(teamCard).join('') + '</div>';
+    main.innerHTML = tiles() + '<div class="team-grid rt-teams">' + list.map(teamCard).join('') + '</div>';
   }
 
   /* ---------- moves ---------- */
@@ -435,31 +429,6 @@
   });
 
   /* ---------- starters in trouble: bye, out or questionable, as the lineup stands ---------- */
-  function troubleCard() {
-    var wk = T.current || T.week, byes = T.byes || {}, rows = [];
-    T.teams.forEach(function (t) {
-      if (st.team !== 'all' && String(t.id) !== String(st.team)) return;
-      var hits = [];
-      t.roster.forEach(function (r) {
-        if (r.ir || r.slot === 20 || r.slot === 21) return;              // starters only
-        var m = P[String(r.pid)] || {};
-        if (m.pro && byes[m.pro] === wk) hits.push({ n: m.name, tag: 'bye', cls: 'bye' });
-        else if (/OUT|DOUBTFUL|SUSPENSION|INJURY_RESERVE/.test(r.inj || '')) hits.push({ n: m.name, tag: INJ[r.inj] || r.inj, cls: 'out' });
-        else if (/QUESTIONABLE/.test(r.inj || '')) hits.push({ n: m.name, tag: 'Q', cls: 'q' });
-      });
-      if (hits.length) rows.push({ t: t, hits: hits, hard: hits.filter(function (h) { return h.cls !== 'q'; }).length });
-    });
-    rows.sort(function (a, b) { return b.hard - a.hard || b.hits.length - a.hits.length; });
-    if (!rows.length) return '';
-    var body = '<div style="overflow-x:auto"><table class="dh-table rt-trouble"><thead><tr><th>Team</th><th class="dh-n">Starters</th><th>Who</th></tr></thead><tbody>' +
-      rows.map(function (r) {
-        return '<tr' + (String(r.t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + esc(r.t.owner) + '</td>' +
-          '<td class="dh-n"><b>' + r.hard + '</b>' + (r.hits.length > r.hard ? ' <span class="dh-yr">+' + (r.hits.length - r.hard) + ' Q</span>' : '') + '</td>' +
-          '<td>' + r.hits.map(function (h) { return '<span class="rt-tr ' + h.cls + '">' + esc(h.n) + ' <i>' + esc(h.tag) + '</i></span>'; }).join(' ') + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
-    return card('Starters in trouble · week ' + wk, 'on bye, out or questionable as lineups stand right now', body);
-  }
-
   /* ---------- value: the auction scoreboard and the keeper watch ---------- */
   function valChip(v) {
     if (v == null) return '';
@@ -794,6 +763,8 @@
       if (i === cut - 1) out.push('—— playoff line ——');
     });
     out.push('');
+    var O = odds();
+    if (O) { out.push('PLAYOFF ODDS'); out.push(O.rows.slice().sort(function (a, b) { return b.playoff - a.playoff; }).map(function (r) { return r.t.owner + ' ' + pct(r.playoff); }).join(', ')); out.push(''); }
     out.push('MONEY');
     out.push('Banked: ' + (ty.banked.length ? ty.banked.map(function (x) { return x.t.owner + ' $' + x.amt + ' (wk ' + x.weeks.join(', ') + ')'; }).join(', ') : 'nobody yet'));
     out.push('If it ended today: ' + ty.today.slice(0, 5).map(function (x) { return x.t.owner + ' $' + x.total; }).join(', '), '');
@@ -862,12 +833,14 @@
       yl += 60;
     }
     // standings
-    var yr = section('STANDINGS', RX, y, RW);
+    var OD = {}; (odds() || { rows: [] }).rows.forEach(function (r) { OD[r.t.id] = r.playoff; });
+    var yr = section(Object.keys(OD).length ? 'STANDINGS · PLAYOFF ODDS' : 'STANDINGS', RX, y, RW);
     M.order.forEach(function (x, i) {
       text(String(i + 1), RX, yr, '700 18px ' + SANS, FAINT);
       text(x.t.owner, RX + 34, yr, (i < cut ? 'bold ' : '600 ') + '25px ' + SANS, i < cut ? INK : SOFT);
-      text(x.w + '–' + x.l + (x.ti ? '–' + x.ti : ''), RX + RW - 110, yr, 'bold 25px ' + SERIF, INK, 'right');
-      text(fmt1(x.pf), RX + RW, yr, '600 20px ' + SANS, FAINT, 'right');
+      text(x.w + '–' + x.l + (x.ti ? '–' + x.ti : ''), RX + RW - 200, yr, 'bold 25px ' + SERIF, INK, 'right');
+      text(fmt1(x.pf), RX + RW - 100, yr, '600 20px ' + SANS, FAINT, 'right');
+      if (OD[x.t.id] != null) text(pct(OD[x.t.id]), RX + RW, yr, 'bold 24px ' + SERIF, GREEN, 'right');
       rule(RX, RX + RW, yr + 12, i === cut - 1 ? INK : RULE, i === cut - 1 ? 2 : 1); yr += 42;
     });
     y = Math.max(yl, yr) + 30;
@@ -931,6 +904,78 @@
     }, 'image/png');
     });
   }
+  /* ---------- playoff odds: the rest of the regular season, played out 10,000 times ---------- */
+  function mulberry32(a) {
+    return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  var ODDS;
+  function odds() {
+    if (ODDS !== undefined) return ODDS;
+    var PAY = T.payouts || {}, cut = PAY.playoffTeams || 6, byes = PAY.byes || 2, N = 10000;
+    var teams = T.teams, n = teams.length, idx = {}, i, k;
+    teams.forEach(function (t, j) { idx[t.id] = j; });
+    var wins = [], pf = [], games = [], left = [], scores = [], todo = [];
+    for (i = 0; i < n; i++) { wins[i] = 0; pf[i] = 0; games[i] = 0; left[i] = 0; scores[i] = []; }
+    (T.matchups || []).filter(regular).forEach(function (m) {
+      var h = idx[m.home], a = idx[m.away];
+      if (h == null || a == null) return;
+      if (decided(m)) {
+        scores[h].push(m.hp); scores[a].push(m.ap); pf[h] += m.hp; pf[a] += m.ap; games[h]++; games[a]++;
+        if (m.hp > m.ap) wins[h]++; else if (m.ap > m.hp) wins[a]++; else { wins[h] += 0.5; wins[a] += 0.5; }
+      } else { todo.push([h, a]); left[h]++; left[a]++; }
+    });
+    var all = [].concat.apply([], scores);
+    if (all.length < n) return (ODDS = null);
+    var mu = all.reduce(function (t, v) { return t + v; }, 0) / all.length;
+    var mean = games.map(function (g, j) { return g ? pf[j] / g : mu; });
+    var ss = 0; scores.forEach(function (arr, j) { arr.forEach(function (v) { ss += (v - mean[j]) * (v - mean[j]); }); });
+    var sd = all.length > n ? Math.sqrt(ss / (all.length - n)) : 25;
+    var rnd = mulberry32(Date.parse(T.generated || '') || 7);
+    function gauss() { var u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+    var tally = teams.map(function () { return { playoff: 0, bye: 0, seed: [0, 0, 0, 0], pts: [0, 0, 0], wins: 0 }; });
+    var w = [], p = [], order = teams.map(function (_, j) { return j; });
+    for (var sim = 0; sim < N; sim++) {
+      for (i = 0; i < n; i++) { w[i] = wins[i]; p[i] = pf[i]; }
+      for (var g = 0; g < todo.length; g++) {
+        var h = todo[g][0], a = todo[g][1], sh = mean[h] + sd * gauss(), sa = mean[a] + sd * gauss();
+        p[h] += sh; p[a] += sa; if (sh > sa) w[h]++; else w[a]++;
+      }
+      order.sort(function (x, y) { return w[y] - w[x] || p[y] - p[x]; });
+      for (k = 0; k < n; k++) { var t = tally[order[k]]; if (k < cut) t.playoff++; if (k < byes) t.bye++; if (k < 4) t.seed[k]++; t.wins += w[order[k]]; }
+      order.sort(function (x, y) { return p[y] - p[x]; });
+      for (k = 0; k < 3 && k < n; k++) tally[order[k]].pts[k]++;
+    }
+    var reg = PAY.regular || [425, 225], seeds = PAY.seeds || { '3': 80, '4': 40 }, pr = PAY.pointsRace || [410, 250, 100];
+    ODDS = {
+      sims: N, sd: sd, remaining: todo.length,
+      rows: teams.map(function (t, j) {
+        var x = tally[j], sdd = x.seed.map(function (v) { return v / N; }), pts = x.pts.map(function (v) { return v / N; });
+        return { t: t, playoff: x.playoff / N, bye: x.bye / N, seed1: sdd[0], pts1: pts[0], expWins: x.wins / N, games: games[j] + left[j], left: left[j], mean: mean[j],
+          money: sdd[0] * reg[0] + sdd[1] * reg[1] + sdd[2] * (seeds['3'] || 0) + sdd[3] * (seeds['4'] || 0) + pts[0] * pr[0] + pts[1] * pr[1] + pts[2] * pr[2] };
+      })
+    };
+    return ODDS;
+  }
+  function pct(x) { return x >= 1 ? '100%' : x >= 0.995 ? '>99%' : x <= 0 ? '\u2014' : x < 0.005 ? '<1%' : Math.round(x * 100) + '%'; }
+  function oddsCard(M) {
+    var O = odds();
+    if (!O) return '';
+    var PAY = M.PAY, cut = PAY.playoffTeams || 6, byes = PAY.byes || 2;
+    var rows = O.rows.slice().sort(function (a, b) { return b.playoff - a.playoff || b.bye - a.bye || b.expWins - a.expWins; });
+    var body = '<div style="overflow-x:auto"><table class="dh-table rt-odds"><thead><tr><th>Team</th><th class="dh-cash">Now</th><th class="dh-cash hide-m">Proj.</th><th class="dh-cash">Playoffs</th><th class="dh-cash">Bye</th><th class="dh-cash hide-m">No. 1</th><th class="dh-cash hide-m">Most pts</th><th class="dh-cash" title="Regular-season money at these odds: places, seeds and the points race">Exp. $</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        var rec = r.t.record || {};
+        return '<tr' + (String(r.t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + esc(r.t.owner) + '</td>' +
+          '<td class="dh-cash">' + (rec.wins || 0) + '\u2013' + (rec.losses || 0) + '</td>' +
+          '<td class="dh-cash hide-m">' + fmt1(r.expWins) + '\u2013' + fmt1(r.games - r.expWins) + '</td>' +
+          '<td class="dh-cash"><b>' + pct(r.playoff) + '</b></td><td class="dh-cash">' + pct(r.bye) + '</td>' +
+          '<td class="dh-cash hide-m">' + pct(r.seed1) + '</td><td class="dh-cash hide-m">' + pct(r.pts1) + '</td>' +
+          '<td class="dh-cash dh-tot">' + money(Math.round(r.money)) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<p class="sm-line"><b>How</b> the rest of the regular season is played out ' + O.sims.toLocaleString() + ' times, each team scoring like it has so far \u2014 its own average, with the league\u2019s usual week-to-week swing of ' + fmt1(O.sd) + ' points \u2014 and the Manifesto\u2019s tiebreakers set the seeds. Odds, not predictions. Exp. $ is the regular-season money (places, seeds, points race) at those odds; weekly prizes and the playoff pot are separate.</p>';
+    return card('Playoff odds', 'top ' + cut + ' make it, top ' + byes + ' get a bye \u00b7 ' + O.remaining + (O.remaining === 1 ? ' game' : ' games') + ' left', body);
+  }
+
   function summaryView() {
     var M = payoutRace(), L = lastWeek(M), PAY = M.PAY;
     var head = '<article class="team-card board-card dh-card sm-head"><header class="dh-head"><h2>Season summary</h2>' +
@@ -941,10 +986,11 @@
       '<pre class="rt-notebox" hidden>' + esc(summaryText()) + '</pre></article>';
     main.className = 'dh-main rt-summary';
     main.innerHTML = tiles() + head + (L ? resultsCard(L, PAY) : '') +
-      '<div class="dh-pair">' + standingsCard(M) + payoutCard(M) + '</div>' +
-      '<div class="dh-pair">' + leadersCard(M, L) + movesCard(L) + '</div>' +
+      '<div class="dh-pair">' + standingsCard(M) + oddsCard(M) + '</div>' +
+      '<div class="dh-pair">' + payoutCard(M) + movesCard(L) + '</div>' +
+      '<div class="dh-pair">' + leadersCard(M, L) + weeklyCard(M) + '</div>' +
       '<div class="dh-pair">' + scoreboardMini() + keeperMini() + '</div>' +
-      '<div class="dh-pair">' + weeklyCard(M) + matchupsCard(M) + '</div>' + picksixCard() + h2hCard(M);
+      '<div class="dh-pair">' + matchupsCard(M) + picksixCard() + '</div>' + h2hCard(M);
     var sh = main.querySelector('.sm-share');
     sh.addEventListener('click', function () { shareSummary(sh); });
     var cp = main.querySelector('.sm-copytext');
@@ -1080,7 +1126,8 @@
     n.push('<li><b>Season Summary</b> is the whole season on one page \u2014 last week\u2019s results, standings, the payout race, weekly high scores, leaders, the market. <b>Share image</b> draws it as a card for the group text; <b>Copy text</b> gives the same in plain lines. A link to <a href="#summary">#summary</a> opens it straight away.</li>');
     n.push('<li><b>Pick sixes</b> are read from ESPN\u2019s play-by-play, which names the passer; each one is checked against that week\u2019s fantasy lineups. A starter who threw one is flagged <b class="rt-p6-start">Started by</b> \u2014 the points override is applied by hand in ESPN.</li>');
     n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won (a tie for the week\u2019s high score splits the $15 evenly; those weeks are starred) and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
-    n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Starters in trouble</b> (top of Rosters) counts only players in a starting slot who are on bye, out or questionable, as the lineup stands at the last refresh.</li>');
+    n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. A <b>BYE</b> tag on a player, and the <b>starters on bye</b> or <b>out</b> count in a team\u2019s header, reflect the lineup as it stood at the last refresh.</li>');
+    n.push('<li><b>Playoff odds</b> play the rest of the regular season out 10,000 times, each team scoring like it has so far (its own average, with the league\u2019s usual week-to-week swing), then seed by the Manifesto\u2019s tiebreakers. Odds, not predictions: a 70% team misses three times in ten. Exp. $ is the regular-season money (places, seeds, points race) weighted by those odds.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li><b>Above replacement</b> puts every position on one scale: a player’s points less what a replacement-level player at his position averages over the same games. Replacement level is the next man up — the three players ranked just outside the league’s starting lineups at each position (QB 1, RB 2, WR 2, TE 1, K 1 and D/ST 1 per team, plus the flex the way this week’s lineups use it). That is why a QB pickup can score more raw points than a tight end and still rank below him: the next QB on the wire is worth far more than the next tight end.</li>');
     n.push('<li><b>Tap a team’s name</b> to open or close its card; the \u2606 makes it your team (first, and open, every visit). Moves marked <em class="rt-newtag inline">new</em> happened since you were last here. The <b>Waiver wire</b> preset lists free agents by last week\u2019s points with the going rate for winning bids by position.</li>');

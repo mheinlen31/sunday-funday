@@ -6,7 +6,7 @@
    Works on every page: the cards are cloned, so nothing on the page changes. */
 (function () {
   var LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-  var HEADS = '.team-card > .dh-head, .team-card > .team-head, .team-card > .trade-head';
+  var HEADS = '.team-card > .dh-head, .team-card > .team-head, .team-card > .trade-head, .pc-card > .pc-head';
   var MAX_ROWS = 25;           // long tables are cut here in the image
   var WIDTH = 760;             // layout width of the image, drawn at 2x
 
@@ -33,7 +33,7 @@
     var b = e.target.closest('.sh-btn');
     if (!b) return;
     e.preventDefault(); e.stopPropagation();          // the header underneath may toggle the card
-    shareCard(b.closest('.team-card'), b);
+    shareCard(b.closest('.team-card, .pc-card'), b);
   }, true);
 
   /* ---------- what the image says about where it came from ---------- */
@@ -47,7 +47,7 @@
     return parts.filter(Boolean).join(' · ');
   }
   function title(card) {
-    var h = card.querySelector('.dh-head h2, .team-name, .trade-head, .ledger-team');
+    var h = card.querySelector('.dh-head h2, .team-name, .trade-head, .ledger-team, .pc-name');
     return h ? h.textContent.replace(/\s+/g, ' ').trim() : 'card';
   }
   function fileName(card) {
@@ -66,7 +66,7 @@
       var p = ctl.parentElement; ctl.remove();
       if (p && !p.textContent.trim() && !p.children.length) p.remove();
     }
-    clone.querySelectorAll('.sh-btn, .sm-actions, .rt-copy, .favstar, .rt-star, .caret, .rt-caret, .team-meta .copy, .team-meta .reset, [hidden]').forEach(function (x) { x.remove(); });
+    clone.querySelectorAll('.sh-btn, .sm-actions, .rt-copy, .favstar, .rt-star, .caret, .rt-caret, .team-meta .copy, .team-meta .reset, .pc-x, [hidden]').forEach(function (x) { x.remove(); });
     clone.classList.remove('collapsed', 'mine', 'fav');
     clone.querySelectorAll('select').forEach(function (s) {
       var o = s.options[s.selectedIndex], b = document.createElement('b'); b.textContent = o ? o.textContent : ''; s.parentNode.replaceChild(b, s);

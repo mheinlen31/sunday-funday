@@ -1626,3 +1626,12 @@ body.pc-open { overflow: hidden; }
   .dh-head .dh-sub { flex-basis: 100%; order: 3; margin-left: 0; }
   .dh-head .sh-btn { margin-left: auto; }
 }
+/* bye tags and lineup counts replace the old "starters in trouble" card */
+.rt-tag.bye { color: #b35c00; background: #fff3e0; }
+.team-meta .rt-warn, .team-meta .rt-warn strong { color: #b35c00; }
+/* playoff odds */
+.rt-odds td b { font-weight: 700; color: var(--ink); }
+/* share on the player card */
+.pc-card .sh-btn { position: absolute; top: 15px; right: 52px; margin: 0; color: var(--dark-mute); border-color: var(--dark-rule); }
+.pc-card .sh-btn:hover { color: #fff; border-color: #fff; }
+.share-stage .pc-card { max-height: none; overflow: visible; box-shadow: none; border-radius: 4px; border: 1px solid var(--rule); }
