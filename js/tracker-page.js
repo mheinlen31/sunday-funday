@@ -74,9 +74,46 @@
     (T.events || []).slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (e) {
       if (e.week >= week && end === T.week + 1 && e.drops.some(function (d) { return d.pid === pid && d.team === team; })) end = e.week;
     });
-    var pts = 0, g = 0;
+    var pts = 0, g = 0, base = (replacement()[meta(pid).pos] || {}).ppg || 0;
     for (var w = week; w < end && w <= s.w.length; w++) { if (s.w[w - 1] != null) { pts += s.w[w - 1]; g++; } }
-    return { pts: pts, g: g, held: end === T.week + 1 };
+    return { pts: pts, g: g, held: end === T.week + 1, par: pts - g * base, base: base };
+  }
+
+  /* replacement level, by position: what the next man up scores. Starters = the
+     league's lineup slots per team (QB 1, RB 2, WR 2, TE 1, K 1, D/ST 1) times the
+     teams, plus the flex split the way this week's lineups actually use it; the
+     baseline is the per-game average of the three players ranked just outside
+     that count by season points. Points above replacement = points less games
+     times that baseline, so a QB and a tight end can be compared on one scale. */
+  var SLOT_COUNTS = { QB: 1, RB: 2, WR: 2, TE: 1, K: 1, 'D/ST': 1 };
+  var REPL = null;
+  function replacement() {
+    if (REPL) return REPL;
+    var n = T.teams.length, flex = {}, byPos = {};
+    T.teams.forEach(function (t) { t.roster.forEach(function (r) { if (r.slot === 23) { var p = meta(r.pid).pos; flex[p] = (flex[p] || 0) + 1; } }); });
+    (T.pool || []).forEach(function (pid) { var m = meta(pid), s = S(pid); if (s && s.pts > 0 && SLOT_COUNTS[m.pos]) (byPos[m.pos] = byPos[m.pos] || []).push(pid); });
+    REPL = {};
+    Object.keys(SLOT_COUNTS).forEach(function (pos) {
+      var starters = SLOT_COUNTS[pos] * n + (flex[pos] || 0);
+      var list = (byPos[pos] || []).sort(function (a, b) { return S(b).pts - S(a).pts; }), band = list.slice(starters, starters + 3), pts = 0, g = 0;
+      band.forEach(function (pid) { pts += S(pid).pts; g += S(pid).gp || 0; });
+      REPL[pos] = { starters: starters, ppg: g ? pts / g : 0, who: band.map(function (pid) { return meta(pid).name; }) };
+    });
+    return REPL;
+  }
+  function parSeason(pid) { var s = S(pid), r = replacement()[meta(pid).pos]; return s && r && s.gp ? s.pts - s.gp * r.ppg : null; }
+  function signed(n) { return (n >= 0 ? '+' : '−') + fmt1(Math.abs(n)); }
+  var PICKS = null;
+  function pickups() {
+    if (PICKS) return PICKS;
+    PICKS = [];
+    (T.events || []).forEach(function (e) {
+      e.adds.forEach(function (a) {
+        var sa = sinceAdd(a.pid, a.team, e.week);
+        if (sa && sa.g) PICKS.push({ pid: a.pid, team: a.team, week: e.week, bid: e.bid, pts: sa.pts, g: sa.g, held: sa.held, par: sa.par, base: sa.base });
+      });
+    });
+    return PICKS;
   }
 
   /* ---------- state ---------- */
@@ -251,23 +288,21 @@
       return e.team === tid || e.adds.some(function (a) { return a.team === tid; }) || e.drops.some(function (d) { return d.team === tid; }) ||
         e.trades.some(function (t) { return t.from === tid || t.to === tid; });
     });
-    var picks = [];
-    (T.events || []).forEach(function (e) {
-      e.adds.forEach(function (a) {
-        if (st.team !== 'all' && String(a.team) !== String(st.team)) return;
-        var sa = sinceAdd(a.pid, a.team, e.week);
-        if (sa && sa.g) picks.push({ pid: a.pid, team: a.team, week: e.week, bid: e.bid, pts: sa.pts, g: sa.g, held: sa.held });
-      });
-    });
-    picks.sort(function (a, b) { return b.pts - a.pts; });
-    var best = picks.length ? card('Best pickups', 'what the adds have returned, points while on the roster that added them',
-      '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">#</th><th>Player</th><th>Added by</th><th class="dh-n">Wk</th><th class="dh-cash">Paid</th><th class="dh-pts">Points since</th><th class="dh-pts hide-m">Per game</th></tr></thead><tbody>' +
+    var R = replacement();
+    var picks = pickups().filter(function (x) { return st.team === 'all' || String(x.team) === String(st.team); })
+      .sort(function (a, b) { return b.par - a.par || b.pts - a.pts; });
+    var replLine = '<p class="sm-line"><b>Replacement level</b> the next man up at each position — the three players ranked just outside the league’s starting lineups, per game this season: ' +
+      POSES.map(function (p) { return esc(p) + ' ' + fmt1(R[p].ppg); }).join(' · ') + '</p>';
+    var best = picks.length ? card('Best pickups', 'points above a replacement-level player at his position, while on the roster that added him',
+      '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">#</th><th>Player</th><th>Added by</th><th class="dh-n hide-m">Wk</th><th class="dh-cash hide-m">Paid</th>' +
+      '<th class="dh-pts" title="Points while on this roster, less what a replacement-level player at his position averages over the same games">Above replacement</th><th class="dh-pts">Points since</th><th class="dh-pts hide-m">Per game</th></tr></thead><tbody>' +
       picks.slice(0, 8).map(function (x, i) {
         var m = meta(x.pid);
-        return '<tr data-pid="' + x.pid + '"><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' \u00b7 ' + esc(m.nfl) : '') + (x.held ? '' : ' \u00b7 later dropped') + '</small></td>' +
-          '<td class="dh-own">' + esc(owner(x.team)) + '</td><td class="dh-n">' + x.week + '</td><td class="dh-cash">' + (x.bid ? money(x.bid) : '\u2014') + '</td>' +
-          '<td class="dh-pts"><b>' + fmt1(x.pts) + '</b><small>' + x.g + (x.g === 1 ? ' game' : ' games') + '</small></td><td class="dh-pts hide-m">' + fmt1(x.pts / x.g) + '</td></tr>';
-      }).join('') + '</tbody></table></div>') : '';
+        return '<tr data-pid="' + x.pid + '"><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' · ' + esc(m.nfl) : '') + (x.held ? '' : ' · later dropped') + '</small></td>' +
+          '<td class="dh-own">' + esc(owner(x.team)) + '</td><td class="dh-n hide-m">' + x.week + '</td><td class="dh-cash hide-m">' + (x.bid ? money(x.bid) : '—') + '</td>' +
+          '<td class="dh-pts"><b class="' + (x.par >= 0 ? 'up' : 'down') + '">' + signed(x.par) + '</b><small>vs ' + fmt1(x.base) + '/g ' + esc(m.pos) + '</small></td>' +
+          '<td class="dh-pts">' + fmt1(x.pts) + '<small>' + x.g + (x.g === 1 ? ' game' : ' games') + '</small></td><td class="dh-pts hide-m">' + fmt1(x.pts / x.g) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' + replLine) : '';
     main.className = 'dh-main rt-moves';
     if (!evs.length) {
       main.innerHTML = tiles() + '<article class="team-card board-card"><div class="empty-note">No moves yet' + (st.team === 'all' ? '' : ' for this team') + '.</div></article>';
@@ -337,9 +372,10 @@
       if (st.ssort === 'cost') return costOf(b).n - costOf(a).n || B.pts - A.pts;
       if (st.ssort === 'prev') return (B.prev || 0) - (A.prev || 0);
       if (st.ssort === 'val') return (B.val == null ? -999 : B.val) - (A.val == null ? -999 : A.val) || B.pts - A.pts;
+      if (st.ssort === 'par') { var pa = parSeason(a), pb = parSeason(b); return (pb == null ? -999 : pb) - (pa == null ? -999 : pa) || B.pts - A.pts; }
       return B.pts - A.pts;
     });
-    var sorts = [['pts', 'Points'], ['ppg', 'Per game']];
+    var sorts = [['pts', 'Points'], ['ppg', 'Per game'], ['par', 'Above repl.']];
     if (T.reviewWeek && T.reviewWeek !== wk) sorts.push(['last', 'Week ' + T.reviewWeek]);
     sorts.push(['wk', 'Week ' + wk], ['cost', 'Cost'], ['val', 'Value'], ['prev', '2025']);
     var preset = st.pos === 'all' && st.scope === 'fa' && st.ssort === (T.reviewWeek && T.reviewWeek !== wk ? 'last' : 'wk');
@@ -355,7 +391,8 @@
         '<td class="dh-p">' + posChip(m.pos) + '</td><td class="dh-own hide-m">' + (m.nfl ? esc(m.nfl) : '') + '</td>' +
         '<td class="dh-own">' + (w ? esc(w.t.owner) : '<span class="rt-fa">FA</span>') + '</td>' +
         '<td class="dh-own hide-m">' + c.txt + '</td>' +
-        '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '\u2014') + '</td>' +
+        '<td class="dh-pts"><b>' + fmt1(s.pts) + '</b></td><td class="dh-pts">' + (s.gp ? fmt1(s.ppg) : '—') + '</td>' +
+        '<td class="dh-pts hide-m">' + (parSeason(pid) == null ? '—' : signed(parSeason(pid))) + '</td>' +
         '<td class="dh-pts">' + (st.ssort === 'last' ? fmt1(lastWk(s)) : (s.wk == null ? '\u2014' : fmt1(s.wk))) + '</td><td class="dh-pts hide-m">' + (s.prev == null ? '\u2014' : fmt1(s.prev)) + '</td>' +
         '<td class="dh-cash hide-m">' + (s.worth != null ? money(s.worth) : '\u2014') + '</td><td class="dh-vc hide-m">' + valChip(s.val) + '</td></tr>';
     }).join('');
@@ -364,7 +401,7 @@
       '<span class="dh-sub">Sunday Funday scoring \u00b7 through week ' + wk + ' \u00b7 ' + rows.length + ' players</span></header>' +
       '<div style="padding:8px 14px 0">' + ctl + '</div>' +
       (rows.length ? '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">Rank</th><th>Player</th><th class="dh-p"></th><th class="hide-m">NFL</th><th>Owner</th><th class="hide-m">Cost</th>' +
-        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts">Wk ' + (st.ssort === 'last' ? T.reviewWeek : wk) + '</th><th class="dh-pts hide-m">2025</th>' +
+        '<th class="dh-pts">Points</th><th class="dh-pts">Per game</th><th class="dh-pts hide-m" title="Points above a replacement-level player at his position over his games">+ Repl.</th><th class="dh-pts">Wk ' + (st.ssort === 'last' ? T.reviewWeek : wk) + '</th><th class="dh-pts hide-m">2025</th>' +
         '<th class="dh-cash hide-m" title="What production like his went for at this year\u2019s auction">Worth</th><th class="dh-vc hide-m" title="Worth so far, less what was paid">\u00b1</th></tr></thead><tbody>' + body + '</tbody></table></div>'
         : '<div class="empty-note">Nothing matches.</div>') + '</article>';
     main.querySelectorAll('.rt-ctl .dh-seg').forEach(function (seg) {
@@ -658,18 +695,20 @@
     return card('Season leaders', 'top ' + list.length + ' ' + esc(pos) + (pos === 'D/ST' ? 's' : 's') + ' by points, rostered or on the wire', body + race, sel);
   }
   function movesCard(L) {
-    var s = T.stats || {}, bigBy = {};
+    var s = T.stats || {}, bigBy = {}, bestBy = {};
     (T.events || []).forEach(function (e) {
       if (e.adds.length && e.bid && (!bigBy[e.team] || e.bid > bigBy[e.team].bid)) bigBy[e.team] = { bid: e.bid, pid: e.adds[0].pid };
     });
+    pickups().forEach(function (x) { if (!bestBy[x.team] || x.par > bestBy[x.team].par) bestBy[x.team] = x; });
     var rows = T.teams.slice().sort(function (a, b) { return b.moves.adds - a.moves.adds || b.faabSpent - a.faabSpent; }).map(function (t) {
-      var b = bigBy[t.id];
+      var b = bigBy[t.id], p = bestBy[t.id];
       return '<tr' + (String(t.id) === String(st.me) ? ' style="background:#f4f8f5"' : '') + '><td class="dh-name">' + esc(t.owner) + '</td>' +
         '<td class="dh-cash">' + t.moves.adds + '</td><td class="dh-cash">' + t.moves.drops + '</td>' +
         '<td class="dh-cash">' + money(t.faabLeft) + '</td>' +
+        '<td class="dh-best">' + (p ? esc(meta(p.pid).name) + ' <i class="dh-yr">' + signed(p.par) + '</i>' : '—') + '</td>' +
         '<td class="dh-best hide-m">' + (b ? esc(meta(b.pid).name) + ' <i class="dh-yr">' + money(b.bid) + '</i>' : '—') + '</td></tr>';
     }).join('');
-    var body = '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th>Team</th><th class="dh-cash">Adds</th><th class="dh-cash">Drops</th><th class="dh-cash">FAAB left</th><th class="hide-m">Biggest bid</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    var body = '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th>Team</th><th class="dh-cash">Adds</th><th class="dh-cash">Drops</th><th class="dh-cash">FAAB left</th><th title="Points above a replacement-level player at his position, since the add">Best pickup</th><th class="hide-m">Biggest bid</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<p class="sm-line">' + (L ? '<b>Week ' + L.W + '</b> ' + L.adds + ' adds · ' + L.drops + ' drops' + (L.trades ? ' · ' + L.trades + (L.trades === 1 ? ' trade' : ' trades') : '') +
         (L.big ? ' · biggest bid ' + esc(meta(L.big.adds[0].pid).name) + ' ' + money(L.big.bid) + ' (' + esc(owner(L.big.team)) + ')' : '') + ' · ' : '') +
       '<a href="#" data-goto="moves">every move →</a></p>';
@@ -773,6 +812,8 @@
       out.push('');
     }
     if (L) out.push('MOVES', L.adds + ' adds, ' + L.drops + ' drops' + (L.trades ? ', ' + L.trades + (L.trades === 1 ? ' trade' : ' trades') : '') + (L.big ? '  ·  biggest bid ' + meta(L.big.adds[0].pid).name + ' $' + L.big.bid + ' (' + owner(L.big.team) + ')' : ''), '');
+    var bp = pickups().slice().sort(function (a, b) { return b.par - a.par; }).slice(0, 3);
+    if (bp.length) out.push('BEST PICKUPS (points above replacement)', bp.map(function (x) { return meta(x.pid).name + ' ' + signed(x.par) + ' (' + owner(x.team) + ')'; }).join(', '), '');
     out.push('mheinlen31.github.io/sunday-funday');
     return out.join('\n');
   }
@@ -1041,7 +1082,8 @@
     n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won (a tie for the week\u2019s high score splits the $15 evenly; those weeks are starred) and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
     n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. <b>Starters in trouble</b> (top of Rosters) counts only players in a starting slot who are on bye, out or questionable, as the lineup stands at the last refresh.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
-    n.push('<li><b>Tap a team\u2019s name</b> to open or close its card; the \u2606 makes it your team (first, and open, every visit). Moves marked <em class="rt-newtag inline">new</em> happened since you were last here. The <b>Waiver wire</b> preset lists free agents by last week\u2019s points with the going rate for winning bids by position.</li>');
+    n.push('<li><b>Above replacement</b> puts every position on one scale: a player’s points less what a replacement-level player at his position averages over the same games. Replacement level is the next man up — the three players ranked just outside the league’s starting lineups at each position (QB 1, RB 2, WR 2, TE 1, K 1 and D/ST 1 per team, plus the flex the way this week’s lineups use it). That is why a QB pickup can score more raw points than a tight end and still rank below him: the next QB on the wire is worth far more than the next tight end.</li>');
+    n.push('<li><b>Tap a team’s name</b> to open or close its card; the \u2606 makes it your team (first, and open, every visit). Moves marked <em class="rt-newtag inline">new</em> happened since you were last here. The <b>Waiver wire</b> preset lists free agents by last week\u2019s points with the going rate for winning bids by position.</li>');
     n.push('<li>Players on <b>IR</b> can still be kept. FAAB is the $100 free-agent budget; it resets every season.</li>');
     if ((T.warnings || []).length) n.push('<li><b>To check:</b> ' + T.warnings.map(esc).join(' · ') + '</li>');
     n.push('</ul>');

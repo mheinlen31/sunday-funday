@@ -1593,3 +1593,6 @@ body.pc-open { overflow: hidden; }
 /* phones: the leaders table drops the mugs, the stats table trims the stat line */
 @media (max-width: 560px) { .sm-lead td.dh-name img { display: none; } }
 @media (max-width: 720px) { .rt-stats .dh-table .dh-name small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; } }
+/* signed figures in a table (points above replacement) */
+.dh-table .dh-pts b.up { color: #0b5c2f; }
+.dh-table .dh-pts b.down { color: #8f1c19; }
