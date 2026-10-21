@@ -295,12 +295,12 @@
       POSES.map(function (p) { return esc(p) + ' ' + fmt1(R[p].ppg); }).join(' · ') + '</p>';
     var best = picks.length ? card('Best pickups', 'points above a replacement-level player at his position, while on the roster that added him',
       '<div style="overflow-x:auto"><table class="dh-table"><thead><tr><th class="dh-n">#</th><th>Player</th><th>Added by</th><th class="dh-n hide-m">Wk</th><th class="dh-cash hide-m">Paid</th>' +
-      '<th class="dh-pts" title="Points while on this roster, less what a replacement-level player at his position averages over the same games">Above replacement</th><th class="dh-pts">Points since</th><th class="dh-pts hide-m">Per game</th></tr></thead><tbody>' +
+      '<th class="dh-pts" title="Points while on this roster, less what a replacement-level player at his position averages over the same games"><span class="hide-m">Above replacement</span><span class="only-m">Above repl.</span></th><th class="dh-pts"><span class="hide-m">Points since</span><span class="only-m">Points</span></th><th class="dh-pts hide-m">Per game</th></tr></thead><tbody>' +
       picks.slice(0, 8).map(function (x, i) {
         var m = meta(x.pid);
         return '<tr data-pid="' + x.pid + '"><td class="dh-n">' + (i + 1) + '</td><td class="dh-name">' + esc(m.name) + '<small>' + esc(m.pos) + (m.nfl ? ' · ' + esc(m.nfl) : '') + (x.held ? '' : ' · later dropped') + '</small></td>' +
           '<td class="dh-own">' + esc(owner(x.team)) + '</td><td class="dh-n hide-m">' + x.week + '</td><td class="dh-cash hide-m">' + (x.bid ? money(x.bid) : '—') + '</td>' +
-          '<td class="dh-pts"><b class="' + (x.par >= 0 ? 'up' : 'down') + '">' + signed(x.par) + '</b><small>vs ' + fmt1(x.base) + '/g ' + esc(m.pos) + '</small></td>' +
+          '<td class="dh-pts"><b class="' + (x.par >= 0 ? 'up' : 'down') + '">' + signed(x.par) + '</b><small class="rt-vs">vs ' + fmt1(x.base) + '/g ' + esc(m.pos) + '</small></td>' +
           '<td class="dh-pts">' + fmt1(x.pts) + '<small>' + x.g + (x.g === 1 ? ' game' : ' games') + '</small></td><td class="dh-pts hide-m">' + fmt1(x.pts / x.g) + '</td></tr>';
       }).join('') + '</tbody></table></div>' + replLine) : '';
     main.className = 'dh-main rt-moves';

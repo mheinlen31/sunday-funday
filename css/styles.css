@@ -1596,3 +1596,6 @@ body.pc-open { overflow: hidden; }
 /* signed figures in a table (points above replacement) */
 .dh-table .dh-pts b.up { color: #0b5c2f; }
 .dh-table .dh-pts b.down { color: #8f1c19; }
+/* phone-only labels; the replacement baseline under each pickup stays in the footnote on a phone */
+.only-m { display: none; }
+@media (max-width: 720px) { .only-m { display: inline; } .rt-moves .rt-vs { display: none; } }
