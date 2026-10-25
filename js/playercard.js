@@ -437,7 +437,7 @@
       stat = '<div class="pc-facts">' +
         '<div class="pc-fact"><b>' + f1(s.pts) + '</b><span>points' + (s.rk ? ' \u00b7 ' + esc(m) + s.rk : '') + '</span></div>' +
         '<div class="pc-fact"><b>' + (s.gp ? f1(s.ppg) : '\u2014') + '</b><span>per game \u00b7 ' + s.gp + (s.gp === 1 ? ' game' : ' games') + '</span></div>' +
-        '<div class="pc-fact"><b>' + (s.wk == null ? '\u2014' : f1(s.wk)) + '</b><span>week ' + (T.statsWeek || T.week) + '</span></div>' + parFact + '</div>' +
+        '<div class="pc-fact"><b>' + (s.wk != null ? f1(s.wk) : s.pw != null ? f1(s.pw) : '\u2014') + '</b><span>week ' + (T.statsWeek || T.week) + (s.wk == null && s.pw != null ? ' \u00b7 projected' : '') + '</span></div>' + parFact + '</div>' +
         (s.w && s.w.length ? (function () {
           var mx = Math.max.apply(null, s.w.map(function (v) { return v || 0; }).concat([1]));
           return '<div class="pc-bars" title="points by week">' + s.w.map(function (v, i) {

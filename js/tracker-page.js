@@ -704,9 +704,7 @@
       : '<div class="empty-note">Nobody is ahead of his 2027 price yet.</div>';
     return card('Keeper watch', 'production worth more than the most he could cost to keep', body + '<p class="sm-line">Pickups have no ceiling and are left out. <a href="#" data-goto="value">the whole watch →</a></p>');
   }
-  function matchupsCard(M) {
-    var cur = T.current || T.week;
-    function rows(wk) {
+  function matchupRows(M, wk) {
       var w = M.W.filter(function (x) { return x.week === wk; })[0];
       if (!w) return '';
       return '<div class="rt-block-h" style="padding:10px 14px 0">Week ' + wk + (w.done ? '' : w.live ? ' <span class="rt-live">in progress</span>' : ' <span class="dh-yr">upcoming</span>') + '</div>' +
@@ -715,8 +713,86 @@
           return '<tr><td class="dh-name" style="text-align:right' + (hw ? ';color:var(--accent)' : '') + '">' + esc(owner(m.home)) + '</td><td class="dh-cash" style="text-align:right">' + (m.hp || w.live ? fmt1(m.hp) : '') + '</td>' +
             '<td style="text-align:center;color:var(--ink-faint)">vs</td><td class="dh-cash" style="text-align:left">' + (m.ap || w.live ? fmt1(m.ap) : '') + '</td><td class="dh-name"' + (aw ? ' style="color:var(--accent)"' : '') + '>' + esc(owner(m.away)) + '</td></tr>';
         }).join('') + '</tbody></table>';
+  }
+  function matchupsCard(M) {
+    var cur = T.current || T.week;
+    return card('Matchups', 'this week and next', matchupRows(M, cur) + matchupRows(M, cur + 1));
+  }
+
+  /* ---------- this week's predictions: ESPN's projections for the lineups as they stand ---------- */
+  function erf(x) {
+    var sg = x < 0 ? -1 : 1; x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return sg * y;
+  }
+  function winProb(diff, sd) { return 0.5 * (1 + erf(diff / (2 * sd))); }   // two teams, each landing ~sd from its projection
+  var PRED;
+  function predictions() {
+    if (PRED !== undefined) return PRED;
+    var PR = T.predictions || {}, cur = T.current || T.week, entry = PR[String(cur)];
+    var res = [], picks = { w: 0, l: 0, last: null };
+    Object.keys(PR).map(Number).sort(function (a, b) { return a - b; }).forEach(function (wk) {
+      if (wk >= cur) return;
+      var e = PR[String(wk)], ww = 0, ll = 0;
+      (T.matchups || []).filter(function (m) { return m.week === wk && regular(m) && decided(m); }).forEach(function (m) {
+        var h = e.teams[String(m.home)], a = e.teams[String(m.away)];
+        if (!h || !a || h.noProj >= h.starters || a.noProj >= a.starters) return;
+        res.push(m.hp - h.proj, m.ap - a.proj);
+        if (h.proj === a.proj || m.hp === m.ap) return;
+        if ((h.proj > a.proj) === (m.hp > m.ap)) ww++; else ll++;
+      });
+      if (ww + ll) { picks.w += ww; picks.l += ll; picks.last = { week: wk, w: ww, l: ll }; }
+    });
+    var sd = (odds() || {}).sd || 25, calibrated = res.length >= 10;
+    if (calibrated) {
+      var mu = res.reduce(function (t, v) { return t + v; }, 0) / res.length;
+      sd = Math.max(15, Math.sqrt(res.reduce(function (t, v) { return t + (v - mu) * (v - mu); }, 0) / (res.length - 1)));
     }
-    return card('Matchups', 'this week and next', rows(cur) + rows(cur + 1));
+    var games = [];
+    if (entry) (T.matchups || []).filter(function (m) { return m.week === cur && regular(m); }).forEach(function (m) {
+      var h = entry.teams[String(m.home)], a = entry.teams[String(m.away)];
+      if (!h || !a || (h.noProj >= h.starters && a.noProj >= a.starters)) return;
+      var p = winProb(h.proj - a.proj, sd);
+      games.push({ m: m, h: h, a: a, pHome: p, fav: p >= 0.5 ? m.home : m.away, pFav: Math.max(p, 1 - p) });
+    });
+    PRED = { week: cur, entry: entry, games: games, sd: sd, picks: picks, calibrated: calibrated };
+    return PRED;
+  }
+  function predictionCard(M) {
+    var P = predictions(), cur = P.week;
+    if (!P.games.length) return matchupsCard(M);
+    var w = M.W.filter(function (x) { return x.week === cur; })[0], live = !!(w && w.live), done = !!(w && w.done);
+    function notes(t) {
+      var n = [];
+      if (t.byes) n.push(t.byes + ' on bye');
+      if (t.outs) n.push(t.outs + ' out');
+      if (t.empty) n.push(t.empty + ' empty ' + (t.empty === 1 ? 'slot' : 'slots'));
+      if (t.noProj && !t.byes) n.push(t.noProj + ' with no projection');
+      return n.length ? '<small class="pd-note">' + esc(n.join(' · ')) + '</small>' : '';
+    }
+    function side(tid, t, pts, fav, right) {
+      return '<div class="pd-side' + (fav ? ' fav' : '') + (right ? ' r' : '') + '"><b>' + esc(owner(tid)) + '</b><span>' + fmt1(t.proj) + ' proj' +
+        (live || done ? ' · ' + fmt1(pts) + (done ? ' final' : ' now') : '') + '</span>' + notes(t) + '</div>';
+    }
+    var games = P.games.slice().sort(function (a, b) { return a.pFav - b.pFav; });
+    var rows = games.map(function (g, i) {
+      var m = g.m, hp = Math.round(g.pHome * 100), hWin = g.pHome >= 0.5;
+      var right = done && m.winner !== 'UNDECIDED' ? ((m.winner === 'HOME') === hWin) : null;
+      return '<li class="pd-game' + (right === true ? ' pd-right' : right === false ? ' pd-wrong' : '') + '">' +
+        (i === 0 && games.length > 1 ? '<em class="pd-tag">Game of the week</em>' : '') +
+        side(m.home, g.h, m.hp, hWin, false) +
+        '<div class="pd-odds" title="' + hp + '% ' + esc(owner(m.home)) + ' · ' + (100 - hp) + '% ' + esc(owner(m.away)) + '"><i style="width:' + hp + '%"></i>' +
+        '<b>' + Math.round(g.pFav * 100) + '%</b><span>' + esc(owner(g.fav)) + (right === true ? ' ✓' : right === false ? ' ✗' : '') + '</span></div>' +
+        side(m.away, g.a, m.ap, !hWin, true) + '</li>';
+    }).join('');
+    var pk = P.picks, rec = pk.w + pk.l ? ' · picks ' + pk.w + '–' + pk.l + ' so far' + (pk.last ? ' (week ' + pk.last.week + ': ' + pk.last.w + '–' + pk.last.l + ')' : '') : '';
+    var how = '<p class="sm-line"><b>How</b> each number adds ESPN’s projection for every player in that lineup right now; the odds set the gap between the two against ' +
+      (P.calibrated ? 'how far scores have landed from their projections this season (±' + fmt1(P.sd) + ' a team)' : 'the league’s week-to-week swing (±' + fmt1(P.sd) + ' a team) until enough weeks are in to measure the projections themselves') +
+      '. Lineups change until kickoff, and so do these.</p>';
+    var next = matchupRows(M, cur + 1);
+    return card('Week ' + cur + ' predictions', 'ESPN’s projections for the lineups as they stand' + rec + (live ? ' · <span class="rt-live">in progress</span>' : ''),
+      '<ul class="pd-list">' + rows + '</ul>' + how + (next ? '<div class="pd-next">' + next + '</div>' : ''));
   }
   function picksixCard() {
     var rows = T.picksix || [];
@@ -765,6 +841,15 @@
     out.push('');
     var O = odds();
     if (O) { out.push('PLAYOFF ODDS'); out.push(O.rows.slice().sort(function (a, b) { return b.playoff - a.playoff; }).map(function (r) { return r.t.owner + ' ' + pct(r.playoff); }).join(', ')); out.push(''); }
+    var PD = predictions();
+    if (PD.games.length) {
+      out.push('WEEK ' + PD.week + ' PICKS');
+      PD.games.slice().sort(function (a, b) { return b.pFav - a.pFav; }).forEach(function (g) {
+        var home = g.fav === g.m.home, und = home ? g.m.away : g.m.home;
+        out.push(owner(g.fav) + ' over ' + owner(und) + ' (' + Math.round(g.pFav * 100) + '%)  ' + fmt1(home ? g.h.proj : g.a.proj) + '–' + fmt1(home ? g.a.proj : g.h.proj) + ' proj');
+      });
+      out.push('');
+    }
     out.push('MONEY');
     out.push('Banked: ' + (ty.banked.length ? ty.banked.map(function (x) { return x.t.owner + ' $' + x.amt + ' (wk ' + x.weeks.join(', ') + ')'; }).join(', ') : 'nobody yet'));
     out.push('If it ended today: ' + ty.today.slice(0, 5).map(function (x) { return x.t.owner + ' $' + x.total; }).join(', '), '');
@@ -985,12 +1070,12 @@
       (L && L.hi ? ' · ' + esc(L.hiWho) + (L.hiTied.length > 1 ? ' split' : ' took') + ' week ' + L.W + ' with ' + fmt1(L.hi[1]) : '') + ' · ' + money(moneyTally(M).bankedTotal) + ' of the ' + money(T.teams.length * (PAY.entry || 300)) + ' pot is decided.</p>' +
       '<pre class="rt-notebox" hidden>' + esc(summaryText()) + '</pre></article>';
     main.className = 'dh-main rt-summary';
-    main.innerHTML = tiles() + head + (L ? resultsCard(L, PAY) : '') +
+    main.innerHTML = tiles() + head + predictionCard(M) + (L ? resultsCard(L, PAY) : '') +
       '<div class="dh-pair">' + standingsCard(M) + oddsCard(M) + '</div>' +
       '<div class="dh-pair">' + payoutCard(M) + movesCard(L) + '</div>' +
       '<div class="dh-pair">' + leadersCard(M, L) + weeklyCard(M) + '</div>' +
       '<div class="dh-pair">' + scoreboardMini() + keeperMini() + '</div>' +
-      '<div class="dh-pair">' + matchupsCard(M) + picksixCard() + '</div>' + h2hCard(M);
+      picksixCard() + h2hCard(M);
     var sh = main.querySelector('.sm-share');
     sh.addEventListener('click', function () { shareSummary(sh); });
     var cp = main.querySelector('.sm-copytext');
@@ -1127,6 +1212,7 @@
     n.push('<li><b>Pick sixes</b> are read from ESPN\u2019s play-by-play, which names the passer; each one is checked against that week\u2019s fantasy lineups. A starter who threw one is flagged <b class="rt-p6-start">Started by</b> \u2014 the points override is applied by hand in ESPN.</li>');
     n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won (a tie for the week\u2019s high score splits the $15 evenly; those weeks are starred) and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
     n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. A <b>BYE</b> tag on a player, and the <b>starters on bye</b> or <b>out</b> count in a team\u2019s header, reflect the lineup as it stood at the last refresh.</li>');
+    n.push('<li><b>Predictions</b> add up ESPN’s weekly projection for every player in each lineup as it stands at the last refresh; the win odds set the gap between the two teams against how far scores land from their projections (the league’s week-to-week swing until enough weeks are in). The picks record counts the projected favourite winning, week by week.</li>');
     n.push('<li><b>Playoff odds</b> play the rest of the regular season out 10,000 times, each team scoring like it has so far (its own average, with the league\u2019s usual week-to-week swing), then seed by the Manifesto\u2019s tiebreakers. Odds, not predictions: a 70% team misses three times in ten. Exp. $ is the regular-season money (places, seeds, points race) weighted by those odds.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li><b>Above replacement</b> puts every position on one scale: a player’s points less what a replacement-level player at his position averages over the same games. Replacement level is the next man up — the three players ranked just outside the league’s starting lineups at each position (QB 1, RB 2, WR 2, TE 1, K 1 and D/ST 1 per team, plus the flex the way this week’s lineups use it). That is why a QB pickup can score more raw points than a tight end and still rank below him: the next QB on the wire is worth far more than the next tight end.</li>');

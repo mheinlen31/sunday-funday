@@ -37,6 +37,7 @@ PLAYERS = TRACKER_DIR / f"players-{SEASON}.json"
 STATS = TRACKER_DIR / f"stats-{SEASON}.json"
 HISTORY = TRACKER_DIR / f"history-{SEASON}.json"   # one snapshot per week, for the arrows
 PICKSIX = TRACKER_DIR / f"picksix-{SEASON}.json"   # every interception returned for a TD, with who threw it
+PREDICTIONS = TRACKER_DIR / f"predictions-{SEASON}.json"   # each week's lineup projections, for the picks
 OUT_JS = ROOT / "js" / "tracker.js"
 
 FAAB = 100                # free-agent budget per team, per season (Manifesto)
@@ -251,7 +252,7 @@ def fetch_stats(latest, rostered):
     """Season-to-date points (league scoring), weekly points, games, last
     season, ESPN's season projection and a few raw stats -- for ESPN's top
     scorers plus every rostered player who is not among them (yet)."""
-    periods = {"value": max(1, latest), "additionalValue": [f"00{SEASON}", f"10{SEASON}", f"00{SEASON - 1}"]}
+    periods = {"value": max(1, latest), "additionalValue": [f"00{SEASON}", f"10{SEASON}", f"00{SEASON - 1}", f"11{SEASON}{latest}"]}
     filt = {"players": {"filterSlotIds": {"value": STAT_SLOTS}, "filterStatsForTopScoringPeriodIds": periods,
                         "sortAppliedStatTotal": {"sortAsc": False, "sortPriority": 1, "value": f"00{SEASON}"},
                         "limit": STAT_LIMIT, "offset": 0}}
@@ -269,7 +270,7 @@ def fetch_stats(latest, rostered):
         pos = POS_IDS.get(p.get("defaultPositionId"))
         if not pos:
             continue
-        season = proj = prev = None
+        season = proj = prev = pw = None          # pw: ESPN's projection for the week in play
         weeks = {}
         for st in p.get("stats") or []:
             sid, src, split, per = st.get("seasonId"), st.get("statSourceId"), st.get("statSplitTypeId"), st.get("scoringPeriodId")
@@ -277,6 +278,8 @@ def fetch_stats(latest, rostered):
                 season = st
             elif sid == SEASON and src == 1 and split == 0:
                 proj = st
+            elif sid == SEASON and src == 1 and split == 1 and per == latest:
+                pw = st
             elif sid == SEASON - 1 and src == 0 and split == 0:
                 prev = st
             elif sid == SEASON and src == 0 and split == 1 and per and st.get("stats"):
@@ -291,6 +294,7 @@ def fetch_stats(latest, rostered):
             "pts": round((season or {}).get("appliedTotal") or 0, 1),
             "proj": round(proj["appliedTotal"], 1) if proj and proj.get("appliedTotal") is not None else None,
             "prev": round(prev["appliedTotal"], 1) if prev and prev.get("appliedTotal") is not None else None,
+            "pw": round(pw["appliedTotal"], 1) if pw and pw.get("appliedTotal") is not None else None,
             "w": [weeks.get(i) for i in range(1, latest + 1)],
             "gp": len(weeks), "line": line,
         }
@@ -380,7 +384,37 @@ def fetch(ledger, baseline):
 
 
 # ---------------------------------------------------------------- model
-def build(baseline, ledger, players, stats=None, weekly=None):
+STARTER_SLOTS = 9          # QB, RB x2, WR x2, TE, FLEX, D/ST, K
+INJ_OUT = ("OUT", "DOUBTFUL", "SUSPENSION", "INJURY_RESERVE")
+
+
+def lineup_projections(snap, sp, players, week):
+    """Each team's projected score for the week: ESPN's projection for every
+    player in a starting slot, as the lineup stands now -- plus what is missing
+    (starters on bye, out, slots left empty, players ESPN has no number for)."""
+    byes = snap.get("byes") or {}
+    out = {}
+    for t in snap["teams"]:
+        proj, n, on_bye, hurt, nop = 0.0, 0, 0, 0, 0
+        for e in t["roster"]:
+            if e.get("slot") in (20, 21):
+                continue
+            n += 1
+            rec = sp.get(str(e["pid"])) or {}
+            m = players.get(str(e["pid"])) or rec.get("meta") or {}
+            if m.get("pro") and byes.get(m["pro"]) == week:
+                on_bye += 1
+            elif (e.get("inj") or "") in INJ_OUT:
+                hurt += 1
+            if rec.get("pw") is None:
+                nop += 1
+            proj += rec.get("pw") or 0
+        out[str(t["id"])] = {"proj": round(proj, 1), "starters": n, "empty": max(0, STARTER_SLOTS - n),
+                             "byes": on_bye, "outs": hurt, "noProj": nop}
+    return out
+
+
+def build(baseline, ledger, players, stats=None, weekly=None, predictions=None):
     snap = ledger.get("snapshot")
     if not snap:
         sys.exit("no roster snapshot yet -- run once online first")
@@ -571,7 +605,7 @@ def build(baseline, ledger, players, stats=None, weekly=None):
         gp = rec.get("gp") or 0
         return {"pts": rec["pts"], "gp": gp, "ppg": round(rec["pts"] / gp, 1) if gp else 0, "rk": rec.get("rk"),
                 "wk": w[latest - 1] if len(w) >= latest else None, "w": w, "prev": rec.get("prev"),
-                "proj": rec.get("proj"), "line": rec.get("line") or {}}
+                "proj": rec.get("proj"), "pw": rec.get("pw"), "line": rec.get("line") or {}}
     rostered = {str(e["pid"]) for t in snap["teams"] for e in t["roster"]}
     pool = []
     top = sorted(sp.items(), key=lambda kv: -kv[1]["pts"])
@@ -671,6 +705,11 @@ def build(baseline, ledger, players, stats=None, weekly=None):
                 else:
                     k["new"] = True
 
+    # this week's lineup projections, kept week by week so the picks can be scored later
+    pw_week = (stats or {}).get("week")
+    if predictions is not None and sp and pw_week and any(r.get("pw") is not None for r in sp.values()):
+        predictions[str(pw_week)] = {"at": snap["fetched"], "teams": lineup_projections(snap, sp, players, pw_week)}
+
     # names for anyone in an event who is no longer on a roster
     missing = {str(pid) for ev in events for pid in
                [a["pid"] for a in ev["adds"]] + [d["pid"] for d in ev["drops"]] + [t["pid"] for t in ev["trades"]] +
@@ -693,6 +732,7 @@ def build(baseline, ledger, players, stats=None, weekly=None):
         "noteManual": load_json(TRACKER_DIR / "note-manual.json", None),
         "payouts": load_json(TRACKER_DIR / f"payouts-{SEASON}.json", None),
         "picksix": picksix_rows(load_json(PICKSIX, {}), teams),
+        "predictions": predictions or {},
         "stats": {
             "adds": sum(len(e["adds"]) for e in events), "drops": sum(len(e["drops"]) for e in events),
             "trades": sum(1 for e in events if e["trades"]),
@@ -726,13 +766,14 @@ def main():
     new_tx = 0
     stats = load_json(STATS, None)
     history = load_json(HISTORY, {})
+    predictions = load_json(PREDICTIONS, {})
     if not offline:
         ledger, new_tx, stats = fetch(ledger, baseline)
-    payload, missing = build(baseline, ledger, players, stats, history)
+    payload, missing = build(baseline, ledger, players, stats, history, predictions)
     if missing and not offline:
         for pid, p in kona_players([int(x) for x in missing]).items():
             players[str(pid)] = meta_from_espn(p)
-        payload, missing = build(baseline, ledger, players, stats, history)
+        payload, missing = build(baseline, ledger, players, stats, history, predictions)
     if missing:
         payload["warnings"].append(f"no name on file for player ids {sorted(missing)}")
 
@@ -756,6 +797,9 @@ def main():
     hist_txt = json.dumps(history, separators=(",", ":"), sort_keys=True)
     if not HISTORY.exists() or HISTORY.read_text() != hist_txt:
         HISTORY.write_text(hist_txt)
+    pred_txt = json.dumps(predictions, separators=(",", ":"), sort_keys=True)
+    if not PREDICTIONS.exists() or PREDICTIONS.read_text() != pred_txt:
+        PREDICTIONS.write_text(pred_txt)
     # the cache keeps identities only -- stats and the free-agent flag are per run
     cache = {k: {f: v[f] for f in ("name", "pos", "nfl", "pro", "img") if f in v} for k, v in players.items() if not v.get("fa")}
     players_txt = json.dumps(cache, separators=(",", ":"), sort_keys=True)
