@@ -389,28 +389,51 @@ INJ_OUT = ("OUT", "DOUBTFUL", "SUSPENSION", "INJURY_RESERVE")
 
 
 def lineup_projections(snap, sp, players, week):
-    """Each team's projected score for the week: ESPN's projection for every
-    player in a starting slot, as the lineup stands now -- plus what is missing
-    (starters on bye, out, slots left empty, players ESPN has no number for)."""
+    """Each team's projected score for the week, two ways. ESPN's: its weekly
+    projection for every player in a starting slot, as the lineup stands now.
+    The Funday model: equal parts what that lineup has averaged this season
+    (per-game points of the starters, bye and out players at zero), the team's
+    form (its last three results) and ESPN's number -- our own line, with the
+    league's own data in it. Also what is missing: starters on bye, out, slots
+    left empty, players ESPN has no number for."""
     byes = snap.get("byes") or {}
+    scores = defaultdict(list)                      # team -> [(week, points)] from decided games before this week
+    for m in snap.get("matchups") or []:
+        if m.get("playoff") or m.get("winner") in (None, "UNDECIDED") or m["week"] >= week:
+            continue
+        scores[m["home"]].append((m["week"], m["hp"]))
+        scores[m["away"]].append((m["week"], m["ap"]))
     out = {}
     for t in snap["teams"]:
-        proj, n, on_bye, hurt, nop = 0.0, 0, 0, 0, 0
+        proj, lineup, n, on_bye, hurt, nop = 0.0, 0.0, 0, 0, 0, 0
         for e in t["roster"]:
             if e.get("slot") in (20, 21):
                 continue
             n += 1
             rec = sp.get(str(e["pid"])) or {}
             m = players.get(str(e["pid"])) or rec.get("meta") or {}
-            if m.get("pro") and byes.get(m["pro"]) == week:
+            bye = bool(m.get("pro") and byes.get(m["pro"]) == week)
+            down = (e.get("inj") or "") in INJ_OUT
+            if bye:
                 on_bye += 1
-            elif (e.get("inj") or "") in INJ_OUT:
+            elif down:
                 hurt += 1
             if rec.get("pw") is None:
                 nop += 1
             proj += rec.get("pw") or 0
-        out[str(t["id"])] = {"proj": round(proj, 1), "starters": n, "empty": max(0, STARTER_SLOTS - n),
-                             "byes": on_bye, "outs": hurt, "noProj": nop}
+            if not bye and not down:
+                gp = rec.get("gp") or 0
+                lineup += (rec.get("pts") or 0) / gp if gp else (rec.get("pw") or 0)
+        sc = [p for _, p in sorted(scores.get(t["id"], []))]
+        avg = sum(sc) / len(sc) if sc else None
+        form = sum(sc[-3:]) / len(sc[-3:]) if sc else None
+        parts = [x for x in (lineup, form, proj) if x]
+        out[str(t["id"])] = {
+            "proj": round(proj, 1), "lineup": round(lineup, 1),
+            "form": round(form, 1) if form is not None else None, "avg": round(avg, 1) if avg is not None else None,
+            "funday": round(sum(parts) / len(parts), 1) if parts else None,
+            "starters": n, "empty": max(0, STARTER_SLOTS - n), "byes": on_bye, "outs": hurt, "noProj": nop,
+        }
     return out
 
 

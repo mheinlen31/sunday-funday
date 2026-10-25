@@ -719,30 +719,40 @@
     return card('Matchups', 'this week and next', matchupRows(M, cur) + matchupRows(M, cur + 1));
   }
 
-  /* ---------- this week's predictions: ESPN's projections for the lineups as they stand ---------- */
+  /* ---------- this week's predictions: the Funday model beside ESPN's ----------
+     Funday number (from the tracker script): equal parts what that lineup has
+     averaged this season, the team's last three results, and ESPN's projection
+     for the same lineup. The line is the gap and the total between the two
+     Funday numbers; the odds set the gap against how far scores land from the
+     model; the stakes come from the playoff simulation with this game forced
+     each way. ESPN's own pick is kept alongside so both can be scored. */
   function erf(x) {
     var sg = x < 0 ? -1 : 1; x = Math.abs(x);
     var t = 1 / (1 + 0.3275911 * x);
     var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
     return sg * y;
   }
-  function winProb(diff, sd) { return 0.5 * (1 + erf(diff / (2 * sd))); }   // two teams, each landing ~sd from its projection
+  function winProb(diff, sd) { return 0.5 * (1 + erf(diff / (2 * sd))); }   // two teams, each landing ~sd from its number
+  function half(x) { var v = Math.round(Math.abs(x) * 2) / 2; return v.toFixed(1); }
   var PRED;
   function predictions() {
     if (PRED !== undefined) return PRED;
     var PR = T.predictions || {}, cur = T.current || T.week, entry = PR[String(cur)];
-    var res = [], picks = { w: 0, l: 0, last: null };
-    Object.keys(PR).map(Number).sort(function (a, b) { return a - b; }).forEach(function (wk) {
+    var res = [], picks = { fun: { w: 0, l: 0 }, espn: { w: 0, l: 0 }, last: null };
+    Object.keys(PR).map(Number).sort(function (x, y) { return x - y; }).forEach(function (wk) {
       if (wk >= cur) return;
-      var e = PR[String(wk)], ww = 0, ll = 0;
+      var e = PR[String(wk)], fw = 0, fl = 0, ew = 0, el = 0;
       (T.matchups || []).filter(function (m) { return m.week === wk && regular(m) && decided(m); }).forEach(function (m) {
         var h = e.teams[String(m.home)], a = e.teams[String(m.away)];
-        if (!h || !a || h.noProj >= h.starters || a.noProj >= a.starters) return;
-        res.push(m.hp - h.proj, m.ap - a.proj);
-        if (h.proj === a.proj || m.hp === m.ap) return;
-        if ((h.proj > a.proj) === (m.hp > m.ap)) ww++; else ll++;
+        if (!h || !a || h.noProj >= h.starters || a.noProj >= a.starters || m.hp === m.ap) return;
+        var homeWon = m.hp > m.ap;
+        if (h.funday != null && a.funday != null) {
+          res.push(m.hp - h.funday, m.ap - a.funday);
+          if (h.funday !== a.funday) { if ((h.funday > a.funday) === homeWon) fw++; else fl++; }
+        }
+        if (h.proj !== a.proj) { if ((h.proj > a.proj) === homeWon) ew++; else el++; }
       });
-      if (ww + ll) { picks.w += ww; picks.l += ll; picks.last = { week: wk, w: ww, l: ll }; }
+      if (fw + fl + ew + el) { picks.fun.w += fw; picks.fun.l += fl; picks.espn.w += ew; picks.espn.l += el; picks.last = { week: wk, fun: [fw, fl], espn: [ew, el] }; }
     });
     var sd = (odds() || {}).sd || 25, calibrated = res.length >= 10;
     if (calibrated) {
@@ -753,8 +763,10 @@
     if (entry) (T.matchups || []).filter(function (m) { return m.week === cur && regular(m); }).forEach(function (m) {
       var h = entry.teams[String(m.home)], a = entry.teams[String(m.away)];
       if (!h || !a || (h.noProj >= h.starters && a.noProj >= a.starters)) return;
-      var p = winProb(h.proj - a.proj, sd);
-      games.push({ m: m, h: h, a: a, pHome: p, fav: p >= 0.5 ? m.home : m.away, pFav: Math.max(p, 1 - p) });
+      var own = h.funday != null && a.funday != null, hf = own ? h.funday : h.proj, af = own ? a.funday : a.proj;
+      var p = winProb(hf - af, sd), pe = winProb(h.proj - a.proj, sd);
+      games.push({ m: m, h: h, a: a, hf: hf, af: af, own: own, pHome: p, fav: p >= 0.5 ? m.home : m.away, pFav: Math.max(p, 1 - p),
+        pEspn: pe, espnFav: pe >= 0.5 ? m.home : m.away, spread: hf - af, total: hf + af });
     });
     PRED = { week: cur, entry: entry, games: games, sd: sd, picks: picks, calibrated: calibrated };
     return PRED;
@@ -763,6 +775,7 @@
     var P = predictions(), cur = P.week;
     if (!P.games.length) return matchupsCard(M);
     var w = M.W.filter(function (x) { return x.week === cur; })[0], live = !!(w && w.live), done = !!(w && w.done);
+    var O = odds() || {}, STK = O.stakes || {};
     function notes(t) {
       var n = [];
       if (t.byes) n.push(t.byes + ' on bye');
@@ -771,27 +784,55 @@
       if (t.noProj && !t.byes) n.push(t.noProj + ' with no projection');
       return n.length ? '<small class="pd-note">' + esc(n.join(' · ')) + '</small>' : '';
     }
-    function side(tid, t, pts, fav, right) {
-      return '<div class="pd-side' + (fav ? ' fav' : '') + (right ? ' r' : '') + '"><b>' + esc(owner(tid)) + '</b><span>' + fmt1(t.proj) + ' proj' +
-        (live || done ? ' · ' + fmt1(pts) + (done ? ' final' : ' now') : '') + '</span>' + notes(t) + '</div>';
+    function side(tid, t, num, own, pts, fav, right) {
+      return '<div class="pd-side' + (fav ? ' fav' : '') + (right ? ' r' : '') + '"><b>' + esc(owner(tid)) + '</b>' +
+        '<span>' + fmt1(num) + (own ? ' Funday' : ' proj') + '</span>' +
+        '<small class="pd-espn">' + (own ? 'ESPN ' + fmt1(t.proj) : '') + (live || done ? (own ? ' · ' : '') + fmt1(pts) + (done ? ' final' : ' now') : '') + '</small>' + notes(t) + '</div>';
     }
-    var games = P.games.slice().sort(function (a, b) { return a.pFav - b.pFav; });
+    function story(m) {
+      var rr = M.R && M.R[m.home] && M.R[m.home][m.away], out = [];
+      if (rr && rr.games.length) {
+        var g = rr.games[rr.games.length - 1], hw = g[1] > g[2];
+        out.push('Rematch of week ' + g[0] + ' (' + esc(owner(hw ? m.home : m.away)) + ' ' + fmt1(Math.max(g[1], g[2])) + '–' + fmt1(Math.min(g[1], g[2])) + ')');
+      }
+      [m.home, m.away].forEach(function (tid) {
+        var r = (T.teams.filter(function (t) { return t.id === tid; })[0] || {}).record || {};
+        if ((r.streakLength || 0) >= 3 && (r.streakType === 'WIN' || r.streakType === 'LOSS')) out.push(esc(owner(tid)) + ' has ' + (r.streakType === 'WIN' ? 'won' : 'lost') + ' ' + r.streakLength + ' straight');
+      });
+      return out.slice(0, 2).join(' · ');
+    }
+    function stakes(m) {
+      var k = STK[m.home + '-' + m.away];
+      if (!k || k.home.win == null || k.away.win == null) return '';
+      return 'Playoff odds with a win / a loss: ' + esc(owner(m.home)) + ' ' + pct(k.home.win) + ' / ' + pct(k.home.lose) + ' · ' + esc(owner(m.away)) + ' ' + pct(k.away.win) + ' / ' + pct(k.away.lose);
+    }
+    var games = P.games.slice().sort(function (x, y) { return x.pFav - y.pFav; });
     var rows = games.map(function (g, i) {
       var m = g.m, hp = Math.round(g.pHome * 100), hWin = g.pHome >= 0.5;
       var right = done && m.winner !== 'UNDECIDED' ? ((m.winner === 'HOME') === hWin) : null;
+      var tags = [];
+      if (i === 0 && games.length > 1) tags.push('<em class="pd-tag">Game of the week</em>');
+      if (g.own && g.fav !== g.espnFav && Math.abs(g.pHome - 0.5) >= 0.03) tags.push('<em class="pd-tag alert">Upset alert · ESPN likes ' + esc(owner(g.espnFav)) + '</em>');
+      else if (g.own && g.fav !== g.espnFav) tags.push('<em class="pd-tag faint">ESPN leans ' + esc(owner(g.espnFav)) + '</em>');
+      var sp = Math.abs(g.spread), line = (sp < 0.5 ? 'Pick ’em' : esc(owner(g.fav)) + ' −' + half(sp)) + ', O/U ' + half(g.total);
+      var foot = ['<b>Line</b>' + line, story(m), stakes(m)].filter(Boolean).join(' · ');
       return '<li class="pd-game' + (right === true ? ' pd-right' : right === false ? ' pd-wrong' : '') + '">' +
-        (i === 0 && games.length > 1 ? '<em class="pd-tag">Game of the week</em>' : '') +
-        side(m.home, g.h, m.hp, hWin, false) +
+        (tags.length ? '<div class="pd-tags">' + tags.join('') + '</div>' : '') +
+        side(m.home, g.h, g.hf, g.own, m.hp, hWin, false) +
         '<div class="pd-odds" title="' + hp + '% ' + esc(owner(m.home)) + ' · ' + (100 - hp) + '% ' + esc(owner(m.away)) + '"><i style="width:' + hp + '%"></i>' +
         '<b>' + Math.round(g.pFav * 100) + '%</b><span>' + esc(owner(g.fav)) + (right === true ? ' ✓' : right === false ? ' ✗' : '') + '</span></div>' +
-        side(m.away, g.a, m.ap, !hWin, true) + '</li>';
+        side(m.away, g.a, g.af, g.own, m.ap, !hWin, true) +
+        '<div class="pd-foot">' + foot + '</div></li>';
     }).join('');
-    var pk = P.picks, rec = pk.w + pk.l ? ' · picks ' + pk.w + '–' + pk.l + ' so far' + (pk.last ? ' (week ' + pk.last.week + ': ' + pk.last.w + '–' + pk.last.l + ')' : '') : '';
-    var how = '<p class="sm-line"><b>How</b> each number adds ESPN’s projection for every player in that lineup right now; the odds set the gap between the two against ' +
-      (P.calibrated ? 'how far scores have landed from their projections this season (±' + fmt1(P.sd) + ' a team)' : 'the league’s week-to-week swing (±' + fmt1(P.sd) + ' a team) until enough weeks are in to measure the projections themselves') +
-      '. Lineups change until kickoff, and so do these.</p>';
+    var pk = P.picks, rec = pk.fun.w + pk.fun.l + pk.espn.w + pk.espn.l ?
+      ' · picks so far: Funday ' + pk.fun.w + '–' + pk.fun.l + ', ESPN ' + pk.espn.w + '–' + pk.espn.l +
+      (pk.last ? ' (week ' + pk.last.week + ': ' + pk.last.fun[0] + '–' + pk.last.fun[1] + ' and ' + pk.last.espn[0] + '–' + pk.last.espn[1] + ')' : '') : '';
+    var how = '<p class="sm-line"><b>How</b> the Funday number is equal parts what that lineup has averaged this season, the team’s last three weeks, and ESPN’s projection for the same lineup; ESPN’s own number sits underneath. ' +
+      'The odds set the gap between the two Funday numbers against ' +
+      (P.calibrated ? 'how far scores have landed from the model this season (±' + fmt1(P.sd) + ' a team)' : 'the league’s week-to-week swing (±' + fmt1(P.sd) + ' a team) until enough weeks are in to measure the model itself') +
+      '; the line is that gap and the total. Playoff odds with a win or a loss come from the season simulation with this game forced each way. Lineups change until kickoff, and so does all of this.</p>';
     var next = matchupRows(M, cur + 1);
-    return card('Week ' + cur + ' predictions', 'ESPN’s projections for the lineups as they stand' + rec + (live ? ' · <span class="rt-live">in progress</span>' : ''),
+    return card('Week ' + cur + ' predictions', 'the Funday line, with ESPN’s number for comparison' + rec + (live ? ' · <span class="rt-live">in progress</span>' : ''),
       '<ul class="pd-list">' + rows + '</ul>' + how + (next ? '<div class="pd-next">' + next + '</div>' : ''));
   }
   function picksixCard() {
@@ -843,10 +884,11 @@
     if (O) { out.push('PLAYOFF ODDS'); out.push(O.rows.slice().sort(function (a, b) { return b.playoff - a.playoff; }).map(function (r) { return r.t.owner + ' ' + pct(r.playoff); }).join(', ')); out.push(''); }
     var PD = predictions();
     if (PD.games.length) {
-      out.push('WEEK ' + PD.week + ' PICKS');
+      out.push('WEEK ' + PD.week + ' PICKS · the Funday line');
       PD.games.slice().sort(function (a, b) { return b.pFav - a.pFav; }).forEach(function (g) {
-        var home = g.fav === g.m.home, und = home ? g.m.away : g.m.home;
-        out.push(owner(g.fav) + ' over ' + owner(und) + ' (' + Math.round(g.pFav * 100) + '%)  ' + fmt1(home ? g.h.proj : g.a.proj) + '–' + fmt1(home ? g.a.proj : g.h.proj) + ' proj');
+        var home = g.fav === g.m.home, und = home ? g.m.away : g.m.home, sp = Math.abs(g.spread);
+        out.push(owner(g.fav) + ' over ' + owner(und) + ' (' + Math.round(g.pFav * 100) + '%)  ' + (sp < 0.5 ? 'pick ’em' : owner(g.fav) + ' −' + half(sp)) + ', O/U ' + half(g.total) +
+          (g.own ? (g.fav === g.espnFav ? '  ·  ESPN agrees' : '  ·  ESPN says ' + owner(g.espnFav)) : ''));
       });
       out.push('');
     }
@@ -1007,7 +1049,7 @@
       if (decided(m)) {
         scores[h].push(m.hp); scores[a].push(m.ap); pf[h] += m.hp; pf[a] += m.ap; games[h]++; games[a]++;
         if (m.hp > m.ap) wins[h]++; else if (m.ap > m.hp) wins[a]++; else { wins[h] += 0.5; wins[a] += 0.5; }
-      } else { todo.push([h, a]); left[h]++; left[a]++; }
+      } else { todo.push([h, a, m.week]); left[h]++; left[a]++; }
     });
     var all = [].concat.apply([], scores);
     if (all.length < n) return (ODDS = null);
@@ -1018,21 +1060,36 @@
     var rnd = mulberry32(Date.parse(T.generated || '') || 7);
     function gauss() { var u = rnd() || 1e-9, v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
     var tally = teams.map(function () { return { playoff: 0, bye: 0, seed: [0, 0, 0, 0], pts: [0, 0, 0], wins: 0 }; });
-    var w = [], p = [], order = teams.map(function (_, j) { return j; });
+    var w = [], p = [], order = teams.map(function (_, j) { return j; }), wonH = [], inPO = [];
+    var cur = T.current || T.week, gi = [];                       // this week's games, for what is at stake
+    todo.forEach(function (g, j) { if (g[2] === cur) gi.push(j); });
+    var stk = gi.map(function () { return { hw: 0, hwH: 0, hwA: 0, hl: 0, hlH: 0, hlA: 0 }; });
     for (var sim = 0; sim < N; sim++) {
       for (i = 0; i < n; i++) { w[i] = wins[i]; p[i] = pf[i]; }
       for (var g = 0; g < todo.length; g++) {
         var h = todo[g][0], a = todo[g][1], sh = mean[h] + sd * gauss(), sa = mean[a] + sd * gauss();
-        p[h] += sh; p[a] += sa; if (sh > sa) w[h]++; else w[a]++;
+        p[h] += sh; p[a] += sa; wonH[g] = sh > sa; if (sh > sa) w[h]++; else w[a]++;
       }
       order.sort(function (x, y) { return w[y] - w[x] || p[y] - p[x]; });
-      for (k = 0; k < n; k++) { var t = tally[order[k]]; if (k < cut) t.playoff++; if (k < byes) t.bye++; if (k < 4) t.seed[k]++; t.wins += w[order[k]]; }
+      for (k = 0; k < n; k++) { var t = tally[order[k]]; inPO[order[k]] = k < cut; if (k < cut) t.playoff++; if (k < byes) t.bye++; if (k < 4) t.seed[k]++; t.wins += w[order[k]]; }
+      for (k = 0; k < gi.length; k++) {
+        var gg = todo[gi[k]], sk = stk[k], hPO = inPO[gg[0]], aPO = inPO[gg[1]];
+        if (wonH[gi[k]]) { sk.hw++; if (hPO) sk.hwH++; if (aPO) sk.hwA++; } else { sk.hl++; if (hPO) sk.hlH++; if (aPO) sk.hlA++; }
+      }
       order.sort(function (x, y) { return p[y] - p[x]; });
       for (k = 0; k < 3 && k < n; k++) tally[order[k]].pts[k]++;
     }
+    var stakes = {};
+    gi.forEach(function (j, k) {
+      var gg = todo[j], sk = stk[k];
+      stakes[teams[gg[0]].id + '-' + teams[gg[1]].id] = {
+        home: { win: sk.hw ? sk.hwH / sk.hw : null, lose: sk.hl ? sk.hlH / sk.hl : null },
+        away: { win: sk.hl ? sk.hlA / sk.hl : null, lose: sk.hw ? sk.hwA / sk.hw : null }
+      };
+    });
     var reg = PAY.regular || [425, 225], seeds = PAY.seeds || { '3': 80, '4': 40 }, pr = PAY.pointsRace || [410, 250, 100];
     ODDS = {
-      sims: N, sd: sd, remaining: todo.length,
+      sims: N, sd: sd, remaining: todo.length, stakes: stakes,
       rows: teams.map(function (t, j) {
         var x = tally[j], sdd = x.seed.map(function (v) { return v / N; }), pts = x.pts.map(function (v) { return v / N; });
         return { t: t, playoff: x.playoff / N, bye: x.bye / N, seed1: sdd[0], pts1: pts[0], expWins: x.wins / N, games: games[j] + left[j], left: left[j], mean: mean[j],
@@ -1212,7 +1269,7 @@
     n.push('<li><b>Pick sixes</b> are read from ESPN\u2019s play-by-play, which names the passer; each one is checked against that week\u2019s fantasy lineups. A starter who threw one is flagged <b class="rt-p6-start">Started by</b> \u2014 the points override is applied by hand in ESPN.</li>');
     n.push('<li><b>Standings</b> use the Manifesto\u2019s tiebreakers (record, total points, head-to-head record, head-to-head points), not ESPN\u2019s. The payout race shows weekly money already won (a tie for the week\u2019s high score splits the $15 evenly; those weeks are starred) and what each place would pay if the season ended today; the playoff money is settled in January.</li>');
     n.push('<li><b>\u25b2\u25bc</b> on the Value tab compare with the tracker\u2019s snapshot from the week before. A <b>BYE</b> tag on a player, and the <b>starters on bye</b> or <b>out</b> count in a team\u2019s header, reflect the lineup as it stood at the last refresh.</li>');
-    n.push('<li><b>Predictions</b> add up ESPN’s weekly projection for every player in each lineup as it stands at the last refresh; the win odds set the gap between the two teams against how far scores land from their projections (the league’s week-to-week swing until enough weeks are in). The picks record counts the projected favourite winning, week by week.</li>');
+    n.push('<li><b>Predictions</b> are the Funday model\u2019s: equal parts what each lineup has averaged this season, the team\u2019s last three weeks, and ESPN\u2019s projection for that lineup as it stands at the last refresh. The line is the gap and the total between the two numbers; the odds set the gap against how far scores land from the model (the league\u2019s week-to-week swing until enough weeks are in); an upset alert means ESPN likes the other side. Both picks are scored every week \u2014 Funday and ESPN \u2014 so the league can see who is better. Playoff odds with a win or a loss come from the season simulation with that game forced each way.</li>');
     n.push('<li><b>Playoff odds</b> play the rest of the regular season out 10,000 times, each team scoring like it has so far (its own average, with the league\u2019s usual week-to-week swing), then seed by the Manifesto\u2019s tiebreakers. Odds, not predictions: a 70% team misses three times in ten. Exp. $ is the regular-season money (places, seeds, points race) weighted by those odds.</li>');
     n.push('<li><b>Stats</b> are season-to-date in Sunday Funday scoring, straight from ESPN. The rank is where he sits among every NFL player at his position; per game counts only games he played; the 2025 column is last season\u2019s total. Free agents can be shown alongside rostered players.</li>');
     n.push('<li><b>Above replacement</b> puts every position on one scale: a player’s points less what a replacement-level player at his position averages over the same games. Replacement level is the next man up — the three players ranked just outside the league’s starting lineups at each position (QB 1, RB 2, WR 2, TE 1, K 1 and D/ST 1 per team, plus the flex the way this week’s lineups use it). That is why a QB pickup can score more raw points than a tight end and still rank below him: the next QB on the wire is worth far more than the next tight end.</li>');
