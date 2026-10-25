@@ -119,15 +119,32 @@
     });
     return libP;
   }
+  function withTimeout(p, ms) {
+    return new Promise(function (res, rej) {
+      var t = setTimeout(function () { rej(new Error('drawing timed out')); }, ms);
+      p.then(function (v) { clearTimeout(t); res(v); }, function (e) { clearTimeout(t); rej(e); });
+    });
+  }
   function capture(card) {
     return load().then(function () {
       var st = buildStage(card);
+      // html2canvas clones the whole document into a frame. Safari then waits for
+      // every image in that clone to load, and a lazy image below the fold never
+      // does -- the button sat on "Drawing..." forever on iPhones. So only the
+      // stage goes into the clone (everything else under <body> is skipped), the
+      // stage's own images load eagerly, and the whole draw has a time limit.
+      var tall = st.offsetHeight > 2600;
       return waitImages(st).then(function () {
-        return html2canvas(st, {
-          scale: 2, useCORS: true, logging: false, backgroundColor: '#f3f4f1',
+        return withTimeout(html2canvas(st, {
+          scale: tall ? 1.5 : 2, useCORS: true, logging: false, backgroundColor: '#f3f4f1',
           windowWidth: 1200, windowHeight: 900, scrollX: 0, scrollY: 0,
-          onclone: function (doc) { var s = doc.querySelector('.share-stage'); if (s) { s.style.clipPath = 'none'; s.style.zIndex = '1'; } }
-        });
+          ignoreElements: function (el) { return el.parentNode === document.body && el !== st; },
+          onclone: function (doc) {
+            var s = doc.querySelector('.share-stage');
+            if (s) { s.style.clipPath = 'none'; s.style.zIndex = '1'; }
+            doc.querySelectorAll('img[loading]').forEach(function (im) { im.removeAttribute('loading'); });
+          }
+        }), 30000);
       }).then(function (c) { st.remove(); return c; }, function (err) { st.remove(); throw err; });
     });
   }
