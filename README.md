@@ -29,7 +29,7 @@ team.
 Open `index.html` in a browser, or serve the folder:
 
 ```bash
-python3 -m http.server 4200 --directory ~/sunday-funday
+python3 -m http.server 4200 --directory ~/"Claude Projects"/sunday-funday
 # then visit http://localhost:4200
 ```
 
